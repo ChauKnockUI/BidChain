@@ -1,57 +1,145 @@
-# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
+README (rút gọn, chỉ những gì member khác cần)
+# BidChain — Quick Start (simplified)
 
-This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
+## Mục đích
+Ứng dụng đấu giá demo (Web/Mobile) dùng Smart Contract (Solidity/Hardhat) + Backend (Node.js/Express) + MongoDB.  
+Dùng Ganache để demo ETH ảo.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+## Cấu trúc
+- blockchain/    — Hardhat, contract, scripts/deploy.js
+- backend/       — Express API, kết nối blockchain, MongoDB
+- frontend/      — Flutter app (tách riêng)
 
-## Project Overview
+## Yêu cầu
+- Node.js 18.x (dùng nvm recommended)
+- npm
+- Ganache (GUI hoặc CLI) chạy trên `http://127.0.0.1:7545`
+- MongoDB (Atlas)
+- Postman (để chạy test)
 
-This example project includes:
+## Thiết lập nhanh (chạy lần đầu)
+1. Chuẩn bị Ganache (mở lên, giữ mạng local).
+2. Deploy contract và cập nhật backend `.env` (script deploy tự update):
+   ```bash
+   cd blockchain
+   npm install
+   npx hardhat run scripts/deploy.js --network ganache
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
 
-## Usage
+Kết quả tự cập nhật backend/.env với CONTRACT_ADDRESS.
 
-### Running Tests
+Backend:
 
-To run all the tests in the project, execute the following command:
+cd ../backend
+npm install
+# Tạo file .env theo mẫu bên dưới (đã có CONTRACT_ADDRESS)
+npm run dev
 
-```shell
-npx hardhat test
-```
+backend/.env (cần có)
+    PORT=3000
+    MONGO_URI=<your mongo uri>
+    JWT_SECRET=<secret>
+    GANACHE_RPC=http://127.0.0.1:7545
+    CONTRACT_ADDRESS=<auto-updated by deploy script>
+    CONTRACT_ABI_PATH=./abi/Auction.json
+    MASTER_KEY=<64-hex-chars>
 
-You can also selectively run the Solidity or `node:test` tests:
+API chính (base = http://localhost:3000)
 
-```shell
-npx hardhat test solidity
-npx hardhat test nodejs
-```
+    POST /api/auth/register
+    body: { "username", "password" } → tạo user, tạo ví, trả token
 
-### Make a deployment to Sepolia
+    POST /api/auth/login
+    body: { "username", "password" } → trả token
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+    GET /api/auction/wallet/balance
+    Authorization: Bearer <token> → trả { address, balance }
 
-To run the deployment to a local chain:
+    POST /api/auction/create
+    body: { startingPriceWei, durationSeconds, metadataUrl } + Auth → tạo auction trên chain
 
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
-```
+    POST /api/auction/bid
+    body: { auctionId, amountWei } + Auth → đặt giá
+## POSTMAN TESTCASES
+### Register Seller
+    Request
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+        POST {{baseUrl}}/api/auth/register
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+        Body (raw JSON):
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+        {
+        "username": "seller1",
+        "password": "123456"
+        }
 
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
+ ### Register Buyer
+    ➤ Request
 
-After setting the variable, you can run the deployment with the Sepolia network:
+        POST {{baseUrl}}/api/auth/register
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+        Body:
+
+        {
+        "username": "buyer1",
+        "password": "123456"
+        }
+
+   ### Check Seller Balance
+    ➤ Request
+
+    GET {{baseUrl}}/api/auction/wallet/balance
+
+    Header:
+
+    Authorization: Bearer {{sellerToken}}
+
+### Check Buyer Balance
+    ➤ Request
+
+    GET {{baseUrl}}/api/auction/wallet/balance
+
+    Header:
+
+    Authorization: Bearer {{buyerToken}}
+
+### Create Auction (Seller)
+    ➤ Request
+
+    POST {{baseUrl}}/api/auction/create
+
+    Header:
+
+    Authorization: Bearer {{sellerToken}}
+
+    Body:
+    {
+    "startingPriceWei": "10000000000000000",
+    "durationSeconds": 300,
+    "metadataUrl": "https://example.com/item1.json"
+    }
+
+### Bid (Buyer)
+    ➤ Request
+
+    POST {{baseUrl}}/api/auction/bid
+
+    Header:
+
+    Authorization: Bearer {{buyerToken}}
+
+    Body:
+    {
+    "auctionId": "{{auctionId}}",
+    "amountWei": "20000000000000000"
+    }
+
+## Bộ test Postman bao gồm:
+
+    Testcase	Mục đích
+    Register Seller	Tạo user + ví seller
+    Register Buyer	Tạo user + ví buyer
+    Check Seller Balance	Kiểm tra ví seller
+    Check Buyer Balance	Kiểm tra ví buyer
+    Create Auction (seller)	Tạo 1 phiên đấu giá
+    Bid (buyer)	Buyer đặt giá
