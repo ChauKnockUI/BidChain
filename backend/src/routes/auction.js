@@ -3,14 +3,15 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const OffchainAuction = require("../models/OffchainAuction");
+const BidHistory = require("../models/BidHistory");
 const { ethers } = require("ethers");
 const { decrypt } = require("../utils/crypto");
 require("dotenv").config();
 
-// Provider Ganache (Ethers v5)
+// Provider (Ethers v5)
 const provider = new ethers.providers.JsonRpcProvider(process.env.GANACHE_RPC);
 
-// Load ABI + Contract instance
+// Load ABI + Contract
 const contractJson = require("../../abi/Auction.json");
 const contract = new ethers.Contract(
     process.env.CONTRACT_ADDRESS,
@@ -22,18 +23,18 @@ const contract = new ethers.Contract(
 function auth(req, res, next) {
     const header = req.headers.authorization;
     if (!header) return res.status(401).json({ error: "Missing token" });
-    const token = header.split(" ")[1];
 
     try {
+        const token = header.split(" ")[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.userId = decoded.id;
         next();
-    } catch (err) {
+    } catch (e) {
         return res.status(401).json({ error: "Invalid token" });
     }
 }
 
-// ========== API LẤY SỐ DƯ ==========
+// ========== API LẤY SỐ DƯ ==========  
 router.get("/wallet/balance", auth, async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -46,20 +47,17 @@ router.get("/wallet/balance", auth, async (req, res) => {
     });
 });
 
-// ========== API TẠO PHIÊN ĐẤU GIÁ ==========
+// ========== API TẠO AUCTION ==========  
 router.post("/create", auth, async (req, res) => {
     try {
         const { startingPriceWei, durationSeconds, metadataUrl } = req.body;
 
         const user = await User.findById(req.userId);
-        if (!user) return res.status(404).json({ error: "user not found" });
+        if (!user) return res.status(404).json({ error: "User not found" });
 
-        const decryptedPrivateKey = decrypt(
-            user.encryptedPrivateKey,
-            process.env.MASTER_KEY
-        );
+        const privateKey = decrypt(user.encryptedPrivateKey, process.env.MASTER_KEY);
+        const wallet = new ethers.Wallet(privateKey, provider);
 
-        const wallet = new ethers.Wallet(decryptedPrivateKey, provider);
         const tx = await contract.connect(wallet).createAuction(
             startingPriceWei,
             durationSeconds,
@@ -67,10 +65,6 @@ router.post("/create", auth, async (req, res) => {
         );
 
         const receipt = await tx.wait();
-
-        // ============================
-        // 🔥 GIẢI MÃ EVENT CHUẨN 100%
-        // ============================
         const iface = contract.interface;
         const topic = iface.getEventTopic("AuctionCreated");
 
@@ -92,18 +86,29 @@ router.post("/create", auth, async (req, res) => {
             return res.status(500).json({ error: "Event AuctionCreated not found" });
         }
 
-        return res.json({
-            txHash: receipt.transactionHash,
-            auctionId: auctionId
+        //  Lưu auction vào MongoDB
+        await OffchainAuction.create({
+            auctionId: auctionId,
+            seller: user.ethAddress,
+            metadataUrl,
+            startingPrice: startingPriceWei,
+            highestBid: "0",
+            highestBidder: null,
+            endTime: Date.now() + durationSeconds * 1000,
+            ended: false
         });
 
+        return res.json({
+            txHash: receipt.transactionHash,
+            auctionId
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: err.message });
     }
 });
 
-// ========== API BID ==========
+// ========== API ĐẶT GIÁ ==========  
 router.post("/bid", auth, async (req, res) => {
     try {
         const { auctionId, amountWei } = req.body;
@@ -120,6 +125,23 @@ router.post("/bid", auth, async (req, res) => {
 
         const receipt = await tx.wait();
 
+        // Lưu lịch sử bid
+        await BidHistory.create({
+            auctionId,
+            bidder: user.ethAddress,
+            amount: amountWei,
+            timestamp: Date.now()
+        });
+
+        // Update auction info off-chain
+        await OffchainAuction.findOneAndUpdate(
+            { auctionId },
+            {
+                highestBid: amountWei,
+                highestBidder: user.ethAddress
+            }
+        );
+
         return res.json({
             success: true,
             txHash: receipt.transactionHash
@@ -128,6 +150,26 @@ router.post("/bid", auth, async (req, res) => {
         console.error(err);
         return res.status(500).json({ error: err.message });
     }
+});
+
+// ========== API LẤY TẤT CẢ AUCTION ==========  
+router.get("/all", async (req, res) => {
+    const auctions = await OffchainAuction.find().sort({ createdAt: -1 });
+    return res.json(auctions);
+});
+
+// ========== API LẤY CHI TIẾT AUCTION + LỊCH SỬ BID ==========  
+router.get("/:id", async (req, res) => {
+    const auction = await OffchainAuction.findOne({ auctionId: req.params.id });
+    if (!auction) return res.status(404).json({ error: "Auction not found" });
+
+    const bids = await BidHistory.find({ auctionId: req.params.id })
+        .sort({ timestamp: -1 });
+
+    return res.json({
+        auction,
+        bidHistory: bids
+    });
 });
 
 module.exports = router;
