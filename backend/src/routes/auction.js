@@ -41,8 +41,10 @@ router.post("/create", authMiddleware,[
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: "user not found" });
 
-        const privateKey = decrypt(user.encryptedPrivateKey, process.env.MASTER_KEY);
-        const wallet = new ethers.Wallet(privateKey, provider);
+        const decryptedPrivateKey = decrypt(
+            user.encryptedPrivateKey,
+            process.env.MASTER_KEY
+        );
 
         const wallet = new ethers.Wallet(decryptedPrivateKey, provider);
 
@@ -76,25 +78,13 @@ router.post("/create", authMiddleware,[
             return res.status(500).json({ error: "Event AuctionCreated not found" });
         }
 
-        //  Lưu auction vào MongoDB
-        await OffchainAuction.create({
-            auctionId: auctionId,
-            seller: user.ethAddress,
-            metadataUrl,
-            startingPrice: startingPriceWei,
-            highestBid: "0",
-            highestBidder: null,
-            endTime: Date.now() + durationSeconds * 1000,
-            ended: false
-        });
-
         return res.json({
             txHash: receipt.transactionHash,
-            auctionId
+            auctionId: auctionId
         });
-    } catch (err) {
+} catch (err) {
         console.error(err);
-        return res.status(500).json({ error: err.message });
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -182,8 +172,7 @@ router.post(
       // dùng ví của người bán (hoặc 1 ví hệ thống) để trả gas
       const user = await User.findById(req.user.id);
       if (!user) return res.status(404).json({ error: "User not found" });
-
-      const privateKey = decrypt(user.encryptedPrivateKey, process.env.MASTER_KEY);
+const privateKey = decrypt(user.encryptedPrivateKey, process.env.MASTER_KEY);
       const wallet = new ethers.Wallet(privateKey, provider);
 
       // (Nên kiểm tra xem đã hết giờ chưa ở đây trước khi gửi)
@@ -273,32 +262,12 @@ router.get("/:id", [param("id").isNumeric()], async (req, res) => {
     try {
         const auction = await OffchainAuction.findOne({ auctionId: req.params.id });
         if (!auction) {
-            return res.status(404).json({ error: "Auction not found" });
+return res.status(404).json({ error: "Auction not found" });
         }
         res.json(auction);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
-});
-
-// ========== API LẤY TẤT CẢ AUCTION ==========  
-router.get("/all", async (req, res) => {
-    const auctions = await OffchainAuction.find().sort({ createdAt: -1 });
-    return res.json(auctions);
-});
-
-// ========== API LẤY CHI TIẾT AUCTION + LỊCH SỬ BID ==========  
-router.get("/:id", async (req, res) => {
-    const auction = await OffchainAuction.findOne({ auctionId: req.params.id });
-    if (!auction) return res.status(404).json({ error: "Auction not found" });
-
-    const bids = await BidHistory.find({ auctionId: req.params.id })
-        .sort({ timestamp: -1 });
-
-    return res.json({
-        auction,
-        bidHistory: bids
-    });
 });
 
 module.exports = router;
