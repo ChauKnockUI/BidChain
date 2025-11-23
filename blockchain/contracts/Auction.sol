@@ -21,7 +21,8 @@ contract Auction {
         uint256 indexed auctionId,
         address indexed seller,
         uint256 startingPrice,
-        uint256 endTime
+        uint256 endTime,
+        string metadataUrl
     );
 
     event NewBid(
@@ -73,7 +74,8 @@ contract Auction {
             auctionCount,
             msg.sender,
             _startingPrice,
-            block.timestamp + _durationInSeconds
+            block.timestamp + _durationInSeconds,
+            _metadataUrl
         );
 
         return auctionCount;
