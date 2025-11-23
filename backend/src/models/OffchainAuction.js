@@ -21,8 +21,11 @@ const OffchainAuctionSchema = new mongoose.Schema(
     highestBidder: { type: String, required: true, lowercase: true, index: true },
     ended: { type: Boolean, default: false, index: true },
     winner: { type: String, lowercase: true, default: null },
+    imageCid: { type: String, required: false },
+    imageUrl: { type: String, required: false }, // URL từ IPFS Gateway
   },
   { timestamps: true } // Tự động thêm createdAt, updatedAt
+
 );
 
 module.exports = mongoose.model("OffchainAuction", OffchainAuctionSchema);

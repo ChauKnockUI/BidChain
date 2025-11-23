@@ -18,7 +18,8 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/auction", auctionRoutes);
 app.use("/api/user", userRoutes);
-
+const uploadRouter = require("./routes/upload");
+app.use("/api/upload", uploadRouter);
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
   cors: { origin: "*" },
@@ -28,7 +29,7 @@ const io = require("socket.io")(server, {
 io.on("connection", (socket) => {
   console.log("New client:", socket.id);
 
-socket.on("join_room", (auctionId) => {
+  socket.on("join_room", (auctionId) => {
     const roomName = `auction_room_${auctionId}`;
     socket.join(roomName);
     console.log(`Client ${socket.id} joined room ${roomName}`);
@@ -43,7 +44,7 @@ console.log("Starting blockchain event listeners...");
 // blockchain events
 contract.on("AuctionCreated", async (auctionId, seller, startingPrice, endTime, metadataUrl) => {
   console.log(`[Event] AuctionCreated: ID ${auctionId}`);
-try {
+  try {
     // MỚI: Đồng bộ vào DB
     const newAuction = new OffchainAuction({
       auctionId: Number(auctionId), // Ethers v5 trả về BigNumber, cần chuyển đổi
