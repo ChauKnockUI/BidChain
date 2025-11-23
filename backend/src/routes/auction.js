@@ -41,10 +41,8 @@ router.post("/create", authMiddleware,[
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ error: "user not found" });
 
-        const decryptedPrivateKey = decrypt(
-            user.encryptedPrivateKey,
-            process.env.MASTER_KEY
-        );
+        const privateKey = decrypt(user.encryptedPrivateKey, process.env.MASTER_KEY);
+        const wallet = new ethers.Wallet(privateKey, provider);
 
         const wallet = new ethers.Wallet(decryptedPrivateKey, provider);
 
@@ -57,10 +55,6 @@ router.post("/create", authMiddleware,[
         );
 
         const receipt = await tx.wait();
-
-        // ============================
-        // 🔥 GIẢI MÃ EVENT CHUẨN 100%
-        // ============================
         const iface = contract.interface;
         const topic = iface.getEventTopic("AuctionCreated");
 
@@ -82,14 +76,25 @@ router.post("/create", authMiddleware,[
             return res.status(500).json({ error: "Event AuctionCreated not found" });
         }
 
-        return res.json({
-            txHash: receipt.transactionHash,
-            auctionId: auctionId
+        //  Lưu auction vào MongoDB
+        await OffchainAuction.create({
+            auctionId: auctionId,
+            seller: user.ethAddress,
+            metadataUrl,
+            startingPrice: startingPriceWei,
+            highestBid: "0",
+            highestBidder: null,
+            endTime: Date.now() + durationSeconds * 1000,
+            ended: false
         });
 
+        return res.json({
+            txHash: receipt.transactionHash,
+            auctionId
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: err.message });
     }
 });
 
@@ -274,6 +279,26 @@ router.get("/:id", [param("id").isNumeric()], async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// ========== API LẤY TẤT CẢ AUCTION ==========  
+router.get("/all", async (req, res) => {
+    const auctions = await OffchainAuction.find().sort({ createdAt: -1 });
+    return res.json(auctions);
+});
+
+// ========== API LẤY CHI TIẾT AUCTION + LỊCH SỬ BID ==========  
+router.get("/:id", async (req, res) => {
+    const auction = await OffchainAuction.findOne({ auctionId: req.params.id });
+    if (!auction) return res.status(404).json({ error: "Auction not found" });
+
+    const bids = await BidHistory.find({ auctionId: req.params.id })
+        .sort({ timestamp: -1 });
+
+    return res.json({
+        auction,
+        bidHistory: bids
+    });
 });
 
 module.exports = router;
