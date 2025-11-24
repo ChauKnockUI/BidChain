@@ -5,7 +5,7 @@ import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/auction/auction_card.dart';
 
 class AuctionListPage extends StatefulWidget {
-  const AuctionListPage({Key? key}) : super(key: key);
+  const AuctionListPage({super.key});
 
   @override
   State<AuctionListPage> createState() => _AuctionListPageState();

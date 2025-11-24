@@ -1,64 +1,65 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTextStyles {
-  // Heading
-  static const TextStyle h1 = TextStyle(
+  // Heading - Lexend Font
+  static final TextStyle h1 = GoogleFonts.lexend(
     fontSize: 32,
     fontWeight: FontWeight.bold,
     height: 1.2,
   );
 
-  static const TextStyle h2 = TextStyle(
+  static final TextStyle h2 = GoogleFonts.lexend(
     fontSize: 28,
     fontWeight: FontWeight.bold,
     height: 1.3,
   );
 
-  static const TextStyle h3 = TextStyle(
+  static final TextStyle h3 = GoogleFonts.lexend(
     fontSize: 24,
     fontWeight: FontWeight.bold,
     height: 1.3,
   );
 
-  static const TextStyle h4 = TextStyle(
+  static final TextStyle h4 = GoogleFonts.lexend(
     fontSize: 20,
     fontWeight: FontWeight.w600,
     height: 1.4,
   );
 
-  // Body
-  static const TextStyle bodyLarge = TextStyle(
+  // Body - Lexend Font
+  static final TextStyle bodyLarge = GoogleFonts.lexend(
     fontSize: 16,
     fontWeight: FontWeight.w500,
     height: 1.5,
   );
 
-  static const TextStyle bodyMedium = TextStyle(
+  static final TextStyle bodyMedium = GoogleFonts.lexend(
     fontSize: 14,
     fontWeight: FontWeight.w500,
     height: 1.5,
   );
 
-  static const TextStyle bodySmall = TextStyle(
+  static final TextStyle bodySmall = GoogleFonts.lexend(
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.5,
   );
 
-  // Label
-  static const TextStyle labelLarge = TextStyle(
+  // Label - Lexend Font
+  static final TextStyle labelLarge = GoogleFonts.lexend(
     fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.4,
   );
 
-  static const TextStyle labelMedium = TextStyle(
+  static final TextStyle labelMedium = GoogleFonts.lexend(
     fontSize: 12,
     fontWeight: FontWeight.w600,
     height: 1.4,
   );
 
-  static const TextStyle labelSmall = TextStyle(
+  static final TextStyle labelSmall = GoogleFonts.lexend(
     fontSize: 10,
     fontWeight: FontWeight.w600,
     height: 1.4,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../widgets/common/custom_app_bar.dart';
@@ -8,7 +7,7 @@ import '../../widgets/common/custom_text_field.dart';
 
 class AuctionDetailPage extends StatefulWidget {
   final String auctionId;
-  const AuctionDetailPage({Key? key, required this.auctionId}) : super(key: key);
+  const AuctionDetailPage({super.key, required this.auctionId});
 
   @override
   State<AuctionDetailPage> createState() => _AuctionDetailPageState();

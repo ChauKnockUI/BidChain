@@ -2,28 +2,17 @@ import '../../domain/entities/auction_entity.dart';
 
 class AuctionModel extends AuctionEntity {
   const AuctionModel({
-    required String auctionId,
-    required String seller,
-    required String startingPrice,
-    required String highestBid,
-    required String highestBidder,
-    required DateTime endTime,
-    required String metadataUrl,
-    required bool ended,
-    String? winner,
-    required DateTime createdAt,
-  }) : super(
-    auctionId: auctionId,
-    seller: seller,
-    startingPrice: startingPrice,
-    highestBid: highestBid,
-    highestBidder: highestBidder,
-    endTime: endTime,
-    metadataUrl: metadataUrl,
-    ended: ended,
-    winner: winner,
-    createdAt: createdAt,
-  );
+    required super.auctionId,
+    required super.seller,
+    required super.startingPrice,
+    required super.highestBid,
+    required super.highestBidder,
+    required super.endTime,
+    required super.metadataUrl,
+    required super.ended,
+    super.winner,
+    required super.createdAt,
+  });
 
   factory AuctionModel.fromJson(Map<String, dynamic> json) {
     return AuctionModel(

@@ -2,8 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'config/routes/route_generator.dart';
-import 'config/theme/app_colors.dart';
-import 'config/theme/app_text_styles.dart';
+import 'config/theme/app_theme.dart';
 import 'core/di/injection_container.dart';
 import 'presentation/bloc/auth/auth_bloc.dart';
 import 'presentation/bloc/auth/auth_event.dart';
@@ -38,29 +37,16 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (context) => InjectionContainer.getAuthBloc()
-            ..add(const AuthCheckStatusEvent()),
+          create: (context) =>
+              InjectionContainer.getAuthBloc()
+                ..add(const AuthCheckStatusEvent()),
         ),
       ],
       child: MaterialApp.router(
         title: 'BidChain',
         debugShowCheckedModeBanner: false,
         routerConfig: appRouter,
-        theme: ThemeData(
-          primaryColor: AppColors.primary,
-          scaffoldBackgroundColor: AppColors.white,
-          appBarTheme: AppBarTheme(
-            backgroundColor: AppColors.white,
-            iconTheme: const IconThemeData(color: AppColors.black),
-            titleTextStyle: AppTextStyles.h3.copyWith(color: AppColors.black),
-            elevation: 1,
-          ),
-          colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
-          textTheme: const TextTheme(
-            headlineSmall: AppTextStyles.h3,
-            bodyMedium: AppTextStyles.bodyMedium,
-          ),
-        ),
+        theme: AppTheme.lightTheme,
       ),
     );
   }

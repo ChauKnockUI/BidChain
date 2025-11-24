@@ -2,14 +2,10 @@ import '../../domain/entities/wallet_entity.dart';
 
 class WalletModel extends WalletEntity {
   const WalletModel({
-    required String address,
-    required String balanceWei,
-    required String balanceEther,
-  }) : super(
-    address: address,
-    balanceWei: balanceWei,
-    balanceEther: balanceEther,
-  );
+    required super.address,
+    required super.balanceWei,
+    required super.balanceEther,
+  });
 
   factory WalletModel.fromJson(Map<String, dynamic> json) {
     return WalletModel(
