@@ -6,10 +6,11 @@ import '../../presentation/pages/auction/auction_list_page.dart';
 import '../../presentation/pages/auction/auction_detail_page.dart';
 import '../../presentation/pages/auction/create_auction_page.dart';
 import '../../presentation/pages/wallet/wallet_page.dart';
+import '../../presentation/pages/component_showcase_page.dart';
 import 'app_routes.dart';
 
 final appRouter = GoRouter(
-  initialLocation: AppRoutes.login,
+  initialLocation: AppRoutes.componentShowcase, // Temporary: Changed for demo
   routes: [
     GoRoute(
       path: AppRoutes.login,
@@ -29,9 +30,8 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '${AppRoutes.auctionDetail}/:id',
-      builder: (context, state) => AuctionDetailPage(
-        auctionId: state.pathParameters['id']!,
-      ),
+      builder: (context, state) =>
+          AuctionDetailPage(auctionId: state.pathParameters['id']!),
     ),
     GoRoute(
       path: AppRoutes.createAuction,
@@ -40,6 +40,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.wallet,
       builder: (context, state) => const WalletPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.componentShowcase,
+      builder: (context, state) => const ComponentShowcasePage(),
     ),
   ],
 );

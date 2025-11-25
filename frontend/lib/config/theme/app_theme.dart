@@ -21,8 +21,6 @@ class AppTheme {
       onTertiary: AppColors.white,
       surface: AppColors.primary,
       onSurface: AppColors.accent,
-      background: AppColors.primary,
-      onBackground: AppColors.accent,
       error: AppColors.error,
       onError: AppColors.white,
     ),

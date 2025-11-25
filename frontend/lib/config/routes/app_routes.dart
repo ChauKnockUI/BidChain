@@ -8,4 +8,5 @@ class AppRoutes {
   static const String createAuction = '/create-auction';
   static const String wallet = '/wallet';
   static const String profile = '/profile';
+  static const String componentShowcase = '/component-showcase';
 }

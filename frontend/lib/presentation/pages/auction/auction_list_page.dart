@@ -37,24 +37,27 @@ class _AuctionListPageState extends State<AuctionListPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Available Auctions',
-              style: AppTextStyles.h3,
-            ),
+            Text('Available Auctions', style: AppTextStyles.h3),
             const SizedBox(height: 16),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: 5, // Replace with actual data
               itemBuilder: (context, index) {
-                return const Padding(
-                  padding: EdgeInsets.only(bottom: 16),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
                   child: AuctionCard(
-                    auctionId: '1',
-                    title: 'Sample Auction',
-                    currentBid: '1.5 ETH',
-                    endTime: 'in 2 hours',
-                    bidCount: 5,
+                    auctionId: 'auction_${index + 1}',
+                    title: 'Sample Auction ${index + 1}',
+                    imageUrl: null, // Optional: thêm URL ảnh nếu có
+                    currentBid: '${(index + 1) * 0.5} ETH',
+                    timeLeft: '${2 + index}h ${30 - index * 5}m',
+                    bidCount: 5 + index,
+                    sellerName: 'Seller ${index + 1}',
+                    sellerImageUrl: null, // Optional
+                    onTap: () {
+                      print('Clicked auction ${index + 1}');
+                    },
                   ),
                 );
               },
