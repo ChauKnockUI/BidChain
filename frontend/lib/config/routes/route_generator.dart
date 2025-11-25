@@ -10,7 +10,7 @@ import '../../presentation/pages/component_showcase_page.dart';
 import 'app_routes.dart';
 
 final appRouter = GoRouter(
-  initialLocation: AppRoutes.componentShowcase, // Temporary: Changed for demo
+  initialLocation: AppRoutes.login, // Start with login page
   routes: [
     GoRoute(
       path: AppRoutes.login,
