@@ -7,9 +7,11 @@ require("dotenv").config();
 const authRoutes = require("./routes/auth");
 const auctionRoutes = require("./routes/auction");
 const userRoutes = require("./routes/user");
-const { ethers } = require("ethers");
-const { contract } = require("./blockchain/contract");
-const OffchainAuction = require("./models/OffchainAuction");
+const paymentRoutes = require("./routes/payment");
+const Auction = require("./models/Auction");
+const Bid = require("./models/Bid");
+const Notification = require("./models/Notification");
+const { weiToVnd, formatVnd } = require("./utils/conversion");
 
 const app = express();
 app.use(cors());
@@ -18,12 +20,17 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/auction", auctionRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/payment", paymentRoutes);
 const uploadRouter = require("./routes/upload");
+const { AUCTION_STATUS } = require("./config/constants");
 app.use("/api/upload", uploadRouter);
 const server = http.createServer(app);
 const io = require("socket.io")(server, {
   cors: { origin: "*" },
 });
+
+// Make io available to routes
+app.set('io', io);
 
 // socket
 io.on("connection", (socket) => {
@@ -39,93 +46,130 @@ io.on("connection", (socket) => {
     console.log("Client disconnected:", socket.id);
   });
 });
-console.log("Starting blockchain event listeners...");
+console.log("Starting auction management system...");
 
-// blockchain events
-contract.on("AuctionCreated", async (auctionId, seller, startingPrice, endTime, metadataUrl) => {
-  console.log(`[Event] AuctionCreated: ID ${auctionId}`);
-  try {
-    // MỚI: Đồng bộ vào DB
-    const newAuction = new OffchainAuction({
-      auctionId: Number(auctionId), // Ethers v5 trả về BigNumber, cần chuyển đổi
-      seller: seller,
-      startingPrice: startingPrice.toString(),
-      highestBid: startingPrice.toString(), // Ban đầu, giá cao nhất = giá khởi điểm
-      highestBidder: ethers.constants.AddressZero, // Địa chỉ 0x0
-      endTime: new Date(Number(endTime) * 1000), // Chuyển timestamp (s) sang Date (ms)
-      metadataUrl: metadataUrl, // (Lưu ý: Smart Contract của bạn cần emit cả metadataUrl)
-      ended: false,
-    });
-    await newAuction.save();
+// Socket.IO event handlers for real-time bidding
+io.on("connection", (socket) => {
+  console.log("New client:", socket.id);
 
-    // HOÀN THIỆN: Chỉ phát sóng cho mọi người (không cần vào phòng)
-    io.emit("AuctionCreated", {
-      auctionId: auctionId.toString(),
-      seller,
-      startingPrice: ethers.utils.formatEther(startingPrice), // Dùng Ether
-      endTime: Number(endTime),
-      metadataUrl: metadataUrl
-    });
-  } catch (err) {
-    console.error("Error syncing AuctionCreated:", err);
-  }
+  socket.on("join_auction", (auctionId) => {
+    const roomName = `auction_${auctionId}`;
+    socket.join(roomName);
+    console.log(`Client ${socket.id} joined auction room ${roomName}`);
+  });
+
+  socket.on("join_user_room", (userId) => {
+    const roomName = `user_${userId}`;
+    socket.join(roomName);
+    console.log(`Client ${socket.id} joined user room ${roomName}`);
+  });
+
+  socket.on("leave_auction", (auctionId) => {
+    const roomName = `auction_${auctionId}`;
+    socket.leave(roomName);
+    console.log(`Client ${socket.id} left auction room ${roomName}`);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+  });
 });
 
-contract.on("NewBid", async (auctionId, bidder, amount) => {
-  console.log(`[Event] NewBid on ${auctionId} by ${bidder}`);
+// Cron job to manage auction lifecycle
+const manageAuctions = async () => {
   try {
-    // MỚI: Cập nhật DB
-    const updatedAuction = await OffchainAuction.findOneAndUpdate(
-      { auctionId: Number(auctionId) },
-      {
-        highestBidder: bidder,
-        highestBid: amount.toString(),
-      },
-      { new: true } // Trả về document đã cập nhật
-    );
+    const now = new Date();
 
-    if (updatedAuction) {
-      const data = {
-        auctionId: auctionId.toString(),
-        bidder,
-        amount: ethers.utils.formatEther(amount), // Dùng Ether
-      };
-      // HOÀN THIỆN: Chỉ phát sóng cho những người trong phòng
-      const roomName = `auction_room_${auctionId}`;
-      io.to(roomName).emit("NewBid", data);
+    // 1. Activate approved auctions when start time arrives
+    const auctionsToActivate = await Auction.find({
+      status: AUCTION_STATUS.APPROVED,
+      start_time: { $lte: now },
+      end_time: { $gt: now }
+    }).populate('seller_id');
+
+    for (const auction of auctionsToActivate) {
+      await Auction.findByIdAndUpdate(auction._id, {
+        status: AUCTION_STATUS.ACTIVE
+      });
+
+      console.log(`Auction ${auction._id} activated: ${auction.title}`);
+
+      // Notify seller that auction is now active
+      const Notification = require('./models/Notification');
+      await Notification.create({
+        user_id: auction.seller_id._id,
+        type: 'AUCTION_STARTED',
+        title: 'Phiên đấu giá đã bắt đầu',
+        message: `Phiên đấu giá "${auction.title}" đã bắt đầu và đang nhận bids.`,
+        related_id: auction._id
+      });
+
+      // Broadcast to all users
+      if (global.io) {
+        global.io.emit('auction_started', {
+          auction_id: auction._id,
+          title: auction.title,
+          start_price_vnd: require('./utils/conversion').weiToVnd(auction.start_price.toString()),
+          end_time: auction.end_time
+        });
+      }
     }
-  } catch (err) {
-    console.error("Error syncing NewBid:", err);
-  }
-});
 
-contract.on("AuctionEnded", async (auctionId, winner, finalAmount) => {
-  console.log(`[Event] AuctionEnded: ID ${auctionId}`);
-  try {
-    // MỚI: Cập nhật DB
-    const updatedAuction = await OffchainAuction.findOneAndUpdate(
-      { auctionId: Number(auctionId) },
-      {
-        ended: true,
-        winner: winner,
-      },
-      { new: true }
-    );
+    // 2. Settle expired auctions
+    const expiredAuctions = await Auction.find({
+      status: AUCTION_STATUS.ACTIVE,
+      end_time: { $lt: now }
+    }).populate('seller_id', 'wallet_address').populate('highest_bidder_id', 'wallet_address');
 
-    if (updatedAuction) {
-      const data = {
-        auctionId: auctionId.toString(),
-        winner,
-        finalAmount: ethers.utils.formatEther(finalAmount), // Dùng Ether
-      };
-      // HOÀN THIỆN: Chỉ phát sóng cho những người trong phòng
-      const roomName = `auction_room_${auctionId}`;
-      io.to(roomName).emit("AuctionEnded", data);
+    for (const auction of expiredAuctions) {
+      // Update auction status
+      await Auction.findByIdAndUpdate(auction._id, { status: 'ENDED' });
+
+      // Update winning bid status if any
+      if (auction.highest_bidder_id) {
+        await Bid.updateMany(
+          { auction_id: auction._id, status: 'WINNING' },
+          { status: 'WINNING' }
+        );
+      }
+
+      // Notify winner
+      if (auction.highest_bidder_id) {
+        const notification = new Notification({
+          user_id: auction.highest_bidder_id,
+          type: 'WON_AUCTION',
+          title: 'Chúc mừng! Bạn đã thắng đấu giá',
+          message: `Bạn đã thắng phiên đấu giá với giá ${formatVnd(weiToVnd(auction.current_price.toString()))}`,
+          related_id: auction._id
+        });
+        await notification.save();
+
+        io.to(`user_${auction.highest_bidder_id}`).emit('auction_won', {
+          auction_id: auction._id,
+          title: auction.title,
+          final_price_vnd: weiToVnd(auction.current_price.toString()),
+          formatted_final_price: formatVnd(weiToVnd(auction.current_price.toString()))
+        });
+      }
+
+      // Broadcast auction end to room
+      io.to(`auction_${auction._id}`).emit('auction_ended', {
+        auction_id: auction._id,
+        winner_id: auction.highest_bidder_id,
+        final_price_wei: auction.current_price.toString(),
+        final_price_vnd: weiToVnd(auction.current_price.toString()),
+        formatted_final_price: formatVnd(weiToVnd(auction.current_price.toString()))
+      });
+
+      console.log(`Auction ${auction._id} settled. Winner: ${auction.highest_bidder_id || 'None'}`);
     }
-  } catch (err) {
-    console.error("Error syncing AuctionEnded:", err);
+  } catch (error) {
+    console.error('Error managing auctions:', error);
   }
-});
+};
+
+// Run auction management every minute
+setInterval(manageAuctions, 60000);
 const PORT = process.env.PORT || 3000;
 
 mongoose

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { body, validationResult } = require("express-validator");
+
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 
 function authMiddleware(req, res, next) {
@@ -16,22 +17,25 @@ function authMiddleware(req, res, next) {
   }
 }
 
+
+
 const validateRegister = [
-  body("username")
-    .isLength({ min: 3 })
-    .withMessage("Username must be at least 3 characters")
-    .trim()
-    .escape(),
-  body("password")
-    .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters"),
+  body("username").isLength({ min: 3, max: 30 }).trim().escape(),
+  body("password").isLength({ min: 8 }),
+  body("email").isEmail().normalizeEmail(),
+  body("full_name").isLength({ min: 2 }).trim().escape(),
+  body("role")
+    .optional()
+    .isIn(['ADMIN', 'MANAGER', 'USER'])
+    .withMessage("Role không hợp lệ"),
+
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
     next();
-  },
+  }
 ];
 
 module.exports = { authMiddleware, validateRegister };

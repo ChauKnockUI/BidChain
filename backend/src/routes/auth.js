@@ -6,7 +6,10 @@ const jwt = require("jsonwebtoken");
 const { ethers } = require("ethers");
 const User = require("../models/User");
 const { encrypt } = require("../utils/crypto");
-const { validateRegister } = require("../middleware/auth");
+const { validateRegister, authMiddleware } = require("../middleware/auth");
+const { walletFromPrivateKey, provider } = require("../blockchain/contract");
+const { ethToVnd, formatVnd } = require("../utils/conversion");
+const { EXCHANGE_RATE } = require("../config/constants");
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
 const MASTER_KEY = process.env.MASTER_KEY;
@@ -21,46 +24,83 @@ if (!MASTER_KEY || MASTER_KEY.length !== 64 || !/^[0-9a-fA-F]{64}$/.test(MASTER_
  * REGISTER
  */
 router.post("/register", validateRegister, async (req, res) => {
-  const { username, password } = req.body;
+  const {
+    username,
+    password,
+    email,
+    full_name,
+    role = "USER", // mặc định là bidder nếu không gửi
+    momo_phone
+  } = req.body;
 
   try {
-    const existing = await User.findOne({ username });
-    if (existing) {
-      return res.status(400).json({ error: "User already exists" });
+    // Kiểm tra username hoặc email đã tồn tại chưa
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }]
+    });
+    if (existingUser) {
+      return res.status(400).json({ error: "Username hoặc email đã được sử dụng" });
     }
 
+    // Hash password
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    const password_hash = await bcrypt.hash(password, salt);
 
+    // Tạo ví Ethereum
     const wallet = ethers.Wallet.createRandom();
-    const encryptedPrivateKey = encrypt(wallet.privateKey, MASTER_KEY);
+    const encrypted_private_key = encrypt(wallet.privateKey, MASTER_KEY); // hàm encrypt của bạn
 
+    // Tạo user mới với đầy đủ field bắt buộc
     const user = new User({
-      username,
-      passwordHash,
-      ethAddress: wallet.address,
-      encryptedPrivateKey,
+      username: username.trim(),
+      email: email.toLowerCase().trim(),
+      password_hash,
+      full_name: full_name.trim(),
+      role: role.toUpperCase(), // đảm bảo viết hoa
+      status: 'ACTIVE',
+      wallet_address: wallet.address,
+      encrypted_private_key,
+      balance_eth: "0", // Decimal128 phải là string hoặc Decimal128 object
+      locked_eth: "0",
+      last_nonce: 0,
+      momo_phone
     });
 
     await user.save();
 
+    // Tạo JWT
     const token = jwt.sign(
-      { id: user._id, username: user.username },
+      { id: user._id, role: user.role },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.json({
+    return res.status(201).json({
+      message: "Đăng ký thành công",
       token,
-      username: user.username,
-      ethAddress: user.ethAddress,
+      user: {
+        username: user.username || username, // nếu bạn thêm field username sau
+        email: user.email,
+        full_name: user.full_name,
+        role: user.role,
+        wallet_address: user.wallet_address,
+        balance_eth: parseFloat(user.balance_eth),
+        locked_eth: parseFloat(user.locked_eth)
+      }
     });
-  } catch (e) {
-    console.error("Register error:", e.message);
-    res.status(500).json({ error: "Internal server error" });
+
+  } catch (err) {
+    console.error("Register error:", err);
+    if (err.name === 'ValidationError') {
+      const errors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({ error: "Dữ liệu không hợp lệ", details: errors });
+    }
+    if (err.code === 11000) {
+      return res.status(400).json({ error: "Email hoặc wallet đã được sử dụng" });
+    }
+    res.status(500).json({ error: "Lỗi server" });
   }
 });
-
 /**
  * LOGIN
  */
@@ -76,25 +116,206 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    // ĐÃ SỬA: dùng đúng tên field trong DB
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+
     if (!isMatch) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
     const token = jwt.sign(
-      { id: user._id, username: user.username },
+      { id: user._id, username: user.username || username, role: user.role },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
 
     res.json({
       token,
-      username: user.username,
-      ethAddress: user.ethAddress,
+      username: user.username || username,
+      wallet_address: user.wallet_address,
+      balance_eth: parseFloat(user.balance_eth || 0),
+      locked_eth: parseFloat(user.locked_eth || 0),
+      role: user.role
     });
   } catch (e) {
     console.error("Login error:", e.message);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+/**
+ * ADMIN: FUND USER WALLET (For Demo Purposes)
+ * Transfer ETH from admin wallet to user wallet
+ */
+router.post("/admin/fund-wallet", authMiddleware, async (req, res) => {
+  try {
+    const { user_id, amount_eth } = req.body;
+
+    // Check if requester is admin (simplified check - in production use proper role checking)
+    const requester = await User.findById(req.user.id);
+    if (requester.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    const targetUser = await User.findById(user_id);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Get admin wallet
+    const adminWallet = walletFromPrivateKey(process.env.ADMIN_PRIVATE_KEY);
+
+    // Check admin balance
+    const adminBalance = await provider.getBalance(adminWallet.address);
+    const amountWei = ethers.utils.parseEther(amount_eth);
+
+    if (adminBalance.lt(amountWei)) {
+      return res.status(400).json({
+        error: 'Insufficient admin balance',
+        required: amount_eth + ' ETH',
+        available: ethers.utils.formatEther(adminBalance) + ' ETH'
+      });
+    }
+
+    // Transfer ETH from admin to user
+    const tx = await adminWallet.sendTransaction({
+      to: targetUser.wallet_address,
+      value: amountWei
+    });
+
+    const receipt = await tx.wait();
+
+    // Update user balance in database
+    await User.findByIdAndUpdate(targetUser._id, {
+      $inc: { balance_eth: parseFloat(amount_eth) }
+    });
+
+    // Create transaction record
+    const { Transaction } = require('../models/Transaction');
+    await Transaction.create({
+      user_id: targetUser._id,
+      type: 'ADMIN_FUNDING',
+      amount_eth: parseFloat(amount_eth),
+      exchange_rate: EXCHANGE_RATE.ETH_TO_VND,
+      status: 'COMPLETED',
+      tx_hash: receipt.transactionHash
+    });
+
+    res.json({
+      success: true,
+      message: `Funded ${targetUser.username} with ${amount_eth} ETH`,
+      tx_hash: receipt.transactionHash,
+      new_balance: parseFloat(targetUser.balance_eth) + parseFloat(amount_eth)
+    });
+
+  } catch (error) {
+    console.error('Fund wallet error:', error);
+    res.status(500).json({ error: 'Failed to fund wallet' });
+  }
+});
+
+/**
+ * GET WALLET BALANCE (Blockchain)
+ * Check actual ETH balance in user's wallet
+ */
+router.get("/wallet/balance-blockchain/:userId", authMiddleware, async (req, res) => {
+  try {
+    const targetUser = await User.findById(req.params.userId);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Get actual blockchain balance
+    const blockchainBalance = await provider.getBalance(targetUser.wallet_address);
+    const blockchainBalanceEth = parseFloat(ethers.utils.formatEther(blockchainBalance));
+
+    res.json({
+      user_id: targetUser._id,
+      username: targetUser.username,
+      wallet_address: targetUser.wallet_address,
+      blockchain_balance_eth: blockchainBalanceEth,
+      blockchain_balance_vnd: ethToVnd(blockchainBalanceEth),
+      formatted_blockchain_balance: formatVnd(ethToVnd(blockchainBalanceEth))
+    });
+
+  } catch (error) {
+    console.error('Get blockchain balance error:', error);
+    res.status(500).json({ error: 'Failed to get blockchain balance' });
+  }
+});
+
+/**
+ * DEMO: FUND ALL USERS WITH ETH
+ * For demo purposes - funds all registered users with 10 ETH each
+ */
+router.post("/demo/fund-all-users", async (req, res) => {
+  try {
+    // Only allow in development
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ error: 'Not available in production' });
+    }
+
+    const users = await User.find({}).limit(15); // Fund max 10 users for demo
+    const adminWallet = walletFromPrivateKey(process.env.DEPLOYER_PRIVATE_KEY);
+
+    const results = [];
+
+    for (const user of users) {
+      try {
+        const amountEth = "1.0"; // 10 ETH each
+        const amountWei = ethers.utils.parseEther(amountEth);
+
+        // Check admin balance
+        const adminBalance = await provider.getBalance(adminWallet.address);
+        if (adminBalance.lt(amountWei)) {
+          results.push({
+            username: user.username,
+            status: 'failed',
+            error: 'Insufficient admin balance'
+          });
+          continue;
+        }
+
+        // Transfer ETH
+        const tx = await adminWallet.sendTransaction({
+          to: user.wallet_address,
+          value: amountWei
+        });
+
+        const receipt = await tx.wait();
+
+        // Update database
+        await User.findByIdAndUpdate(user._id, {
+          $inc: { balance_eth: parseFloat(amountEth) }
+        });
+
+        results.push({
+          username: user.username,
+          status: 'success',
+          amount_eth: amountEth,
+          tx_hash: receipt.transactionHash
+        });
+
+        // Small delay to avoid nonce issues
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+      } catch (error) {
+        results.push({
+          username: user.username,
+          status: 'failed',
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Funded ${results.filter(r => r.status === 'success').length}/${users.length} users`,
+      results
+    });
+
+  } catch (error) {
+    console.error('Fund all users error:', error);
+    res.status(500).json({ error: 'Failed to fund users' });
   }
 });
 
