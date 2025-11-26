@@ -1,3 +1,4 @@
+// models/Auction.js - ĐÃ SỬA HOÀN CHỈNH & CHUẨN NHẤT
 const mongoose = require('mongoose');
 
 const AuctionSchema = new mongoose.Schema({
@@ -17,12 +18,57 @@ const AuctionSchema = new mongoose.Schema({
   approved_at: { type: Date },
   contract_address: { type: String },
   deploy_tx_hash: { type: String },
-  start_price: { type: mongoose.Decimal128, required: true }, // Wei
-  step_price: { type: mongoose.Decimal128, required: true }, // Wei
-  current_price: { type: mongoose.Decimal128, required: true }, // Wei
+
+  // PHẢI DÙNG STRING WEI - KHÔNG DÙNG Decimal128 NỮA!
+  start_price: {
+    type: String,
+    required: true,
+    validate: {
+      validator: v => /^\d+$/.test(v),
+      message: "start_price must be a string of wei (integer)"
+    }
+  },
+  step_price: {
+    type: String,
+    required: true,
+    validate: {
+      validator: v => /^\d+$/.test(v),
+      message: "step_price must be a string of wei (integer)"
+    }
+  },
+  current_price: {
+    type: String,
+    required: true,
+    default: "0",
+    validate: {
+      validator: v => /^\d+$/.test(v),
+      message: "current_price must be a string of wei (integer)"
+    }
+  },
+
   highest_bidder_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  start_time: { type: Date, required:false },
+  start_time: { type: Date },
   end_time: { type: Date, required: true, index: true }
-}, { timestamps: true });
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// Virtuals để hiển thị đẹp trong API
+AuctionSchema.virtual('start_price_vnd').get(function () {
+  const { weiToVnd } = require('../utils/conversion');
+  return weiToVnd(this.start_price);
+});
+
+AuctionSchema.virtual('step_price_vnd').get(function () {
+  const { weiToVnd } = require('../utils/conversion');
+  return weiToVnd(this.step_price);
+});
+
+AuctionSchema.virtual('current_price_vnd').get(function () {
+  const { weiToVnd } = require('../utils/conversion');
+  return weiToVnd(this.current_price);
+});
 
 module.exports = mongoose.model('Auction', AuctionSchema);

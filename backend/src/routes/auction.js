@@ -11,43 +11,52 @@ const { authMiddleware } = require("../middleware/auth");
 const { provider, contract } = require("../blockchain/contract");
 const { body, param, validationResult } = require("express-validator");
 const { validateBidRequest, processBid, handleBidLocking } = require("../middleware/bid");
-const { ethToVnd, weiToVnd, formatVnd, vndToWei } = require("../utils/conversion");
+const { ethToVnd, weiToVnd, formatVnd, vndToWei, weiToEth, formatEth } = require("../utils/conversion");
 const { EXCHANGE_RATE, AUCTION_STATUS, TRANSACTION_TYPES } = require("../config/constants");
 const { deployAuctionContract } = require("../blockchain/deploy");
 
 require("dotenv").config();
 
 // ========== API LẤY SỐ DƯ ==========
+// routes/auction.js hoặc wallet route
 router.get("/wallet/balance", authMiddleware, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        if (!user) return res.status(404).json({ error: "User not found" });
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-        // Get real balance from blockchain
-        const realBalanceEth = parseFloat(user.balance_eth.toString());
+    // ĐẢM BẢO balance_eth và locked_eth là STRING wei
+    const balanceWei = user.balance_eth.toString(); // luôn là string
+    const lockedWei = user.locked_eth.toString();
 
-        // Calculate available balance (real - locked)
-        const lockedEth = parseFloat(user.locked_eth.toString());
-        const availableEth = realBalanceEth - lockedEth;
+    const balanceEth = weiToEth(balanceWei);
+    const lockedEth = weiToEth(lockedWei);
+    const availableEth = balanceEth - lockedEth;
 
-        return res.json({
-            wallet_address: user.wallet_address,
-            balance_eth: realBalanceEth,
-            locked_eth: lockedEth,
-            available_eth: availableEth,
-            // Display amounts
-            balance_vnd: ethToVnd(realBalanceEth),
-            locked_vnd: ethToVnd(lockedEth),
-            available_vnd: ethToVnd(availableEth),
-            formatted_balance: formatVnd(ethToVnd(realBalanceEth)),
-            formatted_available: formatVnd(ethToVnd(availableEth))
-        });
-    } catch (error) {
-        console.error('Error getting balance:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+    const balanceVnd = weiToVnd(balanceWei);
+    const lockedVnd = weiToVnd(lockedWei);
+    const availableVnd = weiToVnd(ethers.utils.parseUnits(availableEth.toFixed(18), 18).toString());
+
+    res.json({
+      wallet_address: user.wallet_address,
+      balance_eth: balanceEth.toFixed(6),
+      locked_eth: lockedEth.toFixed(6),
+      available_eth: availableEth < 0 ? 0 : availableEth.toFixed(6),
+
+      balance_vnd: balanceVnd,
+      locked_vnd: lockedVnd,
+      available_vnd: availableVnd,
+
+      formatted_balance: formatVnd(balanceVnd),
+      formatted_locked: formatVnd(lockedVnd),
+      formatted_available: formatVnd(availableVnd),
+      formatted_balance_eth: formatEth(balanceWei),
+      formatted_available_eth: formatEth(ethers.utils.parseUnits(availableEth.toFixed(18), 18).toString())
+    });
+  } catch (error) {
+    console.error('Error getting balance:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
-
 // ========== API TẠO PHIÊN ĐẤU GIÁ (REQUEST APPROVAL) ==========
 router.post("/create", authMiddleware, [
     body("title").isString().notEmpty().withMessage("Title is required"),
