@@ -1,0 +1,531 @@
+{
+  "info": {
+    "name": "BidChain API Collection",
+    "description": "Complete API collection for BidChain Auction System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "auction_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "deposit_request_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Registration successful\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.expect(jsonData).to.have.property('username');",
+                  "    pm.expect(jsonData).to.have.property('wallet_address');",
+                  "",
+                  "    // Save token for future requests",
+                  "    if (jsonData.token) {",
+                  "        pm.environment.set(\"jwt_token\", jsonData.token);",
+                  "        pm.environment.set(\"user_id\", jsonData._id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login successful\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "",
+                  "    pm.environment.set(\"jwt_token\", jsonData.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Demo: Fund All Users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/demo/fund-all-users",
+              "host": ["{{base_url}}"],
+              "path": ["demo", "fund-all-users"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Auction System",
+      "item": [
+        {
+          "name": "Get Wallet Balance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auction/wallet/balance",
+              "host": ["{{base_url}}"],
+              "path": ["auction", "wallet", "balance"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Balance retrieved successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('balance_vnd');",
+                  "    pm.expect(jsonData).to.have.property('formatted_balance');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deposit VND to Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_vnd\": 1000000,\n  \"momo_ref_id\": \"MM123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auction/wallet/deposit",
+              "host": ["{{base_url}}"],
+              "path": ["auction", "wallet", "deposit"]
+            }
+          }
+        },
+        {
+          "name": "Withdraw from Contract",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_vnd\": 500000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auction/wallet/withdraw",
+              "host": ["{{base_url}}"],
+              "path": ["auction", "wallet", "withdraw"]
+            }
+          }
+        },
+        {
+          "name": "Get Transaction History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auction/wallet/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["auction", "wallet", "transactions"]
+            }
+          }
+        },
+        {
+          "name": "Create Auction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startingPriceWei\": \"200000000000000000000\",\n  \"stepPriceWei\": \"10000000000000000000\",\n  \"durationSeconds\": 1800,\n  \"metadataUrl\": \"ipfs://test-metadata\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auction/create",
+              "host": ["{{base_url}}"],
+              "path": ["auction", "create"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Auction created successfully\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('auctionId');",
+                  "",
+                  "    pm.environment.set(\"auction_id\", jsonData.auctionId);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Auctions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auction/all",
+              "host": ["{{base_url}}"],
+              "path": ["auction", "all"]
+            }
+          }
+        },
+        {
+          "name": "Get Auction Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auction/{{auction_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["auction", "{{auction_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Place Bid",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"auction_id\": \"{{auction_id}}\",\n  \"amount_vnd\": 12500000,\n  \"signature\": \"0x_mock_signature_for_demo\",\n  \"nonce\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auction/bid",
+              "host": ["{{base_url}}"],
+              "path": ["auction", "bid"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Momo Payment",
+      "item": [
+        {
+          "name": "Create Deposit Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount_vnd\": 1000000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payment/deposit/request",
+              "host": ["{{base_url}}"],
+              "path": ["payment", "deposit", "request"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Deposit request created\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('deposit_request_id');",
+                  "",
+                  "    pm.environment.set(\"deposit_request_id\", jsonData.deposit_request_id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simulate Momo Callback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partnerCode\": \"MOMO_TEST_PARTNER\",\n  \"orderId\": \"BIDCHAIN_1234567890_testuser\",\n  \"requestId\": \"BIDCHAIN_1234567890_testuser\",\n  \"amount\": \"1000000\",\n  \"orderInfo\": \"Nap tien vao tai khoan dau gia - 1,000,000 VND\",\n  \"orderType\": \"momo_wallet\",\n  \"transId\": \"TRANS_1234567890\",\n  \"resultCode\": 0,\n  \"message\": \"Successful.\",\n  \"payType\": \"qr\",\n  \"responseTime\": \"1234567890123\",\n  \"extraData\": \"\",\n  \"signature\": \"mock_signature\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payment/momo/callback",
+              "host": ["{{base_url}}"],
+              "path": ["payment", "momo", "callback"]
+            }
+          }
+        },
+        {
+          "name": "Admin Approve Deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payment/admin/approve-deposit/{{deposit_request_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["payment", "admin", "approve-deposit", "{{deposit_request_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Admin Reject Deposit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Invalid transaction\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payment/admin/reject-deposit/{{deposit_request_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["payment", "admin", "reject-deposit", "{{deposit_request_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Deposit History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payment/deposit/history",
+              "host": ["{{base_url}}"],
+              "path": ["payment", "deposit", "history"]
+            }
+          }
+        },
+        {
+          "name": "Admin: Get All Deposit Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/payment/admin/deposit-requests",
+              "host": ["{{base_url}}"],
+              "path": ["payment", "admin", "deposit-requests"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. User Management",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/me",
+              "host": ["{{base_url}}"],
+              "path": ["user", "me"]
+            }
+          }
+        },
+        {
+          "name": "Get My Auctions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/me/auctions",
+              "host": ["{{base_url}}"],
+              "path": ["user", "me", "auctions"]
+            }
+          }
+        },
+        {
+          "name": "Get My Bids",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/user/me/bids",
+              "host": ["{{base_url}}"],
+              "path": ["user", "me", "bids"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
