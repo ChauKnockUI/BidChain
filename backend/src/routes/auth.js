@@ -8,7 +8,7 @@ const User = require("../models/User");
 const { encrypt } = require("../utils/crypto");
 const { validateRegister, authMiddleware } = require("../middleware/auth");
 const { walletFromPrivateKey, provider } = require("../blockchain/contract");
-const { ethToVnd, formatVnd } = require("../utils/conversion");
+const { ethToVnd, formatVnd, toWei } = require("../utils/conversion");
 const { EXCHANGE_RATE } = require("../config/constants");
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
@@ -184,9 +184,13 @@ router.post("/admin/fund-wallet", authMiddleware, async (req, res) => {
 
     const receipt = await tx.wait();
 
-    // Update user balance in database
+    // Update user balance in database - manual calculation for string-based balance
+    const currentBalance = ethers.BigNumber.from(targetUser.balance_eth || "0");
+    const amountToAdd = ethers.BigNumber.from(toWei(amount_eth));
+    const newBalance = currentBalance.add(amountToAdd).toString();
+
     await User.findByIdAndUpdate(targetUser._id, {
-      $inc: { balance_eth: parseFloat(amount_eth) }
+      $set: { balance_eth: newBalance }
     });
 
     // Create transaction record
@@ -283,9 +287,13 @@ router.post("/demo/fund-all-users", async (req, res) => {
 
         const receipt = await tx.wait();
 
-        // Update database
+        // Update database - manual calculation for string-based balance
+        const currentBalance = ethers.BigNumber.from(user.balance_eth || "0");
+        const amountToAdd = ethers.BigNumber.from(toWei(amountEth));
+        const newBalance = currentBalance.add(amountToAdd).toString();
+
         await User.findByIdAndUpdate(user._id, {
-          $inc: { balance_eth: parseFloat(amountEth) }
+          $set: { balance_eth: newBalance }
         });
 
         results.push({

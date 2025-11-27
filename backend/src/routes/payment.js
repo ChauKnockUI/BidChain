@@ -212,7 +212,7 @@ router.post('/admin/approve-deposit/:requestId', authMiddleware, async (req, res
 
     // Update user balance
     await User.findByIdAndUpdate(depositRequest.user_id._id, {
-      $inc: { balance_eth: amountEth }
+      $inc: { balance_eth: toWei(amountEth.toString()) }
     });
 
     // Create transaction record
