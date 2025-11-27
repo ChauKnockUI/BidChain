@@ -20,6 +20,7 @@ const UserSchema = new mongoose.Schema({
   },
   wallet_address: { type: String, required: true, unique: true },
   encrypted_private_key: { type: String, required: true },
+  avatar: { type: String }, // Cloudinary URL from /upload/avatar
 
   // ĐÃ SỬA: DÙNG STRING + WEI (chuẩn blockchain)
   balance_eth: {
