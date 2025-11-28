@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/config/routes/app_routes.dart';
+import 'package:go_router/go_router.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../bloc/auction_detail/auction_detail_bloc.dart';
@@ -61,7 +63,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new, size: 20),
               color: AppColors.accent,
-              onPressed: () => Navigator.of(context).pop(),
+               onPressed: () => context.go(AppRoutes.home),
             ),
             actions: [
               IconButton(

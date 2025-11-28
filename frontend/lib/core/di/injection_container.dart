@@ -15,10 +15,18 @@ import '../../domain/repositories/auction_repository.dart';
 import '../../domain/usecases/auth/login_usecase.dart';
 import '../../domain/usecases/auth/register_usecase.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
+import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/my_activity/my_activity_bloc.dart';
 import '../../presentation/bloc/auction_detail/auction_detail_bloc.dart';
 import '../../presentation/bloc/auction_list/auction_list_bloc.dart';
 import '../network/dio_client.dart';
+import '../network/network_info.dart';
+import '../../data/datasources/remote/auction_remote_datasource.dart';
+import '../../data/repositories/auction_repository_impl.dart';
+import '../../domain/repositories/auction_repository.dart';
+import '../../domain/usecases/create_auction_usecase.dart';
+import '../../presentation/bloc/create_auction/create_auction_bloc.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class InjectionContainer {
   static late SharedPreferences _sharedPreferences;
@@ -40,6 +48,9 @@ class InjectionContainer {
   // Auction dependencies
   static late AuctionRemoteDataSource _auctionRemoteDataSource;
   static late AuctionRepository _auctionRepository;
+  
+  static late CreateAuctionUseCase _createAuctionUseCase;
+  static late NetworkInfo _networkInfo;
 
   /// Initialize all dependencies - call this in main() before running the app
   static Future<void> init() async {
@@ -70,7 +81,14 @@ class InjectionContainer {
 
     // Initialize Auction dependencies
     _auctionRemoteDataSource = AuctionRemoteDataSourceImpl(_dioClient);
-    _auctionRepository = AuctionRepositoryImpl(_auctionRemoteDataSource);
+   
+    _networkInfo = NetworkInfoImpl(InternetConnectionChecker.instance);
+    _auctionRemoteDataSource = AuctionRemoteDataSourceImpl(_dioClient);
+    _auctionRepository = AuctionRepositoryImpl(
+      remoteDataSource: _auctionRemoteDataSource,
+      networkInfo: _networkInfo,
+    );
+    _createAuctionUseCase = CreateAuctionUseCase(_auctionRepository);
   }
 
   // Getters
@@ -80,8 +98,7 @@ class InjectionContainer {
   static AuthRepository getAuthRepository() => _authRepository;
   static LoginUseCase getLoginUseCase() => _loginUseCase;
   static RegisterUseCase getRegisterUseCase() => _registerUseCase;
-
-  // MyActivity getters
+   // MyActivity getters
   static MyActivityBloc getMyActivityBloc() =>
       MyActivityBloc(repository: _myActivityRepository);
 
@@ -97,4 +114,7 @@ class InjectionContainer {
 
   static AuctionListBloc getAuctionListBloc() =>
       AuctionListBloc(repository: _auctionRepository);
+      static CreateAuctionBloc getCreateAuctionBloc() => CreateAuctionBloc(
+    createAuctionUseCase: _createAuctionUseCase,
+  );
 }

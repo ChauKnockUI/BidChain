@@ -1680,6 +1680,7 @@ class _ComponentShowcasePageState extends State<ComponentShowcasePage> {
             timeLeft: '2d 5h 30m',
             bidCount: 12,
             sellerName: 'Hồ Chân',
+            status: 'ACTIVE',
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Clicked auction card!')),

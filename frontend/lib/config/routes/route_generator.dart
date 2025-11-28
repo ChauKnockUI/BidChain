@@ -8,7 +8,7 @@ import '../../presentation/layouts/main_layout.dart';
 import '../../presentation/pages/home/home_page.dart';
 import '../../presentation/pages/auction/auction_list_page.dart';
 import '../../presentation/pages/auction/auction_detail_page.dart';
-import '../../presentation/pages/auction/create_auction_page.dart';
+import '../../presentation/pages/create_auction/create_auction_screen.dart';
 import '../../presentation/pages/wallet/wallet_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
 import '../../presentation/pages/component_showcase_page.dart';
@@ -39,7 +39,7 @@ final appRouter = GoRouter(
 
     GoRoute(
       path: AppRoutes.createAuction,
-      builder: (context, state) => const CreateAuctionPage(),
+      builder: (context, state) => const CreateAuctionScreen(),
     ),
     GoRoute(
       path: AppRoutes.wallet,
@@ -49,10 +49,10 @@ final appRouter = GoRouter(
       path: AppRoutes.profile,
       builder: (context, state) => const ProfilePage(),
     ),
-    GoRoute(
-      path: AppRoutes.componentShowcase,
-      builder: (context, state) => const ComponentShowcasePage(),
-    ),
+    // GoRoute(
+    //   path: AppRoutes.componentShowcase,
+    //   builder: (context, state) => const ComponentShowcasePage(),
+    // ),
     GoRoute(
       path: AppRoutes.myActivity,
       builder: (context, state) => BlocProvider(

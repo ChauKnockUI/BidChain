@@ -4,7 +4,7 @@ import '../pages/home/home_page.dart';
 import '../pages/auction/auction_list_page.dart';
 import '../pages/wallet/wallet_page.dart';
 import '../pages/profile/profile_page.dart';
-import '../pages/auction/create_auction_page.dart';
+import '../pages/create_auction/create_auction_screen.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -29,7 +29,7 @@ class _MainLayoutState extends State<MainLayout> {
       // Center button - Navigate to Create Auction
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const CreateAuctionPage()),
+        MaterialPageRoute(builder: (context) => const CreateAuctionScreen()),
       );
     } else {
       setState(() {

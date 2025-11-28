@@ -24,6 +24,7 @@ class AuctionCard extends StatelessWidget {
 
   /// Tên người bán (dùng cho avatar)
   final String sellerName;
+  final String? status;
 
   /// URL ảnh avatar người bán (tùy chọn)
   final String? sellerImageUrl;
@@ -42,6 +43,7 @@ class AuctionCard extends StatelessWidget {
     required this.sellerName,
     this.sellerImageUrl,
     this.onTap,
+    this.status
   });
 
   @override
