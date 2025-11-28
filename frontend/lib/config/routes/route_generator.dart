@@ -1,11 +1,13 @@
 import 'package:go_router/go_router.dart';
 import '../../presentation/pages/auth/login_page.dart';
 import '../../presentation/pages/auth/register_page.dart';
+import '../../presentation/layouts/main_layout.dart';
 import '../../presentation/pages/home/home_page.dart';
 import '../../presentation/pages/auction/auction_list_page.dart';
 import '../../presentation/pages/auction/auction_detail_page.dart';
 import '../../presentation/pages/auction/create_auction_page.dart';
 import '../../presentation/pages/wallet/wallet_page.dart';
+import '../../presentation/pages/profile/profile_page.dart';
 import '../../presentation/pages/component_showcase_page.dart';
 import 'app_routes.dart';
 
@@ -22,7 +24,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.home,
-      builder: (context, state) => const HomePage(),
+      builder: (context, state) => const MainLayout(),
     ),
     GoRoute(
       path: AppRoutes.auctionList,
@@ -40,6 +42,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.wallet,
       builder: (context, state) => const WalletPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.profile,
+      builder: (context, state) => const ProfilePage(),
     ),
     GoRoute(
       path: AppRoutes.componentShowcase,
