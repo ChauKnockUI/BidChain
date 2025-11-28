@@ -10,6 +10,7 @@ const userRoutes = require("./routes/user");
 const paymentRoutes = require("./routes/payment");
 const Auction = require("./models/Auction");
 const Bid = require("./models/Bid");
+const categoryRoutes = require('./routes/categoryRoutes');
 const Notification = require("./models/Notification");
 const { weiToVnd, formatVnd } = require("./utils/conversion");
 
@@ -17,6 +18,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use("/api/category", categoryRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/auction", auctionRoutes);
 app.use("/api/user", userRoutes);

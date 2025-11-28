@@ -6,7 +6,7 @@ const AuctionSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
   images: [{ type: String }],
-  category_id: { type: mongoose.Schema.Types.ObjectId, required: true },
+  category_id: { type: mongoose.Schema.Types.ObjectId,ref: 'Category', required: true },
   status: {
     type: String,
     enum: ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'DEPLOYING', 'ACTIVE', 'ENDED', 'SETTLED'],
