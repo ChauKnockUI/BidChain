@@ -1,15 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../error/exceptions.dart';
+import '../../main.dart'; // Import ApiConfig
 
 class DioClient {
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  // Use dynamic baseUrl from ApiConfig instead of hardcoded
   late Dio _dio;
 
   DioClient() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: baseUrl,
+        baseUrl: '${ApiConfig.baseUrl}/api', // Dynamic baseUrl
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {

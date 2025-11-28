@@ -7,6 +7,16 @@ const Bid = require("../models/Bid");
 const { authMiddleware } = require("../middleware/auth");
 const { weiToVnd, formatVnd } = require("../utils/conversion");
 
+// Lấy danh sách tất cả users (cho mục đích testing/admin)
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    const users = await User.find({}).select("-password_hash -encrypted_private_key");
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Lấy thông tin hồ sơ của tôi
 router.get("/me", authMiddleware, async (req, res) => {
   try {
