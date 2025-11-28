@@ -7,6 +7,9 @@ abstract class AuthRemoteDataSource {
   Future<AuthResponse> register({
     required String username,
     required String password,
+    required String email,
+    required String fullName,
+    String role = 'USER',
   });
 
   Future<AuthResponse> login({
@@ -24,6 +27,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<AuthResponse> register({
     required String username,
     required String password,
+    required String email,
+    required String fullName,
+    String role = 'USER',
   }) async {
     try {
       final response = await dioClient.post(
@@ -31,6 +37,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         data: {
           'username': username,
           'password': password,
+          'email': email,
+          'full_name': fullName,
+          'role': role,
         },
       );
 
@@ -89,13 +98,23 @@ class AuthResponse {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    // Backend trả về user object hoặc trực tiếp các field
     final user = json['user'] ?? json;
     return AuthResponse(
       token: json['token'] ?? json['access_token'] ?? '',
       user: UserModel(
         id: user['_id'] ?? user['id'] ?? '',
         username: user['username'] ?? '',
-        ethAddress: user['ethAddress'] ?? user['wallet'] ?? '',
+        email: user['email'] ?? '',
+        fullName: user['full_name'] ?? '',
+        role: user['role'] ?? 'USER',
+        walletAddress: user['wallet_address'] ?? '',
+        balanceEth: (user['balance_eth'] is num)
+            ? (user['balance_eth'] as num).toDouble()
+            : 0.0,
+        lockedEth: (user['locked_eth'] is num)
+            ? (user['locked_eth'] as num).toDouble()
+            : 0.0,
         createdAt: user['createdAt'] != null
             ? DateTime.parse(user['createdAt'])
             : DateTime.now(),
