@@ -1,3 +1,6 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/di/injection_container.dart';
+import 'package:frontend/presentation/pages/my_activity/my_activity_page.dart';
 import 'package:go_router/go_router.dart';
 import '../../presentation/pages/auth/login_page.dart';
 import '../../presentation/pages/auth/register_page.dart';
@@ -30,11 +33,7 @@ final appRouter = GoRouter(
       path: AppRoutes.auctionList,
       builder: (context, state) => const AuctionListPage(),
     ),
-    GoRoute(
-      path: '${AppRoutes.auctionDetail}/:id',
-      builder: (context, state) =>
-          AuctionDetailPage(auctionId: state.pathParameters['id']!),
-    ),
+
     GoRoute(
       path: AppRoutes.createAuction,
       builder: (context, state) => const CreateAuctionPage(),
@@ -50,6 +49,20 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.componentShowcase,
       builder: (context, state) => const ComponentShowcasePage(),
+    ),
+    GoRoute(
+      path: AppRoutes.myActivity,
+      builder: (context, state) => BlocProvider(
+        create: (context) => InjectionContainer.getMyActivityBloc(),
+        child: const MyActivityPage(),
+      ),
+    ),
+    GoRoute(
+      path: '${AppRoutes.auctionDetail}/:id',
+      builder: (context, state) => BlocProvider(
+        create: (context) => InjectionContainer.getAuctionDetailBloc(),
+        child: AuctionDetailPage(auctionId: state.pathParameters['id']!),
+      ),
     ),
   ],
 );

@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/presentation/bloc/auction_detail/auction_detail_bloc.dart';
+import 'package:frontend/presentation/bloc/my_activity/my_activity_bloc.dart';
 import 'config/routes/route_generator.dart';
 import 'config/theme/app_theme.dart';
 import 'core/di/injection_container.dart';
@@ -40,6 +42,12 @@ class MyApp extends StatelessWidget {
           create: (context) =>
               InjectionContainer.getAuthBloc()
                 ..add(const AuthCheckStatusEvent()),
+        ),
+         BlocProvider<MyActivityBloc>(
+          create: (context) => InjectionContainer.getMyActivityBloc(),
+        ),
+        BlocProvider<AuctionDetailBloc>(
+          create: (context) => InjectionContainer.getAuctionDetailBloc(),
         ),
       ],
       child: MaterialApp.router(

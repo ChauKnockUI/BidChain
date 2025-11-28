@@ -41,6 +41,7 @@ dependencies:
   dartz: ^0.10.1
   flutter_bloc: ^9.1.1
   google_fonts: 6.3.2
+  timeago: ^3.7.1
 
 dev_dependencies:
   flutter_test:
