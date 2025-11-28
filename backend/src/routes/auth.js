@@ -101,6 +101,7 @@ router.post("/register", validateRegister, async (req, res) => {
     res.status(500).json({ error: "Lỗi server" });
   }
 });
+
 /**
  * LOGIN
  */
@@ -116,7 +117,6 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    // ĐÃ SỬA: dùng đúng tên field trong DB
     const isMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!isMatch) {
@@ -131,17 +131,23 @@ router.post("/login", async (req, res) => {
 
     res.json({
       token,
+      id: user._id,
       username: user.username || username,
+      email: user.email,
+      full_name: user.full_name,
       wallet_address: user.wallet_address,
       balance_eth: parseFloat(user.balance_eth || 0),
       locked_eth: parseFloat(user.locked_eth || 0),
-      role: user.role
+      last_nonce: user.last_nonce || 0,
+      role: user.role,
+      created_at: user.created_at
     });
   } catch (e) {
     console.error("Login error:", e.message);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 /**
  * ADMIN: FUND USER WALLET (For Demo Purposes)
  * Transfer ETH from admin wallet to user wallet

@@ -20,6 +20,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/auction", auctionRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/users", userRoutes); // Alias for plural usage
 app.use("/api/payment", paymentRoutes);
 const uploadRouter = require("./routes/upload");
 const { AUCTION_STATUS } = require("./config/constants");

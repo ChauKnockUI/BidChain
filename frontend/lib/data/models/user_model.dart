@@ -10,6 +10,7 @@ class UserModel extends UserEntity {
     required super.walletAddress,
     super.balanceEth,
     super.lockedEth,
+    super.lastNonce,
     required super.createdAt,
   });
 
@@ -21,14 +22,11 @@ class UserModel extends UserEntity {
       fullName: json['full_name'] ?? '',
       role: json['role'] ?? 'USER',
       walletAddress: json['wallet_address'] ?? '',
-      balanceEth: (json['balance_eth'] is num)
-          ? (json['balance_eth'] as num).toDouble()
-          : 0.0,
-      lockedEth: (json['locked_eth'] is num)
-          ? (json['locked_eth'] as num).toDouble()
-          : 0.0,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+      balanceEth: _parseWei(json['balance_eth']),
+      lockedEth: _parseWei(json['locked_eth']),
+      lastNonce: json['last_nonce'] ?? 0,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : DateTime.now(),
     );
   }
@@ -41,9 +39,27 @@ class UserModel extends UserEntity {
       'full_name': fullName,
       'role': role,
       'wallet_address': walletAddress,
-      'balance_eth': balanceEth,
+      'balance_eth': balanceEth, // Note: This saves as ETH double, not Wei string
       'locked_eth': lockedEth,
-      'createdAt': createdAt.toIso8601String(),
+      'last_nonce': lastNonce,
+      'created_at': createdAt.toIso8601String(),
     };
+  }
+
+  static double _parseWei(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      if (value.isEmpty) return 0.0;
+      try {
+        // Backend returns Wei as string (e.g., "3000000000000000000")
+        // Convert Wei to ETH: value / 10^18
+        return double.parse(value) / 1000000000000000000.0;
+      } catch (e) {
+        print('Error parsing Wei: $e');
+        return 0.0;
+      }
+    }
+    return 0.0;
   }
 }
