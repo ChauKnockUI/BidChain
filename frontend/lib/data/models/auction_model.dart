@@ -12,39 +12,63 @@ class AuctionModel extends AuctionEntity {
     required super.ended,
     super.winner,
     required super.createdAt,
+    required super.title,
+    required super.description,
+    required super.images,
+    required super.formattedCurrentPrice,
+    required super.sellerName,
+    required super.bidCount,
   });
 
   factory AuctionModel.fromJson(Map<String, dynamic> json) {
     return AuctionModel(
-      auctionId: json['auctionId']?.toString() ?? '',
-      seller: json['seller'] ?? '',
-      startingPrice: json['startingPrice'] ?? '0',
-      highestBid: json['highestBid'] ?? '0',
-      highestBidder: json['highestBidder'] ?? '',
-      endTime: json['endTime'] != null
-          ? DateTime.parse(json['endTime'])
+      auctionId: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      seller: json['seller_id'] is Map
+          ? (json['seller_id']['_id'] ?? '')
+          : (json['seller_id'] ?? ''),
+      startingPrice: json['start_price']?.toString() ?? '0',
+      highestBid: json['current_price']?.toString() ?? '0',
+      highestBidder: json['highest_bidder_id'] is Map
+          ? (json['highest_bidder_id']['_id'] ?? '')
+          : (json['highest_bidder_id'] ?? ''),
+      endTime: json['end_time'] != null
+          ? DateTime.parse(json['end_time'])
           : DateTime.now(),
-      metadataUrl: json['metadataUrl'] ?? '',
-      ended: json['ended'] ?? false,
+      metadataUrl: json['metadata_url'] ?? '',
+      ended: json['status'] == 'ENDED' || json['status'] == 'SETTLED',
       winner: json['winner'],
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : DateTime.now(),
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      images:
+          (json['images'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      formattedCurrentPrice: json['formatted_current_price'] ?? '0 VND',
+      sellerName: json['seller_id'] is Map
+          ? (json['seller_id']['full_name'] ?? 'Unknown')
+          : 'Unknown',
+      bidCount: json['bid_count'] ?? 0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'auctionId': auctionId,
-      'seller': seller,
-      'startingPrice': startingPrice,
-      'highestBid': highestBid,
-      'highestBidder': highestBidder,
-      'endTime': endTime.toIso8601String(),
-      'metadataUrl': metadataUrl,
-      'ended': ended,
+      'id': auctionId,
+      'seller_id': seller,
+      'start_price': startingPrice,
+      'current_price': highestBid,
+      'highest_bidder_id': highestBidder,
+      'end_time': endTime.toIso8601String(),
+      'metadata_url': metadataUrl,
+      'status': ended ? 'ENDED' : 'ACTIVE',
       'winner': winner,
-      'createdAt': createdAt.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'title': title,
+      'description': description,
+      'images': images,
+      'formatted_current_price': formattedCurrentPrice,
+      'bid_count': bidCount,
     };
   }
 }

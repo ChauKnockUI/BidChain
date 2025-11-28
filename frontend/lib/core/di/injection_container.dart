@@ -3,17 +3,21 @@ import '../../data/datasources/local/auth_local_datasource.dart';
 import '../../data/datasources/remote/auth_remote_datasource.dart';
 import '../../data/datasources/remote/my_activity_remote_datasource.dart';
 import '../../data/datasources/remote/auction_detail_remote_datasource.dart';
+import '../../data/datasources/remote/auction_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/my_activity_repository_impl.dart';
 import '../../data/repositories/auction_detail_repository_impl.dart';
+import '../../data/repositories/auction_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/my_activity_repository.dart';
 import '../../domain/repositories/auction_detail_repository.dart';
+import '../../domain/repositories/auction_repository.dart';
 import '../../domain/usecases/auth/login_usecase.dart';
 import '../../domain/usecases/auth/register_usecase.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/my_activity/my_activity_bloc.dart';
 import '../../presentation/bloc/auction_detail/auction_detail_bloc.dart';
+import '../../presentation/bloc/auction_list/auction_list_bloc.dart';
 import '../network/dio_client.dart';
 
 class InjectionContainer {
@@ -32,6 +36,10 @@ class InjectionContainer {
   // AuctionDetail dependencies
   static late AuctionDetailRemoteDataSource _auctionDetailRemoteDataSource;
   static late AuctionDetailRepository _auctionDetailRepository;
+
+  // Auction dependencies
+  static late AuctionRemoteDataSource _auctionRemoteDataSource;
+  static late AuctionRepository _auctionRepository;
 
   /// Initialize all dependencies - call this in main() before running the app
   static Future<void> init() async {
@@ -59,6 +67,10 @@ class InjectionContainer {
     _auctionDetailRepository = AuctionDetailRepositoryImpl(
       _auctionDetailRemoteDataSource,
     );
+
+    // Initialize Auction dependencies
+    _auctionRemoteDataSource = AuctionRemoteDataSourceImpl(_dioClient);
+    _auctionRepository = AuctionRepositoryImpl(_auctionRemoteDataSource);
   }
 
   // Getters
@@ -82,4 +94,7 @@ class InjectionContainer {
 
   static AuctionDetailRepository getAuctionDetailRepository() =>
       _auctionDetailRepository;
+
+  static AuctionListBloc getAuctionListBloc() =>
+      AuctionListBloc(repository: _auctionRepository);
 }

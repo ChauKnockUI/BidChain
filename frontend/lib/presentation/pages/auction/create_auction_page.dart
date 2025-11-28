@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/custom_button.dart';
@@ -40,7 +41,9 @@ class _CreateAuctionPageState extends State<CreateAuctionPage> {
     await Future.delayed(const Duration(seconds: 1));
 
     setState(() => _submitting = false);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Auction created (simulated)')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Auction created (simulated)')),
+    );
     context.go(AppRoutes.auctionList);
   }
 
@@ -53,7 +56,14 @@ class _CreateAuctionPageState extends State<CreateAuctionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Create Auction'),
+      appBar: CustomAppBar(
+        title: 'Create Auction',
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          color: AppColors.black,
+          onPressed: () => context.go(AppRoutes.home),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -66,7 +76,9 @@ class _CreateAuctionPageState extends State<CreateAuctionPage> {
                 controller: _startingController,
                 label: 'Starting price (ETH)',
                 hint: '0.1',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 validator: _validateNumber,
               ),
               const SizedBox(height: 12),

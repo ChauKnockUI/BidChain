@@ -24,7 +24,10 @@ class HomePage extends StatelessWidget {
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AppColors.accent),
+            icon: const Icon(
+              Icons.notifications_outlined,
+              color: AppColors.accent,
+            ),
             onPressed: () {
               // TODO: Navigate to notifications
             },
@@ -115,6 +118,13 @@ class HomePage extends StatelessWidget {
                 ),
                 _buildQuickActionCard(
                   context,
+                  icon: Icons.history_rounded,
+                  label: 'My Activity',
+                  color: AppColors.primary,
+                  onTap: () => context.go(AppRoutes.myActivity),
+                ),
+                _buildQuickActionCard(
+                  context,
                   icon: Icons.add_circle_outline_rounded,
                   label: 'Create Auction',
                   color: AppColors.accent,
@@ -201,10 +211,7 @@ class HomePage extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: color.withOpacity(0.2),
-              width: 1.5,
-            ),
+            border: Border.all(color: color.withOpacity(0.2), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: AppColors.black.withOpacity(0.05),
@@ -222,11 +229,7 @@ class HomePage extends StatelessWidget {
                   color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  size: 32,
-                  color: color,
-                ),
+                child: Icon(icon, size: 32, color: color),
               ),
               const SizedBox(height: 12),
               Text(

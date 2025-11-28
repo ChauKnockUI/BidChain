@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../config/routes/app_routes.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../widgets/common/custom_button.dart';
@@ -35,13 +37,17 @@ class _WalletPageState extends State<WalletPage> {
     final to = _toController.text.trim();
     final amount = _amountController.text.trim();
     if (to.isEmpty || amount.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Provide address and amount')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Provide address and amount')),
+      );
       return;
     }
     setState(() => _isWithdrawing = true);
     await Future.delayed(const Duration(seconds: 1)); // simulate
     setState(() => _isWithdrawing = false);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Withdrawal simulated')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Withdrawal simulated')));
   }
 
   @override
@@ -51,7 +57,11 @@ class _WalletPageState extends State<WalletPage> {
         title: const Text('Wallet'),
         backgroundColor: AppColors.white,
         elevation: 1,
-        iconTheme: const IconThemeData(color: AppColors.black),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          color: AppColors.black,
+          onPressed: () => context.go(AppRoutes.home),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -59,21 +69,32 @@ class _WalletPageState extends State<WalletPage> {
           children: [
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    const Icon(Icons.account_balance_wallet, size: 36, color: AppColors.primary),
+                    const Icon(
+                      Icons.account_balance_wallet,
+                      size: 36,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Balance', style: AppTextStyles.bodySmall),
                         const SizedBox(height: 6),
-                        Text('$_balance ETH', style: AppTextStyles.h3.copyWith(color: AppColors.black)),
+                        Text(
+                          '$_balance ETH',
+                          style: AppTextStyles.h3.copyWith(
+                            color: AppColors.black,
+                          ),
+                        ),
                       ],
-                    )
+                    ),
                   ],
                 ),
               ),

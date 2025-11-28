@@ -11,6 +11,12 @@ class AuctionEntity extends Equatable {
   final bool ended;
   final String? winner;
   final DateTime createdAt;
+  final String title;
+  final String description;
+  final List<String> images;
+  final String formattedCurrentPrice;
+  final String sellerName;
+  final int bidCount;
 
   const AuctionEntity({
     required this.auctionId,
@@ -23,6 +29,12 @@ class AuctionEntity extends Equatable {
     required this.ended,
     this.winner,
     required this.createdAt,
+    required this.title,
+    required this.description,
+    required this.images,
+    required this.formattedCurrentPrice,
+    required this.sellerName,
+    required this.bidCount,
   });
 
   @override
@@ -37,5 +49,11 @@ class AuctionEntity extends Equatable {
     ended,
     winner,
     createdAt,
+    title,
+    description,
+    images,
+    formattedCurrentPrice,
+    sellerName,
+    bidCount,
   ];
 }
