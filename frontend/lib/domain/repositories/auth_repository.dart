@@ -6,6 +6,9 @@ abstract class AuthRepository {
   Future<Either<Failure, UserEntity>> register({
     required String username,
     required String password,
+    required String email,
+    required String fullName,
+    String role = 'USER',
   });
 
   Future<Either<Failure, UserEntity>> login({

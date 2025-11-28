@@ -44,6 +44,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await registerUseCase(
       username: event.username,
       password: event.password,
+      email: event.email,
+      fullName: event.fullName,
+      role: 'USER', // Backend tự động set USER
     );
 
     result.fold(

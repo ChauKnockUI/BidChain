@@ -19,11 +19,17 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, UserEntity>> register({
     required String username,
     required String password,
+    required String email,
+    required String fullName,
+    String role = 'USER',
   }) async {
     try {
       final response = await remoteDataSource.register(
         username: username,
         password: password,
+        email: email,
+        fullName: fullName,
+        role: role,
       );
 
       await localDataSource.saveToken(response.token);
