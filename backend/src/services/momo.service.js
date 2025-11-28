@@ -3,10 +3,6 @@ const axios = require('axios');
 const config = require('../config/momo');
 
 class MomoService {
-
-  // ================================
-  // 🔐 Tạo chữ ký HMAC SHA256
-  // ================================
   createSignature(rawSignature) {
     return crypto
       .createHmac('sha256', config.secretKey)
@@ -20,7 +16,6 @@ class MomoService {
   async createPayment(amount, orderId) {
     const requestId = `REQ_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // RAW SIGNATURE CHUẨN THEO MOMO
     const rawSignature =
       `accessKey=${config.accessKey}` +
       `&amount=${amount}` +
@@ -82,48 +77,48 @@ class MomoService {
   }
 
   // ================================
-  // 🔍 Query trạng thái giao dịch
+  // 🔍 Query trạng thái giao dịch (dùng cho auto-check/manual)
   // ================================
- async checkTransactionStatus(orderId) {
-  const requestId = `QUERY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  async checkTransactionStatus(orderId) {
+    const requestId = `QUERY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  const rawSignature =
-    `accessKey=${config.accessKey}` +
-    `&orderId=${orderId}` +
-    `&partnerCode=${config.partnerCode}` +
-    `&requestId=${requestId}`;
+    const rawSignature =
+      `accessKey=${config.accessKey}` +
+      `&orderId=${orderId}` +
+      `&partnerCode=${config.partnerCode}` +
+      `&requestId=${requestId}`;
 
-  console.log("Query rawSignature:", rawSignature);
+    console.log("Query rawSignature:", rawSignature);
 
-  const signature = this.createSignature(rawSignature);
+    const signature = this.createSignature(rawSignature);
+    console.log("Generated signature:", signature);  // Debug signature
 
-  const body = {
-    partnerCode: config.partnerCode,
-    requestId,
-    orderId,
-    signature,
-    lang: "vi"
-  };
+    const body = {
+      partnerCode: config.partnerCode,
+      requestId,
+      orderId,
+      signature,
+      lang: "vi"
+    };
 
-  try {
-    const response = await axios.post(
-      "https://test-payment.momo.vn/v2/gateway/api/query",
-      body,
-      { headers: { "Content-Type": "application/json" } }
-    );
+    try {
+      const response = await axios.post(
+        "https://test-payment.momo.vn/v2/gateway/api/query",
+        body,
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-    console.log("MoMo query response:", response.data);
-    return response.data;
+      console.log("MoMo query response:", response.data);
+      return response.data;
 
-  } catch (err) {
-    console.error("MoMo query error:", err.response?.data || err.message);
-    return { resultCode: -1, message: "Query failed" };
+    } catch (err) {
+      console.error("MoMo query error:", err.response?.data || err.message);
+      return { resultCode: -1, message: "Query failed" };
+    }
   }
-}
-
 
   // ================================
-  // 🔐 Xác minh chữ ký callback IPN
+  // 🔐 Xác minh chữ ký callback IPN/Redirect
   // ================================
   verifyCallback(callbackData) {
     const rawSignature =
@@ -142,11 +137,12 @@ class MomoService {
       `&transId=${callbackData.transId}`;
 
     const signature = this.createSignature(rawSignature);
+    console.log("Callback verify - Generated sig:", signature, "vs received:", callbackData.signature); // Debug
     return signature === callbackData.signature;
   }
 
   // ================================
-  // 🧾 Xử lý kết quả thanh toán
+  // 🧾 Xử lý kết quả thanh toán (helper, nếu cần)
   // ================================
   processPaymentSuccess(callbackData) {
     if (callbackData.resultCode === 0) {

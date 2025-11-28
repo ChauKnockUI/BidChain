@@ -1,29 +1,30 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { body, validationResult } = require('express-validator');
-const { authMiddleware } = require('../middleware/auth');
+const { body, validationResult } = require("express-validator");
+const { authMiddleware } = require("../middleware/auth");
 
-const DepositRequest = require('../models/DepositRequest');
-const User = require('../models/User');
-const Transaction = require('../models/Transaction');
+const DepositRequest = require("../models/DepositRequest");
+const User = require("../models/User");
+const Transaction = require("../models/Transaction");
 
-const momoService = require('../services/momo.service');
-const { vndToEth, ethToVnd, formatVnd } = require('../utils/conversion');
-const { EXCHANGE_RATE, TRANSACTION_TYPES } = require('../config/constants');
+const momoService = require("../services/momo.service");
+const { vndToEth, toWei, formatVnd } = require("../utils/conversion");
+const { EXCHANGE_RATE, TRANSACTION_TYPES } = require("../config/constants");
 
-const { ethers } = require('ethers');
-const { walletFromPrivateKey, provider } = require('../blockchain/contract');
+const { ethers } = require("ethers");
+const { walletFromPrivateKey, provider } = require("../blockchain/contract");
 
 // ======================================================
-// 1) USER TẠO YÊU CẦU NẠP TIỀN (VND → ETH) - Với auto-check sau 10p
+// 1) USER TẠO YÊU CẦU NẠP TIỀN (VND → ETH) - Với auto-check 60s fallback
 // ======================================================
 router.post(
-  '/deposit/request',
+  "/deposit/request",
   authMiddleware,
-  [body('amount_vnd').isFloat({ min: 10000, max: 50000000 })],
+  [body("amount_vnd").isFloat({ min: 10000, max: 50000000 })],
   async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
 
     try {
       const { amount_vnd } = req.body;
@@ -31,20 +32,21 @@ router.post(
 
       // Tạo orderId duy nhất
       const orderId = `BIDCHAIN_${Date.now()}_${userId}`;
-      console.log('Created orderId:', orderId);
+      console.log("Created orderId:", orderId);
 
-      // Convert VND → ETH
-      const amountEth = vndToEth(amount_vnd);
-      console.log('amountEth:', amountEth);
+      // Convert VND → ETH string (fixed 18 decimals)
+      const amountEthStr = vndToEth(amount_vnd);
+      const amountEthNum = parseFloat(amountEthStr);  // Để log/display
+      console.log("amountEth:", amountEthStr, "(num:", amountEthNum, ")");
 
-      // Lưu deposit request
+      // Lưu deposit request (amount_eth as string ETH)
       const depositRequest = await DepositRequest.create({
         user_id: userId,
         amount_vnd,
-        amount_eth: amountEth,
+        amount_eth: amountEthStr,
         exchange_rate: EXCHANGE_RATE.ETH_TO_VND,
         momo_order_id: orderId,
-        status: 'PENDING_PAYMENT'
+        status: "PENDING_PAYMENT",
       });
 
       // Tạo thanh toán MoMo
@@ -52,19 +54,19 @@ router.post(
 
       if (!momoPayment.success) {
         await DepositRequest.findByIdAndUpdate(depositRequest._id, {
-          status: 'FAILED',
-          notes: momoPayment.error
+          status: "FAILED",
+          notes: momoPayment.error,
         });
 
         return res.status(500).json({
-          error: 'Failed to create payment',
-          details: momoPayment.error
+          error: "Failed to create payment",
+          details: momoPayment.error,
         });
       }
 
       await DepositRequest.findByIdAndUpdate(depositRequest._id, {
         momo_qr_url: momoPayment.qrCodeUrl,
-        momo_qr_code: momoPayment.payUrl
+        momo_qr_code: momoPayment.payUrl,
       });
 
       // Return ngay cho user (hiển thị QR/payUrl)
@@ -72,319 +74,205 @@ router.post(
         success: true,
         deposit_request_id: depositRequest._id,
         amount_vnd,
-        amount_eth: amountEth,
+        amount_eth: amountEthStr,
         momo_payment: {
-          payUrl: momoPayment.payUrl,      // Deeplink
-          qrCodeUrl: momoPayment.qrCodeUrl // QR image URL
+          payUrl: momoPayment.payUrl, // Deeplink
+          qrCodeUrl: momoPayment.qrCodeUrl, // QR image URL
         },
         formatted_amount: formatVnd(amount_vnd),
-        message: 'Payment created. Please pay within 30s for auto-check.'
+        message: "Payment created. Please pay now. System will auto-transfer ETH on success.",
       });
 
-      // BACKGROUND: Đợi 30s rồi check status tự động (fallback nếu callback fail)
-      // AUTO-CHECK: Nếu PAID → chuyển ETH luôn
-setTimeout(async () => {
-  try {
-    console.log(`Auto-checking status for orderId: ${orderId}`);
-    const status = await momoService.checkTransactionStatus(orderId);
+      // FALLBACK: Auto-check sau 60s (nếu callback miss)
+      setTimeout(async () => {
+        await handlePaymentSuccess(orderId, depositRequest._id, "auto-check");
+      }, 60000);
 
-    if (status.resultCode === 0) {
-      const deposit = await DepositRequest.findById(depositRequest._id).populate('user_id');
-
-      if (!deposit || deposit.status === "COMPLETED") return;
-
-      const adminWallet = walletFromPrivateKey(process.env.ADMIN_PRIVATE_KEY);
-      const amountWei = ethers.utils.parseEther(deposit.amount_eth.toString());
-      const balance = await provider.getBalance(adminWallet.address);
-
-      if (balance.lt(amountWei)) {
-        await DepositRequest.findByIdAndUpdate(deposit._id, {
-          status: "FAILED",
-          notes: "Admin wallet insufficient ETH"
+    } catch (err) {
+      console.error("Create deposit request error:", err);
+      res
+        .status(500)
+        .json({
+          error: "Failed to create deposit request",
+          details: err.message,
         });
-        return;
-      }
+    }
+  }
+);
 
-      const tx = await adminWallet.sendTransaction({
-        to: deposit.user_id.wallet_address,
-        value: amountWei
-      });
-      const receipt = await tx.wait();
+// ======================================================
+// Helper: Xử lý thanh toán success → Chuyển ETH ngay
+// ======================================================
+async function handlePaymentSuccess(orderId, depositId, source = "unknown") {
+  try {
+    console.log(`${source}: Processing success for orderId: ${orderId}`);
+    const status = await momoService.checkTransactionStatus(orderId); // Hoặc dùng data từ callback
 
-      // Update deposit
-      await DepositRequest.findByIdAndUpdate(deposit._id, {
-        status: "COMPLETED",
-        paid_at: new Date(),
-        momo_trans_id: status.transId || "",
-        funding_tx_hash: receipt.transactionHash
-      });
-
-      // Update user balance
-      await User.findByIdAndUpdate(deposit.user_id._id, {
-        $inc: { balance_eth: parseFloat(deposit.amount_eth) }
-      });
-
-      // Log transaction
-      await Transaction.create({
-        user_id: deposit.user_id._id,
-        type: TRANSACTION_TYPES.DEPOSIT,
-        amount_vnd: deposit.amount_vnd,
-        amount_eth: deposit.amount_eth,
-        status: 'COMPLETED',
-        tx_hash: receipt.transactionHash,
-        momo_ref_id: deposit.momo_order_id,
-        exchange_rate: EXCHANGE_RATE.ETH_TO_VND
-      });
-
-      console.log(`Order ${orderId} COMPLETED via auto-check`);
+    if (status.resultCode !== 0) {
+      console.log(`${source}: Payment failed: ${status.message}`);
       return;
     }
 
-    // THẤT BẠI
-    await DepositRequest.findByIdAndUpdate(depositRequest._id, {
-      status: "FAILED",
-      notes: status.message || "Payment failed"
-    });
-
-    console.log(`Order ${orderId} FAILED: ${status.message}`);
-
-  } catch (err) {
-    console.error(`Auto-check error for ${orderId}:`, err);
-    await DepositRequest.findByIdAndUpdate(depositRequest._id, {
-      status: "TIMEOUT",
-      notes: "Auto-check failed"
-    });
-  }
-}, 60000);
-
-
-    } catch (err) {
-      console.error('Create deposit request error:', err);
-      res.status(500).json({ error: 'Failed to create deposit request', details: err.message });
-    }
-  }
-);
-
-
-// ======================================================
-// 2) CHECK TRẠNG THÁI MOMO
-// ======================================================
-router.post(
-  '/momo/check-status',
-  [body('orderId').notEmpty().trim().isString().withMessage('OrderId must be a non-empty string')],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
-    try {
-      const { orderId } = req.body;
-
-      const status = await momoService.checkTransactionStatus(orderId);
-
-      res.json({ success: true, momo_status: status });
-
-    } catch (err) {
-      console.error('Status error:', err);
-      res.status(500).json({ error: 'Failed to check momo status', details: err.message });
-    }
-  }
-);
-
-// ======================================================
-// 3) MOMO CALLBACK — luôn trả về 200 OK (real-time update)
-// ======================================================
-// ======================================================
-// MOMO CALLBACK — PAID → Chuyển ETH luôn
-// ======================================================
-router.post('/momo/callback', async (req, res) => {
-  try {
-    const data = req.body;
-
-    console.log("MOMO CALLBACK:", data);
-
-    const isValid = momoService.verifyCallback(data);
-    if (!isValid) return res.status(400).json({ error: "Invalid signature" });
-
-    const deposit = await DepositRequest.findOne({
-      momo_order_id: data.orderId
-    }).populate('user_id');
-
-    if (!deposit) {
-      return res.status(404).json({ error: "Deposit request not found" });
+    const deposit = await DepositRequest.findById(depositId).populate("user_id");
+    if (!deposit || deposit.status === "PAID_DONE") {
+      console.log(`${source}: Already processed or not found`);
+      return;
     }
 
-    // ❗ Nếu callback đã gửi và request DONE rồi → bỏ qua
-    if (["COMPLETED"].includes(deposit.status)) {
-      return res.json({ success: true });
-    }
-
-    // ❗ MoMo trả về thành công
-    if (data.resultCode === 0) {
-      // Chuyển ETH cho user
-      const adminWallet = walletFromPrivateKey(process.env.ADMIN_PRIVATE_KEY);
-      const amountWei = ethers.utils.parseEther(deposit.amount_eth.toString());
-      const balance = await provider.getBalance(adminWallet.address);
-
-      if (balance.lt(amountWei)) {
-        await DepositRequest.findByIdAndUpdate(deposit._id, {
-          status: "FAILED",
-          notes: "Admin wallet insufficient ETH"
-        });
-        return res.json({ error: "Admin wallet insufficient ETH" });
-      }
-
-      // Gửi ETH
-      const tx = await adminWallet.sendTransaction({
-        to: deposit.user_id.wallet_address,
-        value: amountWei
-      });
-      const receipt = await tx.wait();
-
-      // Cập nhật deposit
+    // Parse amount_eth string → Number cho log, wei cho transfer
+    const amountEthNum = parseFloat(deposit.amount_eth);
+    console.log(
+      `${source}: Parsed amount_eth: ${deposit.amount_eth} (num: ${amountEthNum}, type: ${typeof amountEthNum})`
+    );
+    if (isNaN(amountEthNum) || amountEthNum <= 0) {
+      console.error(`${source}: Invalid amount_eth: ${deposit.amount_eth}`);
       await DepositRequest.findByIdAndUpdate(deposit._id, {
-        status: "COMPLETED",
-        paid_at: new Date(),
-        momo_trans_id: data.transId || "",
-        funding_tx_hash: receipt.transactionHash
+        status: "FAILED",
+        notes: "Invalid amount",
       });
-
-      // Update balance user
-      await User.findByIdAndUpdate(deposit.user_id._id, {
-        $inc: { balance_eth: parseFloat(deposit.amount_eth) }
-      });
-
-      // Log transaction
-      await Transaction.create({
-        user_id: deposit.user_id._id,
-        type: TRANSACTION_TYPES.DEPOSIT,
-        amount_vnd: deposit.amount_vnd,
-        amount_eth: deposit.amount_eth,
-        status: 'COMPLETED',
-        tx_hash: receipt.transactionHash,
-        momo_ref_id: deposit.momo_order_id,
-        exchange_rate: EXCHANGE_RATE.ETH_TO_VND
-      });
-
-      return res.json({ success: true });
+      return;
     }
 
-    // ❗ MoMo báo thất bại
+    // Bước 1: Update to PAID (MoMo success, chưa ETH)
     await DepositRequest.findByIdAndUpdate(deposit._id, {
-      status: "FAILED",
-      notes: data.message
+      status: "PAID",
+      momo_trans_id: status.transId || "",
     });
+    console.log(`${source}: Updated to PAID`);
 
-    return res.json({ success: true });
-
-  } catch (err) {
-    console.error("Callback processing error:", err);
-    res.status(500).json({ error: "Callback failed" });
-  }
-});
-
-
-// ======================================================
-// 4) ADMIN APPROVE — CHUYỂN ETH
-// ======================================================
-router.post('/admin/approve-deposit/:requestId', authMiddleware, async (req, res) => {
-  try {
-    const { requestId } = req.params;
-
-    const admin = await User.findById(req.user.id);
-    if (admin.role !== 'ADMIN')
-      return res.status(403).json({ error: 'Admin access required' });
-
-    const deposit = await DepositRequest.findById(requestId).populate('user_id');
-    if (!deposit) return res.status(404).json({ error: 'Request not found' });
-    if (deposit.status !== 'PAID')
-      return res.status(400).json({ error: 'Request must be PAID' });
-
+    // Bước 2: Chuyển ETH ngay từ admin → user
     const adminWallet = walletFromPrivateKey(process.env.ADMIN_PRIVATE_KEY);
-
-    const amountWei = ethers.utils.parseEther(deposit.amount_eth.toString());
+    const amountWeiStr = toWei(deposit.amount_eth);  // ETH string → wei string (an toàn)
+    const amountWei = ethers.BigNumber.from(amountWeiStr);  // BigNumber cho ethers
     const balance = await provider.getBalance(adminWallet.address);
 
-    if (balance.lt(amountWei))
-      return res.status(400).json({ error: 'Admin wallet insufficient ETH' });
+    if (balance.lt(amountWei)) {
+      await DepositRequest.findByIdAndUpdate(deposit._id, {
+        status: "FAILED",
+        notes: "Admin wallet insufficient ETH",
+      });
+      console.error(`${source}: Admin balance low: ${balance.toString()} wei < ${amountWeiStr} wei`);
+      return;
+    }
 
-    // Transfer
     const tx = await adminWallet.sendTransaction({
       to: deposit.user_id.wallet_address,
-      value: amountWei
+      value: amountWei,
+      gasLimit: 21000,
     });
     const receipt = await tx.wait();
+    console.log(`${source}: ETH transfer tx: ${receipt.transactionHash}`);
 
+    // Bước 3: Update to PAID_DONE + balance user (FIXED với BigInt)
     await DepositRequest.findByIdAndUpdate(deposit._id, {
-      status: 'COMPLETED',
-      approved_by: req.user.id,
-      approved_at: new Date(),
-      funding_tx_hash: receipt.transactionHash
+      status: "PAID_DONE",
+      paid_at: new Date(),
+      funding_tx_hash: receipt.transactionHash,
     });
 
-    await User.findByIdAndUpdate(deposit.user_id._id, {
-      $inc: { balance_eth: parseFloat(deposit.amount_eth) }
-    });
+    // Fix balance: Dùng BigInt cho wei (giả sử balance_eth lưu wei string)
+    const user = await User.findById(deposit.user_id._id);
+    const currentBalanceWei = BigInt(user.balance_eth || 0n);  // Parse string to BigInt
+    const addAmountWei = ethers.BigNumber.from(amountWeiStr).toBigInt();  // BigNumber → BigInt
+    const newBalanceWei = currentBalanceWei + addAmountWei;  // BigInt add: Chính xác!
 
+    console.log(`${source}: Balance update - Current wei: ${currentBalanceWei}, Add wei: ${addAmountWei}, New wei: ${newBalanceWei}`);
+
+    // Lưu string vào DB
+    const updateResult = await User.findByIdAndUpdate(
+      deposit.user_id._id,
+      { $set: { balance_eth: newBalanceWei.toString() } },
+      { new: true }
+    );
+    console.log(`${source}: Updated user balance wei: ${updateResult.balance_eth}`);
+
+    // Log transaction (amount_eth as string ETH cho dễ đọc)
     await Transaction.create({
       user_id: deposit.user_id._id,
       type: TRANSACTION_TYPES.DEPOSIT,
       amount_vnd: deposit.amount_vnd,
-      amount_eth: deposit.amount_eth,
-      status: 'COMPLETED',
+      amount_eth: deposit.amount_eth,  // String ETH
+      status: "COMPLETED",
       tx_hash: receipt.transactionHash,
       momo_ref_id: deposit.momo_order_id,
-      exchange_rate: EXCHANGE_RATE.ETH_TO_VND
+      exchange_rate: EXCHANGE_RATE.ETH_TO_VND,
+      amount_eth_wei: amountWeiStr  // Thêm field wei nếu cần
     });
 
-    res.json({
-      success: true,
-      tx_hash: receipt.transactionHash,
-      message: 'Deposit approved & ETH transferred'
-    });
-
+    console.log(`${source}: COMPLETED - Order ${orderId}, ETH sent to ${deposit.user_id.wallet_address}`);
   } catch (err) {
-    console.error('Approve error:', err);
-    res.status(500).json({ error: 'Failed to approve deposit' });
+    console.error(`${source}: Error processing ${orderId}:`, err);
+    await DepositRequest.findByIdAndUpdate(depositId, {
+      status: "TIMEOUT",
+      notes: "Process failed",
+    });
+  }
+}
+
+// ======================================================
+// MOMO CALLBACK/IPN — Trigger realtime khi MoMo notify
+// ======================================================
+router.post("/momo/callback", async (req, res) => {
+  try {
+    const data = req.body;
+    console.log("MOMO CALLBACK:", data);
+
+    const isValid = momoService.verifyCallback(data);
+    if (!isValid) {
+      console.error("Invalid callback signature");
+      return res.status(400).json({ error: "Invalid signature" });
+    }
+
+    if (data.resultCode === 0) {
+      // Tìm deposit và handle ngay
+      const deposit = await DepositRequest.findOne({ momo_order_id: data.orderId });
+      if (deposit) {
+        await handlePaymentSuccess(data.orderId, deposit._id, "callback");
+      }
+    } else {
+      // Fail: Update FAILED
+      const deposit = await DepositRequest.findOne({ momo_order_id: data.orderId });
+      if (deposit) {
+        await DepositRequest.findByIdAndUpdate(deposit._id, {
+          status: "FAILED",
+          notes: data.message,
+        });
+      }
+    }
+
+    res.json({ resultCode: 0, message: "OK" }); // Luôn trả success cho MoMo
+  } catch (err) {
+    console.error("Callback error:", err);
+    res.status(500).json({ error: "Callback failed" });
   }
 });
 
 // ======================================================
-// 6) ADMIN REJECT
+// 2) CHECK TRẠNG THÁI MOMO (manual cho user/admin)
 // ======================================================
 router.post(
-  '/admin/reject-deposit/:requestId',
-  authMiddleware,
-  [body('reason').notEmpty()],
+  "/momo/check-status",
+  [
+    body("orderId")
+      .notEmpty()
+      .trim()
+      .isString()
+      .withMessage("OrderId must be a non-empty string"),
+  ],
   async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
 
     try {
-      const { requestId } = req.params;
-      const { reason } = req.body;
-
-      const admin = await User.findById(req.user.id);
-      if (admin.role !== 'ADMIN')
-        return res.status(403).json({ error: 'Admin access required' });
-
-      const deposit = await DepositRequest.findByIdAndUpdate(
-        requestId,
-        {
-          status: 'REJECTED',
-          rejection_reason: reason,
-          approved_by: req.user.id,
-          approved_at: new Date()
-        },
-        { new: true }
-      );
-
-      if (!deposit) return res.status(404).json({ error: 'Request not found' });
-
-      res.json({ success: true, message: 'Deposit request rejected' });
-
+      const { orderId } = req.body;
+      const status = await momoService.checkTransactionStatus(orderId);
+      res.json({ success: true, momo_status: status });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to reject deposit' });
+      console.error("Status check error:", err);
+      res
+        .status(500)
+        .json({ error: "Failed to check momo status", details: err.message });
     }
   }
 );
@@ -392,39 +280,74 @@ router.post(
 // ======================================================
 // 7) USER LỊCH SỬ NẠP TIỀN
 // ======================================================
-router.get('/deposit/history', authMiddleware, async (req, res) => {
+router.get("/deposit/history", authMiddleware, async (req, res) => {
   try {
-    const requests = await DepositRequest.find({ user_id: req.user.id })
-      .sort({ created_at: -1 });
+    const requests = await DepositRequest.find({ user_id: req.user.id }).sort({
+      created_at: -1,
+    });
 
     res.json({ deposit_requests: requests });
-
   } catch (err) {
-    res.status(500).json({ error: 'Failed to get history' });
+    res.status(500).json({ error: "Failed to get history" });
+  }
+});
+
+
+// ======================================================
+// TEMP: GET BALANCE ON-CHAIN CỦA WALLET ADDRESS (public, cho test)
+// ======================================================
+router.get('/user/balance/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    // Validate address (optional, để an toàn)
+    if (!ethers.utils.isAddress(address)) {
+      return res.status(400).json({ error: 'Invalid Ethereum address' });
+    }
+    
+    // Query balance từ provider (on-chain)
+    const balanceWei = await provider.getBalance(address);
+    const balanceEth = ethers.utils.formatEther(balanceWei);  // FIX: Thêm .utils cho v5
+    
+    // Optional: Convert sang VND (dùng utils - import nếu chưa có)
+    const { weiToVnd, formatEth } = require('../utils/conversion');  // Import nếu chưa
+    const balanceVnd = weiToVnd(balanceWei.toString());
+    
+    res.json({ 
+      address: address.toLowerCase(),
+      balance_eth: balanceEth,
+      balance_wei: balanceWei.toString(),
+      balance_vnd: balanceVnd,
+      formatted_eth: formatEth(balanceWei.toString())  // Dùng utils để format đẹp
+    });
+    
+    console.log(`Balance query for ${address}: ${balanceEth} ETH`);
+  } catch (err) {
+    console.error('Balance query error:', err);
+    res.status(500).json({ error: 'Failed to fetch balance', details: err.message });
   }
 });
 
 // ======================================================
 // 8) ADMIN GET TẤT CẢ REQUEST
 // ======================================================
-router.get('/admin/deposit-requests', authMiddleware, async (req, res) => {
+router.get("/admin/deposit-requests", authMiddleware, async (req, res) => {
   try {
     const admin = await User.findById(req.user.id);
-    if (admin.role !== 'ADMIN')
-      return res.status(403).json({ error: 'Admin access required' });
+    if (admin.role !== "ADMIN")
+      return res.status(403).json({ error: "Admin access required" });
 
     const { status } = req.query;
     const query = status ? { status } : {};
 
     const requests = await DepositRequest.find(query)
-      .populate('user_id', 'username email')
-      .populate('approved_by', 'username')
+      .populate("user_id", "username email wallet_address")
+      .populate("approved_by", "username")
       .sort({ created_at: -1 });
 
     res.json({ deposit_requests: requests });
-
   } catch (err) {
-    res.status(500).json({ error: 'Failed to get all requests' });
+    res.status(500).json({ error: "Failed to get all requests" });
   }
 });
 
