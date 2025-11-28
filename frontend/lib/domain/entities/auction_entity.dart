@@ -1,41 +1,51 @@
 import 'package:equatable/equatable.dart';
+import 'user_entity.dart';
 
 class AuctionEntity extends Equatable {
-  final String auctionId;
-  final String seller;
-  final String startingPrice; // Wei
-  final String highestBid; // Wei
-  final String highestBidder;
+  final String id;
+  final String title;
+  final String description;
+  final List<String> images;
+  final String status;
+  final double startPriceVnd;
+  final double currentPriceVnd;
+  final double stepPriceVnd;
+  final String? formattedCurrentPrice;
   final DateTime endTime;
-  final String metadataUrl;
-  final bool ended;
-  final String? winner;
+  final UserEntity? seller;
+  final UserEntity? highestBidder;
   final DateTime createdAt;
 
   const AuctionEntity({
-    required this.auctionId,
-    required this.seller,
-    required this.startingPrice,
-    required this.highestBid,
-    required this.highestBidder,
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.images,
+    required this.status,
+    required this.startPriceVnd,
+    required this.currentPriceVnd,
+    required this.stepPriceVnd,
+    this.formattedCurrentPrice,
     required this.endTime,
-    required this.metadataUrl,
-    required this.ended,
-    this.winner,
+    this.seller,
+    this.highestBidder,
     required this.createdAt,
   });
 
   @override
   List<Object?> get props => [
-    auctionId,
-    seller,
-    startingPrice,
-    highestBid,
-    highestBidder,
+    id,
+    title,
+    description,
+    images,
+    status,
+    startPriceVnd,
+    currentPriceVnd,
+    stepPriceVnd,
+    formattedCurrentPrice,
     endTime,
-    metadataUrl,
-    ended,
-    winner,
+    seller,
+    highestBidder,
     createdAt,
   ];
 }

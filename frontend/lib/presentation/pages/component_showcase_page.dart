@@ -14,6 +14,8 @@ import '../../presentation/widgets/common/confirm_dialog.dart';
 import '../../presentation/widgets/common/loading_indicator.dart';
 import '../../presentation/widgets/common/full_screen_loading.dart';
 import '../../presentation/widgets/common/custom_toast.dart';
+import '../../data/models/auction_model.dart';
+import '../../domain/entities/user_entity.dart';
 
 class ComponentShowcasePage extends StatefulWidget {
   const ComponentShowcasePage({super.key});
@@ -1664,6 +1666,75 @@ class _ComponentShowcasePageState extends State<ComponentShowcasePage> {
 
   // AuctionCard Demo Tab
   Widget _buildAuctionCardTab() {
+    final demoAuction = AuctionModel(
+      id: 'demo_1',
+      title: 'Vintage Rolex Submariner 1980',
+      description: 'A classic timepiece in excellent condition.',
+      images: ['https://picsum.photos/400/300'],
+      status: 'ACTIVE',
+      startPriceVnd: 150000000,
+      currentPriceVnd: 165000000,
+      stepPriceVnd: 1000000,
+      formattedCurrentPrice: '165,000,000 VND',
+      endTime: DateTime.now().add(const Duration(hours: 2, minutes: 30)),
+      seller: UserEntity(
+        id: 'seller_1',
+        username: 'watch_collector',
+        email: 'collector@example.com',
+        fullName: 'Watch Collector',
+        role: 'USER',
+        walletAddress: '0x123...',
+        createdAt: DateTime.now(),
+      ),
+      createdAt: DateTime.now(),
+    );
+
+    final demoAuctionNoImage = AuctionModel(
+      id: 'demo_2',
+      title: 'Antique Vase Ming Dynasty',
+      description: 'Rare artifact.',
+      images: [],
+      status: 'ACTIVE',
+      startPriceVnd: 50000000,
+      currentPriceVnd: 50000000,
+      stepPriceVnd: 500000,
+      formattedCurrentPrice: '50,000,000 VND',
+      endTime: DateTime.now().add(const Duration(days: 1)),
+      seller: UserEntity(
+        id: 'seller_2',
+        username: 'antique_shop',
+        email: 'shop@example.com',
+        fullName: 'Antique Shop',
+        role: 'USER',
+        walletAddress: '0x456...',
+        createdAt: DateTime.now(),
+      ),
+      createdAt: DateTime.now(),
+    );
+
+    final demoAuctionEndingSoon = AuctionModel(
+      id: 'demo_3',
+      title: 'Gaming Laptop Alienware',
+      description: 'High performance gaming laptop.',
+      images: ['https://picsum.photos/400/300?random=2'],
+      status: 'ACTIVE',
+      startPriceVnd: 30000000,
+      currentPriceVnd: 32000000,
+      stepPriceVnd: 500000,
+      formattedCurrentPrice: '32,000,000 VND',
+      endTime: DateTime.now().add(const Duration(minutes: 15)),
+      seller: UserEntity(
+        id: 'seller_3',
+        username: 'gamer_pro',
+        email: 'gamer@example.com',
+        fullName: 'Gamer Pro',
+        role: 'USER',
+        walletAddress: '0x789...',
+        createdAt: DateTime.now(),
+      ),
+      createdAt: DateTime.now(),
+    );
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -1671,47 +1742,17 @@ class _ComponentShowcasePageState extends State<ComponentShowcasePage> {
         children: [
           _buildSectionTitle('AuctionCard - Với ảnh'),
           const SizedBox(height: 16),
-          AuctionCard(
-            auctionId: 'auction_001',
-            title: 'iPhone 15 Pro Max - 256GB',
-            imageUrl:
-                'https://images.unsplash.com/photo-1592286927505-1def25115558?w=400',
-            currentBid: '25.500.000 đ',
-            timeLeft: '2d 5h 30m',
-            bidCount: 12,
-            sellerName: 'Hồ Chân',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Clicked auction card!')),
-              );
-            },
-          ),
+          AuctionCard(auction: demoAuction),
           const SizedBox(height: 24),
+
           _buildSectionTitle('AuctionCard - Không có ảnh'),
           const SizedBox(height: 16),
-          AuctionCard(
-            auctionId: 'auction_002',
-            title: 'MacBook Pro 16" M3 Max',
-            currentBid: '45.000.000 đ',
-            timeLeft: '1d 12h',
-            bidCount: 8,
-            sellerName: 'Nguyễn Văn B',
-            sellerImageUrl: 'https://i.pravatar.cc/150?img=3', // Ảnh seller
-            onTap: () {},
-          ),
+          AuctionCard(auction: demoAuctionNoImage),
           const SizedBox(height: 24),
+
           _buildSectionTitle('AuctionCard - Sắp hết thời gian'),
           const SizedBox(height: 16),
-          AuctionCard(
-            auctionId: 'auction_003',
-            title: 'Apple Watch Series 8',
-            imageUrl:
-                'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
-            currentBid: '8.500.000 đ',
-            timeLeft: '45 phút',
-            bidCount: 24,
-            sellerName: 'Trần Minh',
-          ),
+          AuctionCard(auction: demoAuctionEndingSoon),
         ],
       ),
     );
