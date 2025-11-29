@@ -1,0 +1,31 @@
+[33m69a368a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/my-activity[m[33m, [m[1;31morigin/feat/my-activity[m[33m)[m feat: my activity and fix upload
+[33m601148f[m feat: UI for my activiy & auction detail
+[33m3c65b80[m merge: from ChauKnockUI/feature/create_auction to develop
+[33mdde069b[m[33m ([m[1;31morigin/feature/create_auction[m[33m)[m feat: create auction
+[33m777e4aa[m Add my activity feature WIP
+[33m6d54d01[m[33m ([m[1;32mdevelop[m[33m)[m feat: add category
+[33meffbfad[m featfeat: add bottom navigation bar
+[33m3828dc2[m merge: /feature/auth to develop
+[33m6068613[m[33m ([m[1;31morigin/feature/auth[m[33m)[m feat: finalize register and login page
+[33m98307e6[m fix: fix display error between eth and wei
+[33m4cb1dfd[m refactor: upload image api
+[33m1c0fe32[m fix: bid
+[33m496fded[m merge:  from /blockchain/ipfs to develop
+[33m3d7c881[m[33m ([m[1;31morigin/blockchain/ipfs[m[33m)[m refactor: fix backend
+[33m5f1c849[m[33m ([m[1;31morigin/frontend/authpage[m[33m)[m feat: Implement Login and Register pages with validation
+[33m76dc3f2[m[33m ([m[1;31morigin/frontend/component[m[33m)[m feat: Add 10 new UI components with showcase page
+[33m5b367e3[m global style project
+[33m00c1330[m[33m ([m[1;32mfeat/aution[m[33m)[m merge: pull request #5 from ChauKnockUI/blockchain/ipfs to develop
+[33m06652a5[m feat: upload file via ipfs and cloudinary
+[33m8e3e5cb[m fix: fix conflict after merge
+[33md407c3d[m fix: fix conflict after merge
+[33m8ded084[m Merge pull request #4 from ChauKnockUI/refactor/auction-api
+[33m65b4936[m[33m ([m[1;31morigin/refactor/auction-api[m[33m)[m Merge branch 'develop' into refactor/auction-api
+[33m29de52e[m[33m ([m[1;32mrefactor/auction-api[m[33m)[m baseCode for frontend
+[33m2b8ad4d[m refactor/api
+[33m40b7176[m m
+[33m326d1de[m[33m ([m[1;31morigin/blockchain/transactions[m[33m)[m feat: implement off-chain auction storage and bid history tracking
+[33m81d3971[m merge: ChauKnockUI/blockchain/transactions to develop
+[33m3707fbb[m feat: implement auth, wallet creation, encrypted private key, auction create and bid endpoints
+[33mecc3d38[m[33m ([m[1;32mfeature/contract[m[33m)[m docs: add README
+[33m190ecec[m feat: base code

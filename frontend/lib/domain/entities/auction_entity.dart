@@ -1,51 +1,59 @@
 import 'package:equatable/equatable.dart';
-import 'user_entity.dart';
 
 class AuctionEntity extends Equatable {
-  final String id;
+  final String auctionId;
+  final String seller;
+  final String startingPrice; // Wei
+  final String highestBid; // Wei
+  final String highestBidder;
+  final DateTime endTime;
+  final String metadataUrl;
+  final bool ended;
+  final String? winner;
+  final DateTime createdAt;
   final String title;
   final String description;
   final List<String> images;
-  final String status;
-  final double startPriceVnd;
-  final double currentPriceVnd;
-  final double stepPriceVnd;
-  final String? formattedCurrentPrice;
-  final DateTime endTime;
-  final UserEntity? seller;
-  final UserEntity? highestBidder;
-  final DateTime createdAt;
+  final String formattedCurrentPrice;
+  final String sellerName;
+  final int bidCount;
 
   const AuctionEntity({
-    required this.id,
+    required this.auctionId,
+    required this.seller,
+    required this.startingPrice,
+    required this.highestBid,
+    required this.highestBidder,
+    required this.endTime,
+    required this.metadataUrl,
+    required this.ended,
+    this.winner,
+    required this.createdAt,
     required this.title,
     required this.description,
     required this.images,
-    required this.status,
-    required this.startPriceVnd,
-    required this.currentPriceVnd,
-    required this.stepPriceVnd,
-    this.formattedCurrentPrice,
-    required this.endTime,
-    this.seller,
-    this.highestBidder,
-    required this.createdAt,
+    required this.formattedCurrentPrice,
+    required this.sellerName,
+    required this.bidCount,
   });
 
   @override
   List<Object?> get props => [
-    id,
+    auctionId,
+    seller,
+    startingPrice,
+    highestBid,
+    highestBidder,
+    endTime,
+    metadataUrl,
+    ended,
+    winner,
+    createdAt,
     title,
     description,
     images,
-    status,
-    startPriceVnd,
-    currentPriceVnd,
-    stepPriceVnd,
     formattedCurrentPrice,
-    endTime,
-    seller,
-    highestBidder,
-    createdAt,
+    sellerName,
+    bidCount,
   ];
 }

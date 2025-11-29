@@ -1,12 +1,24 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/datasources/local/auth_local_datasource.dart';
 import '../../data/datasources/remote/auth_remote_datasource.dart';
+import '../../data/datasources/remote/my_activity_remote_datasource.dart';
+import '../../data/datasources/remote/auction_detail_remote_datasource.dart';
+import '../../data/datasources/remote/auction_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../data/repositories/my_activity_repository_impl.dart';
+import '../../data/repositories/auction_detail_repository_impl.dart';
+import '../../data/repositories/auction_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/my_activity_repository.dart';
+import '../../domain/repositories/auction_detail_repository.dart';
+import '../../domain/repositories/auction_repository.dart';
 import '../../domain/usecases/auth/login_usecase.dart';
 import '../../domain/usecases/auth/register_usecase.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
+import '../../presentation/bloc/my_activity/my_activity_bloc.dart';
+import '../../presentation/bloc/auction_detail/auction_detail_bloc.dart';
+import '../../presentation/bloc/auction_list/auction_list_bloc.dart';
 import '../network/dio_client.dart';
 import '../network/network_info.dart';
 import '../../data/datasources/remote/auction_remote_datasource.dart';
@@ -25,10 +37,19 @@ class InjectionContainer {
   static late AuthRepository _authRepository;
   static late LoginUseCase _loginUseCase;
   static late RegisterUseCase _registerUseCase;
-  
+
+  // MyActivity dependencies
+  static late MyActivityRemoteDataSource _myActivityRemoteDataSource;
+  static late MyActivityRepository _myActivityRepository;
+
+  // AuctionDetail dependencies
+  static late AuctionDetailRemoteDataSource _auctionDetailRemoteDataSource;
+  static late AuctionDetailRepository _auctionDetailRepository;
+
   // Auction dependencies
   static late AuctionRemoteDataSource _auctionRemoteDataSource;
   static late AuctionRepository _auctionRepository;
+  
   static late CreateAuctionUseCase _createAuctionUseCase;
   static late NetworkInfo _networkInfo;
 
@@ -45,6 +66,23 @@ class InjectionContainer {
     _loginUseCase = LoginUseCase(_authRepository);
     _registerUseCase = RegisterUseCase(_authRepository);
 
+    // Initialize MyActivity dependencies
+    _myActivityRemoteDataSource = MyActivityRemoteDataSourceImpl(_dioClient);
+    _myActivityRepository = MyActivityRepositoryImpl(
+      _myActivityRemoteDataSource,
+    );
+
+    // Initialize AuctionDetail dependencies
+    _auctionDetailRemoteDataSource = AuctionDetailRemoteDataSourceImpl(
+      _dioClient,
+    );
+    _auctionDetailRepository = AuctionDetailRepositoryImpl(
+      _auctionDetailRemoteDataSource,
+    );
+
+    // Initialize Auction dependencies
+    _auctionRemoteDataSource = AuctionRemoteDataSourceImpl(_dioClient);
+   
     _networkInfo = NetworkInfoImpl(InternetConnectionChecker.instance);
     _auctionRemoteDataSource = AuctionRemoteDataSourceImpl(_dioClient);
     _auctionRepository = AuctionRepositoryImpl(
@@ -55,16 +93,29 @@ class InjectionContainer {
   }
 
   // Getters
-  static AuthBloc getAuthBloc() => AuthBloc(
-    loginUseCase: _loginUseCase,
-    registerUseCase: _registerUseCase,
-  );
+  static AuthBloc getAuthBloc() =>
+      AuthBloc(loginUseCase: _loginUseCase, registerUseCase: _registerUseCase);
 
   static AuthRepository getAuthRepository() => _authRepository;
   static LoginUseCase getLoginUseCase() => _loginUseCase;
   static RegisterUseCase getRegisterUseCase() => _registerUseCase;
+   // MyActivity getters
+  static MyActivityBloc getMyActivityBloc() =>
+      MyActivityBloc(repository: _myActivityRepository);
 
-  static CreateAuctionBloc getCreateAuctionBloc() => CreateAuctionBloc(
+  static MyActivityRepository getMyActivityRepository() =>
+      _myActivityRepository;
+
+  // AuctionDetail getters
+  static AuctionDetailBloc getAuctionDetailBloc() =>
+      AuctionDetailBloc(repository: _auctionDetailRepository);
+
+  static AuctionDetailRepository getAuctionDetailRepository() =>
+      _auctionDetailRepository;
+
+  static AuctionListBloc getAuctionListBloc() =>
+      AuctionListBloc(repository: _auctionRepository);
+      static CreateAuctionBloc getCreateAuctionBloc() => CreateAuctionBloc(
     createAuctionUseCase: _createAuctionUseCase,
   );
 

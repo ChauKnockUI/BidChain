@@ -16,7 +16,8 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => InjectionContainer.getAuctionBloc()..add(GetAuctions()),
+      create: (context) =>
+          InjectionContainer.getAuctionBloc()..add(GetAuctions()),
       child: Scaffold(
         backgroundColor: AppColors.greyLight,
         appBar: AppBar(
@@ -32,7 +33,10 @@ class HomePage extends StatelessWidget {
           automaticallyImplyLeading: false,
           actions: [
             IconButton(
-              icon: const Icon(Icons.notifications_outlined, color: AppColors.accent),
+              icon: const Icon(
+                Icons.notifications_outlined,
+                color: AppColors.accent,
+              ),
               onPressed: () {
                 // TODO: Navigate to notifications
               },
@@ -83,7 +87,8 @@ class HomePage extends StatelessWidget {
                                 ),
                               ),
                               TextButton(
-                                onPressed: () => context.go(AppRoutes.auctionList),
+                                onPressed: () =>
+                                    context.go(AppRoutes.auctionList),
                                 child: Text(
                                   'View All',
                                   style: AppTextStyles.bodyMedium.copyWith(
@@ -111,13 +116,22 @@ class HomePage extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                            const Icon(
+                              Icons.error_outline,
+                              size: 48,
+                              color: AppColors.error,
+                            ),
                             const SizedBox(height: 16),
-                            Text(state.message, style: AppTextStyles.bodyMedium),
+                            Text(
+                              state.message,
+                              style: AppTextStyles.bodyMedium,
+                            ),
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () {
-                                context.read<AuctionBloc>().add(RefreshAuctions());
+                                context.read<AuctionBloc>().add(
+                                  RefreshAuctions(),
+                                );
                               },
                               child: const Text('Retry'),
                             ),
@@ -132,11 +146,17 @@ class HomePage extends StatelessWidget {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.inbox_outlined, size: 64, color: AppColors.grey.withOpacity(0.5)),
+                              Icon(
+                                Icons.inbox_outlined,
+                                size: 64,
+                                color: AppColors.grey.withOpacity(0.5),
+                              ),
                               const SizedBox(height: 16),
                               Text(
                                 'No active auctions found',
-                                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.grey),
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -144,23 +164,43 @@ class HomePage extends StatelessWidget {
                       )
                     else
                       SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 0,
+                        ),
                         sliver: SliverGrid(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.75,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              return AuctionCard(auction: state.auctions[index]);
-                            },
-                            childCount: state.auctions.length,
-                          ),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.65,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                              ),
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final auction = state.auctions[index];
+                            return AuctionCard(
+                              auctionId: auction.auctionId,
+                              title: auction.title,
+                              imageUrl: auction.images.isNotEmpty
+                                  ? auction.images.first
+                                  : null,
+                              currentBid: auction.formattedCurrentPrice,
+                              timeLeft: _calculateTimeLeft(auction.endTime),
+                              bidCount: auction.bidCount,
+                              sellerName: auction.sellerName,
+                              onTap: () {
+                                context.go(
+                                  '${AppRoutes.auctionDetail}/${auction.auctionId}',
+                                );
+                              },
+                            );
+                          }, childCount: state.auctions.length),
                         ),
                       ),
-                  
+
                   // Bottom Padding
                   const SliverToBoxAdapter(child: SizedBox(height: 40)),
                 ],
@@ -241,6 +281,13 @@ class HomePage extends StatelessWidget {
         ),
         _buildQuickActionCard(
           context,
+          icon: Icons.gavel_rounded,
+          label: 'My activity',
+          color: AppColors.tertiary,
+          onTap: () => context.go(AppRoutes.myActivity),
+        ),
+        _buildQuickActionCard(
+          context,
           icon: Icons.add_circle_outline_rounded,
           label: 'Create Auction',
           color: AppColors.accent,
@@ -280,10 +327,7 @@ class HomePage extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: color.withOpacity(0.2),
-              width: 1.5,
-            ),
+            border: Border.all(color: color.withOpacity(0.2), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: AppColors.black.withOpacity(0.05),
@@ -301,11 +345,7 @@ class HomePage extends StatelessWidget {
                   color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  size: 32,
-                  color: color,
-                ),
+                child: Icon(icon, size: 32, color: color),
               ),
               const SizedBox(height: 12),
               Text(
@@ -321,5 +361,27 @@ class HomePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Calculate time left until auction ends
+  String _calculateTimeLeft(DateTime endTime) {
+    final now = DateTime.now();
+    final difference = endTime.difference(now);
+
+    if (difference.isNegative) {
+      return 'Ended';
+    }
+
+    if (difference.inDays > 0) {
+      final hours = difference.inHours % 24;
+      return '${difference.inDays}d ${hours}h';
+    } else if (difference.inHours > 0) {
+      final minutes = difference.inMinutes % 60;
+      return '${difference.inHours}h ${minutes}m';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m';
+    } else {
+      return '${difference.inSeconds}s';
+    }
   }
 }

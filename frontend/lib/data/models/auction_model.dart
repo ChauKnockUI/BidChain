@@ -4,44 +4,53 @@ import 'user_model.dart';
 
 class AuctionModel extends AuctionEntity {
   const AuctionModel({
-    required super.id,
+    required super.auctionId,
+    required super.seller,
+    required super.startingPrice,
+    required super.highestBid,
+    required super.highestBidder,
+    required super.endTime,
+    required super.metadataUrl,
+    required super.ended,
+    super.winner,
+    required super.createdAt,
     required super.title,
     required super.description,
     required super.images,
-    required super.status,
-    required super.startPriceVnd,
-    required super.currentPriceVnd,
-    required super.stepPriceVnd,
-    super.formattedCurrentPrice,
-    required super.endTime,
-    super.seller,
-    super.highestBidder,
-    required super.createdAt,
+    required super.formattedCurrentPrice,
+    required super.sellerName,
+    required super.bidCount,
   });
 
   factory AuctionModel.fromJson(Map<String, dynamic> json) {
     return AuctionModel(
-      id: json['_id']?.toString() ?? '',
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      images: json['images'] != null ? List<String>.from(json['images']) : [],
-      status: json['status'] ?? '',
-      startPriceVnd: _parseDouble(json['start_price_vnd']),
-      currentPriceVnd: _parseDouble(json['current_price_vnd']),
-      stepPriceVnd: _parseDouble(json['step_price_vnd']),
-      formattedCurrentPrice: json['formatted_current_price'],
+      auctionId: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      seller: json['seller_id'] is Map
+          ? (json['seller_id']['_id'] ?? '')
+          : (json['seller_id'] ?? ''),
+      startingPrice: json['start_price']?.toString() ?? '0',
+      highestBid: json['current_price']?.toString() ?? '0',
+      highestBidder: json['highest_bidder_id'] is Map
+          ? (json['highest_bidder_id']['_id'] ?? '')
+          : (json['highest_bidder_id'] ?? ''),
       endTime: json['end_time'] != null
           ? DateTime.parse(json['end_time'])
-          : DateTime.now().add(const Duration(days: 1)),
-      seller: json['seller_id'] != null
-          ? UserModel.fromJson(json['seller_id']) // Assuming UserModel can handle partial data
-          : null,
-      highestBidder: json['highest_bidder_id'] != null
-          ? UserModel.fromJson(json['highest_bidder_id'])
-          : null,
+          : DateTime.now(),
+      metadataUrl: json['metadata_url'] ?? '',
+      ended: json['status'] == 'ENDED' || json['status'] == 'SETTLED',
+      winner: json['winner'],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      images:
+          (json['images'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      formattedCurrentPrice: json['formatted_current_price'] ?? '0 VND',
+      sellerName: json['seller_id'] is Map
+          ? (json['seller_id']['full_name'] ?? 'Unknown')
+          : 'Unknown',
+      bidCount: json['bid_count'] ?? 0,
     );
   }
 
@@ -55,18 +64,21 @@ class AuctionModel extends AuctionEntity {
 
   Map<String, dynamic> toJson() {
     return {
-      '_id': id,
+      'id': auctionId,
+      'seller_id': seller,
+      'start_price': startingPrice,
+      'current_price': highestBid,
+      'highest_bidder_id': highestBidder,
+      'end_time': endTime.toIso8601String(),
+      'metadata_url': metadataUrl,
+      'status': ended ? 'ENDED' : 'ACTIVE',
+      'winner': winner,
+      'created_at': createdAt.toIso8601String(),
       'title': title,
       'description': description,
       'images': images,
-      'status': status,
-      'start_price_vnd': startPriceVnd,
-      'current_price_vnd': currentPriceVnd,
-      'step_price_vnd': stepPriceVnd,
       'formatted_current_price': formattedCurrentPrice,
-      'end_time': endTime.toIso8601String(),
-      // Note: seller and highestBidder serialization might need adjustment based on backend expectation for updates
-      'created_at': createdAt.toIso8601String(),
+      'bid_count': bidCount,
     };
   }
 }

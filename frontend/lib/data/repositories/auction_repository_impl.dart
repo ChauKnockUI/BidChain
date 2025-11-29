@@ -10,12 +10,13 @@ import '../models/category_model.dart';
 import '../models/create_auction_request.dart';
 
 class AuctionRepositoryImpl implements AuctionRepository {
-  final AuctionRemoteDataSource remoteDataSource;
+ final AuctionRemoteDataSource remoteDataSource;
   final NetworkInfo networkInfo;
 
   AuctionRepositoryImpl({
     required this.remoteDataSource,
     required this.networkInfo,
+  
   });
 
   @override

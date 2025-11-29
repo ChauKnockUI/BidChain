@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../config/routes/app_routes.dart';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
-import 'dart:html' as html;
+import 'package:image_picker/image_picker.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
@@ -39,10 +42,7 @@ class _ProfilePageState extends State<ProfilePage> {
   double ethToVnd(double eth) => eth * 50000000;
 
   String formatVnd(double vnd) {
-    return '${vnd.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
-    )} đ';
+    return '${vnd.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')} đ';
   }
 
   String formatDate(DateTime date) {
@@ -65,28 +65,39 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // Avatar Management Methods
   void _pickAvatar() async {
-    final html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = 'image/*';
-    uploadInput.click();
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
 
-    uploadInput.onChange.listen((event) {
-      final files = uploadInput.files;
-      if (files!.isEmpty) return;
+      if (image == null) return;
 
-      final reader = html.FileReader();
-      reader.readAsArrayBuffer(files[0]);
-      reader.onLoadEnd.listen((event) {
-        setState(() {
-          _avatarBytes = reader.result as Uint8List;
-          _hasAvatar = true;
-        });
+      final bytes = await image.readAsBytes();
+      setState(() {
+        _avatarBytes = bytes;
+        _hasAvatar = true;
+      });
+
+      if (mounted) {
         Toast.show(
           context,
           message: 'Avatar uploaded successfully!',
           type: ToastType.success,
         );
-      });
-    });
+      }
+    } catch (e) {
+      if (mounted) {
+        Toast.show(
+          context,
+          message: 'Failed to upload avatar: $e',
+          type: ToastType.error,
+        );
+      }
+    }
   }
 
   void _changeAvatar() {
@@ -145,7 +156,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 leading: Icon(Icons.delete, color: AppColors.error),
                 title: Text(
                   'Delete Avatar',
-                  style: AppTextStyles.bodyLarge.copyWith(color: AppColors.error),
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: AppColors.error,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -191,7 +204,9 @@ class _ProfilePageState extends State<ProfilePage> {
     final int totalAuctions = 12;
     final int totalBids = 45;
     final int auctionsWon = 8;
-    final double successRate = totalBids > 0 ? (auctionsWon / totalBids * 100) : 0;
+    final double successRate = totalBids > 0
+        ? (auctionsWon / totalBids * 100)
+        : 0;
 
     return Scaffold(
       backgroundColor: AppColors.greyLight,
@@ -202,6 +217,11 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         backgroundColor: AppColors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          color: AppColors.black,
+          onPressed: () => context.go(AppRoutes.home),
+        ),
         automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
@@ -215,7 +235,12 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 20),
             _buildUserInformationCard(user),
             const SizedBox(height: 20),
-            _buildStatisticsGrid(totalAuctions, totalBids, auctionsWon, successRate),
+            _buildStatisticsGrid(
+              totalAuctions,
+              totalBids,
+              auctionsWon,
+              successRate,
+            ),
             const SizedBox(height: 20),
             _buildActionButtons(),
             const SizedBox(height: 40),
@@ -303,7 +328,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: user.role == 'ADMIN' 
+              color: user.role == 'ADMIN'
                   ? AppColors.error.withOpacity(0.9)
                   : AppColors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(20),
@@ -311,7 +336,9 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Text(
               user.role,
               style: AppTextStyles.labelMedium.copyWith(
-                color: user.role == 'ADMIN' ? AppColors.white : AppColors.accent,
+                color: user.role == 'ADMIN'
+                    ? AppColors.white
+                    : AppColors.accent,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -349,7 +376,11 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           Row(
             children: [
-              Icon(Icons.account_balance_wallet, color: AppColors.accent, size: 24),
+              Icon(
+                Icons.account_balance_wallet,
+                color: AppColors.accent,
+                size: 24,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Wallet Balance',
@@ -451,9 +482,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             Text(
               formatVnd(vnd),
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.grey,
-              ),
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey),
             ),
           ],
         ),
@@ -525,9 +554,7 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Text(
                 label,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.grey,
-                ),
+                style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey),
               ),
               const SizedBox(height: 4),
               Text(
@@ -552,14 +579,19 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // Statistics Grid
-  Widget _buildStatisticsGrid(int totalAuctions, int totalBids, int auctionsWon, double successRate) {
+  Widget _buildStatisticsGrid(
+    int totalAuctions,
+    int totalBids,
+    int auctionsWon,
+    double successRate,
+  ) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.3,
       children: [
         _buildStatCard(
           Icons.gavel,
@@ -589,7 +621,12 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildStatCard(IconData icon, String value, String label, Color color) {
+  Widget _buildStatCard(
+    IconData icon,
+    String value,
+    String label,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -618,9 +655,7 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.grey,
-            ),
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey),
           ),
         ],
       ),

@@ -102,11 +102,14 @@ class AuctionRemoteDataSourceImpl implements AuctionRemoteDataSource {
       if (response.statusCode == 200) {
         final List<dynamic> urls = response.data['images'];
         print('✅ Upload successful: ${urls.length} URLs');
+      
         return urls.map((e) => e.toString()).toList();
       } else {
         throw ServerException(
           message: response.data['error'] ?? 'Failed to upload images',
+          
         );
+       
       }
     } catch (e) {
       throw ServerException(message: e.toString());
