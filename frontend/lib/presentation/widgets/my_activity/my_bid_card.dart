@@ -40,7 +40,7 @@ class MyBidCard extends StatelessWidget {
                       bid.images.first,
                       height: 140,
                       width: double.infinity,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return _buildPlaceholder();
                       },
@@ -171,6 +171,8 @@ class MyBidCard extends StatelessWidget {
                                     : AppColors.accent,
                                 fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -192,6 +194,8 @@ class MyBidCard extends StatelessWidget {
                                 color: AppColors.tertiary,
                                 fontWeight: FontWeight.bold,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),

@@ -26,6 +26,9 @@ class _AuctionListPageState extends State<AuctionListPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if we're in a route that can be popped (standalone page)
+    final canNavigateBack = ModalRoute.of(context)?.canPop ?? false;
+    
     return Scaffold(
       backgroundColor: AppColors.greyLight,
       appBar: CustomAppBar(

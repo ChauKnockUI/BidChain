@@ -43,7 +43,7 @@ class AuctionCard extends StatelessWidget {
     required this.sellerName,
     this.sellerImageUrl,
     this.onTap,
-    this.status
+    this.status,
   });
 
   @override
@@ -69,16 +69,16 @@ class AuctionCard extends StatelessWidget {
                 ),
                 child: Image.network(
                   imageUrl!,
-                  height: 160,
+                  height: 100,
                   width: double.infinity,
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
                     return _buildPlaceholder();
                   },
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
                     return Container(
-                      height: 160,
+                      height: 100,
                       color: AppColors.secondary.withValues(alpha: 0.3),
                       child: const Center(
                         child: CircularProgressIndicator(strokeWidth: 2),
@@ -92,19 +92,23 @@ class AuctionCard extends StatelessWidget {
 
             // Content
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Title
                   Text(
                     title,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.h4.copyWith(color: AppColors.accent),
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
 
                   // Highest Bid & Bid Count
                   Row(
@@ -112,20 +116,25 @@ class AuctionCard extends StatelessWidget {
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               'Giá cao nhất',
                               style: AppTextStyles.bodySmall.copyWith(
                                 color: AppColors.grey,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               currentBid,
-                              style: AppTextStyles.bodyMedium.copyWith(
+                              style: AppTextStyles.bodySmall.copyWith(
                                 color: AppColors.accent,
                                 fontWeight: FontWeight.bold,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -133,19 +142,25 @@ class AuctionCard extends StatelessWidget {
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               'Số lượt',
                               style: AppTextStyles.bodySmall.copyWith(
                                 color: AppColors.grey,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '$bidCount bids',
-                              style: AppTextStyles.bodyMedium.copyWith(
+                              style: AppTextStyles.bodySmall.copyWith(
                                 color: AppColors.tertiary,
+                                fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -153,16 +168,16 @@ class AuctionCard extends StatelessWidget {
                     ],
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 6),
 
                   // Divider
                   Divider(
                     color: AppColors.secondary.withValues(alpha: 0.5),
                     thickness: 1,
-                    height: 8,
+                    height: 6,
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 6),
 
                   // Time Left & Seller
                   Row(
@@ -172,10 +187,10 @@ class AuctionCard extends StatelessWidget {
                           children: [
                             Icon(
                               Icons.timer_outlined,
-                              size: 16,
+                              size: 14,
                               color: AppColors.secondary,
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 timeLeft,
@@ -189,12 +204,12 @@ class AuctionCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       // Seller Avatar
                       UserAvatar(
                         name: sellerName,
                         imageUrl: sellerImageUrl,
-                        size: 36,
+                        size: 28,
                       ),
                     ],
                   ),
@@ -210,7 +225,7 @@ class AuctionCard extends StatelessWidget {
   /// Widget placeholder khi không có ảnh
   Widget _buildPlaceholder() {
     return Container(
-      height: 160,
+      height: 100,
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.secondary.withValues(alpha: 0.2),

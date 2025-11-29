@@ -26,6 +26,7 @@ import '../../data/repositories/auction_repository_impl.dart';
 import '../../domain/repositories/auction_repository.dart';
 import '../../domain/usecases/create_auction_usecase.dart';
 import '../../presentation/bloc/create_auction/create_auction_bloc.dart';
+import '../../presentation/bloc/auction/auction_bloc.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class InjectionContainer {
@@ -116,5 +117,9 @@ class InjectionContainer {
       AuctionListBloc(repository: _auctionRepository);
       static CreateAuctionBloc getCreateAuctionBloc() => CreateAuctionBloc(
     createAuctionUseCase: _createAuctionUseCase,
+  );
+
+  static AuctionBloc getAuctionBloc() => AuctionBloc(
+    repository: _auctionRepository,
   );
 }

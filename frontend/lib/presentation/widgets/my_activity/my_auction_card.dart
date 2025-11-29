@@ -38,7 +38,7 @@ class MyAuctionCard extends StatelessWidget {
                       auction.images.first,
                       height: 140,
                       width: double.infinity,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return _buildPlaceholder();
                       },
@@ -101,6 +101,8 @@ class MyAuctionCard extends StatelessWidget {
                                 color: AppColors.accent,
                                 fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -122,6 +124,8 @@ class MyAuctionCard extends StatelessWidget {
                                 color: AppColors.tertiary,
                                 fontWeight: FontWeight.bold,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
