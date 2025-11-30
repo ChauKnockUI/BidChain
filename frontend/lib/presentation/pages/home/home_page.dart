@@ -24,7 +24,18 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String? _selectedCategoryId;
+  String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -91,12 +102,24 @@ class _HomePageState extends State<HomePage> {
               BlocBuilder<AuctionBloc, AuctionState>(
                 builder: (context, state) {
                   if (state is AuctionLoaded && state.auctions.isNotEmpty) {
-                    // Filter auctions by selected category
+                    // Filter auctions by selected category and search query
                     var filteredAuctions = state.auctions;
+                    
+                    // Filter by category
                     if (_selectedCategoryId != null) {
                       filteredAuctions = filteredAuctions
                           .where((auction) => auction.categoryId == _selectedCategoryId)
                           .toList();
+                    }
+                    
+                    // Filter by search query
+                    if (_searchQuery.isNotEmpty) {
+                      filteredAuctions = filteredAuctions.where((auction) {
+                        final titleLower = auction.title.toLowerCase();
+                        final descLower = auction.description.toLowerCase();
+                        return titleLower.contains(_searchQuery) ||
+                               descLower.contains(_searchQuery);
+                      }).toList();
                     }
 
                     final popularAuctions = [...filteredAuctions]
@@ -217,12 +240,24 @@ class _HomePageState extends State<HomePage> {
                       ),
                     );
                   } else if (state is AuctionLoaded) {
-                    // Filter auctions by selected category
+                    // Filter auctions by selected category and search query
                     var filteredAuctions = state.auctions;
+                    
+                    // Filter by category
                     if (_selectedCategoryId != null) {
                       filteredAuctions = filteredAuctions
                           .where((auction) => auction.categoryId == _selectedCategoryId)
                           .toList();
+                    }
+                    
+                    // Filter by search query
+                    if (_searchQuery.isNotEmpty) {
+                      filteredAuctions = filteredAuctions.where((auction) {
+                        final titleLower = auction.title.toLowerCase();
+                        final descLower = auction.description.toLowerCase();
+                        return titleLower.contains(_searchQuery) ||
+                               descLower.contains(_searchQuery);
+                      }).toList();
                     }
 
                     if (filteredAuctions.isEmpty) {
@@ -341,18 +376,20 @@ class _HomePageState extends State<HomePage> {
           hintText: 'Search auctions...',
           hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.grey),
           prefixIcon: const Icon(Icons.search, color: AppColors.black),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: AppColors.grey),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                )
+              : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 14,
           ),
         ),
-        onSubmitted: (query) {
-          if (query.isNotEmpty) {
-            // Navigate to auction list with search query
-            context.go('${AppRoutes.auctionList}?search=$query');
-          }
-        },
       ),
     );
   }
