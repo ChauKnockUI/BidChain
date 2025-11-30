@@ -4,6 +4,8 @@ import 'package:frontend/config/routes/app_routes.dart';
 import 'package:go_router/go_router.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
+import '../../bloc/auth/auth_bloc.dart';
+import '../../bloc/auth/auth_event.dart';
 import '../../bloc/auction_detail/auction_detail_bloc.dart';
 import '../../bloc/auction_detail/auction_detail_event.dart';
 import '../../bloc/auction_detail/auction_detail_state.dart';
@@ -46,6 +48,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
               behavior: SnackBarBehavior.floating,
             ),
           );
+          // Refresh user balance after successful bid
+          context.read<AuthBloc>().add(const AuthCheckStatusEvent());
         } else if (state is BidError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -63,7 +67,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new, size: 20),
               color: AppColors.accent,
-               onPressed: () => context.go(AppRoutes.home),
+              onPressed: () => context.go(AppRoutes.home),
             ),
             actions: [
               IconButton(

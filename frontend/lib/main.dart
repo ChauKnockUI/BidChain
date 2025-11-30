@@ -9,6 +9,7 @@ import 'config/theme/app_theme.dart';
 import 'core/di/injection_container.dart';
 import 'presentation/bloc/auth/auth_bloc.dart';
 import 'presentation/bloc/auth/auth_event.dart';
+import 'presentation/bloc/payment/payment_bloc.dart';
 
 class ApiConfig {
   static late final String baseUrl;
@@ -44,7 +45,7 @@ class MyApp extends StatelessWidget {
               InjectionContainer.getAuthBloc()
                 ..add(const AuthCheckStatusEvent()),
         ),
-         BlocProvider<MyActivityBloc>(
+        BlocProvider<MyActivityBloc>(
           create: (context) => InjectionContainer.getMyActivityBloc(),
         ),
         BlocProvider<AuctionDetailBloc>(
@@ -52,6 +53,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<AuctionListBloc>(
           create: (context) => InjectionContainer.getAuctionListBloc(),
+        ),
+        BlocProvider<PaymentBloc>(
+          create: (context) => InjectionContainer.getPaymentBloc(),
         ),
       ],
       child: MaterialApp.router(

@@ -1,155 +1,163 @@
 const crypto = require('crypto');
 const axios = require('axios');
+const config = require('../config/momo');
 
 class MomoService {
-  constructor() {
-    this.config = {
-      partnerCode: process.env.MOMO_PARTNER_CODE || 'MOMO_TEST_PARTNER',
-      accessKey: process.env.MOMO_ACCESS_KEY || 'test_access_key',
-      secretKey: process.env.MOMO_SECRET_KEY || 'test_secret_key',
-      endpoint: process.env.MOMO_ENDPOINT || 'https://test-payment.momo.vn/v2/gateway/api/create',
-      callbackUrl: process.env.MOMO_CALLBACK_URL || 'http://localhost:3000/api/payment/momo/callback',
-      redirectUrl: process.env.MOMO_REDIRECT_URL || 'http://localhost:3000/payment/success'
-    };
-  }
-
-  /**
-   * Generate Momo QR Code for VND deposit
-   * @param {number} amount - Amount in VND
-   * @param {string} orderId - Unique order ID
-   * @returns {object} Momo payment data
-   */
-  async createPayment(amount, orderId) {
-    const requestId = orderId;
-    const orderInfo = `Nap tien vao tai khoan dau gia - ${amount.toLocaleString()} VND`;
-    const requestType = 'captureWallet';
-    const extraData = '';
-
-    // Create signature
-    const rawSignature = `accessKey=${this.config.accessKey}&amount=${amount}&extraData=${extraData}&ipnUrl=${this.config.callbackUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${this.config.partnerCode}&redirectUrl=${this.config.redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
-
-    const signature = crypto
-      .createHmac('sha256', this.config.secretKey)
+  createSignature(rawSignature) {
+    return crypto
+      .createHmac('sha256', config.secretKey)
       .update(rawSignature)
       .digest('hex');
+  }
 
-    const paymentData = {
-      partnerCode: this.config.partnerCode,
-      partnerName: 'BidChain',
-      storeId: this.config.partnerCode,
-      requestId: requestId,
-      amount: amount,
-      orderId: orderId,
-      orderInfo: orderInfo,
-      redirectUrl: this.config.redirectUrl,
-      ipnUrl: this.config.callbackUrl,
-      lang: 'vi',
-      requestType: requestType,
-      autoCapture: true,
-      extraData: extraData,
-      signature: signature
+  // ================================
+  // 💳 Tạo đơn thanh toán MoMo
+  // ================================
+  async createPayment(amount, orderId) {
+    const requestId = `REQ_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const rawSignature =
+      `accessKey=${config.accessKey}` +
+      `&amount=${amount}` +
+      `&extraData=${config.extraData}` +
+      `&ipnUrl=${config.ipnUrl}` +
+      `&orderId=${orderId}` +
+      `&orderInfo=${config.orderInfo}` +
+      `&partnerCode=${config.partnerCode}` +
+      `&redirectUrl=${config.redirectUrl}` +
+      `&requestId=${requestId}` +
+      `&requestType=${config.requestType}`;
+
+    const signature = this.createSignature(rawSignature);
+
+    const requestBody = {
+      partnerCode: config.partnerCode,
+      partnerName: "MoMo Test",
+      storeId: "MoMoTestStore",
+      requestId,
+      amount: amount.toString(),
+      orderId,
+      orderInfo: config.orderInfo,
+      redirectUrl: config.redirectUrl,
+      ipnUrl: config.ipnUrl,
+      requestType: config.requestType,
+      autoCapture: config.autoCapture,
+      lang: config.lang,
+      extraData: config.extraData,
+      signature
     };
 
     try {
-      const response = await axios.post(this.config.endpoint, paymentData, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await axios.post(
+        "https://test-payment.momo.vn/v2/gateway/api/create",
+        requestBody,
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-      if (response.data.resultCode === 0) {
-        return {
-          success: true,
-          payUrl: response.data.payUrl,
-          qrCodeUrl: response.data.qrCodeUrl || this.generateQRCodeUrl(orderId, amount),
-          deeplink: response.data.deeplink,
-          orderId: orderId
-        };
-      } else {
+      console.log("MoMo Create Response:", JSON.stringify(response.data, null, 2));
+
+      if (response.status !== 200 || response.data.resultCode !== 0) {
         return {
           success: false,
-          error: response.data.message,
-          resultCode: response.data.resultCode
+          error: response.data.message || "MoMo trả về lỗi"
         };
       }
-    } catch (error) {
-      console.error('Momo payment creation failed:', error);
+
+      return {
+        success: true,
+        ...response.data,
+        qrCodeUrl: response.data.qrCodeUrl || "",
+        payUrl: response.data.payUrl || ""
+      };
+    } catch (err) {
+      console.error("MoMo create error:", err.response?.data || err.message);
       return {
         success: false,
-        error: 'Failed to create payment'
+        error: err.response?.data?.message || "Network/Request error"
       };
     }
   }
 
-  /**
-   * Verify Momo callback signature
-   * @param {object} callbackData - Callback data from Momo
-   * @returns {boolean} Signature valid
-   */
-  verifyCallback(callbackData) {
-    const {
-      partnerCode,
-      orderId,
+  // ================================
+  // 🔍 Query trạng thái giao dịch (dùng cho auto-check/manual)
+  // ================================
+  async checkTransactionStatus(orderId) {
+    const requestId = `QUERY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const rawSignature =
+      `accessKey=${config.accessKey}` +
+      `&orderId=${orderId}` +
+      `&partnerCode=${config.partnerCode}` +
+      `&requestId=${requestId}`;
+
+    console.log("Query rawSignature:", rawSignature);
+
+    const signature = this.createSignature(rawSignature);
+    console.log("Generated signature:", signature);  // Debug signature
+
+    const body = {
+      partnerCode: config.partnerCode,
       requestId,
-      amount,
-      orderInfo,
-      orderType,
-      transId,
-      resultCode,
-      message,
-      payType,
-      responseTime,
-      extraData
-    } = callbackData;
+      orderId,
+      signature,
+      lang: "vi"
+    };
 
-    const rawSignature = `partnerCode=${partnerCode}&orderId=${orderId}&requestId=${requestId}&amount=${amount}&orderInfo=${orderInfo}&orderType=${orderType}&transId=${transId}&resultCode=${resultCode}&message=${message}&payType=${payType}&responseTime=${responseTime}&extraData=${extraData}`;
+    try {
+      const response = await axios.post(
+        "https://test-payment.momo.vn/v2/gateway/api/query",
+        body,
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-    const signature = crypto
-      .createHmac('sha256', this.config.secretKey)
-      .update(rawSignature)
-      .digest('hex');
+      console.log("MoMo query response:", response.data);
+      return response.data;
 
+    } catch (err) {
+      console.error("MoMo query error:", err.response?.data || err.message);
+      return { resultCode: -1, message: "Query failed" };
+    }
+  }
+
+  // ================================
+  // 🔐 Xác minh chữ ký callback IPN/Redirect
+  // ================================
+  verifyCallback(callbackData) {
+    const rawSignature =
+      `accessKey=${config.accessKey}` +
+      `&amount=${callbackData.amount}` +
+      `&extraData=${callbackData.extraData || ''}` +
+      `&message=${callbackData.message}` +
+      `&orderId=${callbackData.orderId}` +
+      `&orderInfo=${callbackData.orderInfo}` +
+      `&orderType=${callbackData.orderType}` +
+      `&partnerCode=${callbackData.partnerCode}` +
+      `&payType=${callbackData.payType}` +
+      `&requestId=${callbackData.requestId}` +
+      `&responseTime=${callbackData.responseTime}` +
+      `&resultCode=${callbackData.resultCode}` +
+      `&transId=${callbackData.transId}`;
+
+    const signature = this.createSignature(rawSignature);
+    console.log("Callback verify - Generated sig:", signature, "vs received:", callbackData.signature); // Debug
     return signature === callbackData.signature;
   }
 
-  /**
-   * Generate QR Code URL for demo purposes
-   * @param {string} orderId - Order ID
-   * @param {number} amount - Amount
-   * @returns {string} QR Code URL
-   */
-  generateQRCodeUrl(orderId, amount) {
-    // For demo, generate a mock QR code URL
-    // In production, Momo provides real QR codes
-    const qrData = `MOMO_DEMO:${orderId}:${amount}`;
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
-  }
-
-  /**
-   * Process successful payment
-   * @param {object} callbackData - Momo callback data
-   * @returns {object} Processing result
-   */
+  // ================================
+  // 🧾 Xử lý kết quả thanh toán (helper, nếu cần)
+  // ================================
   processPaymentSuccess(callbackData) {
-    const { orderId, transId, amount, resultCode } = callbackData;
-
-    if (resultCode === 0) {
+    if (callbackData.resultCode === 0) {
       return {
         success: true,
-        orderId,
-        transactionId: transId,
-        amount: parseInt(amount),
-        status: 'PAID'
-      };
-    } else {
-      return {
-        success: false,
-        orderId,
-        error: 'Payment failed',
-        resultCode,
-        status: 'FAILED'
+        transId: callbackData.transId
       };
     }
+
+    return {
+      success: false,
+      error: callbackData.message || "Payment failed"
+    };
   }
 }
 
