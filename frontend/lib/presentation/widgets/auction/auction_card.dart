@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
+import '../common/optimized_image.dart';
 import '../user/user_avatar.dart';
 
 class AuctionCard extends StatelessWidget {
@@ -79,24 +80,14 @@ class AuctionCard extends StatelessWidget {
                 child: AspectRatio(
                   aspectRatio: 1.1, // Slightly landscape
                   child: hasImage
-                      ? Image.network(
-                          imageUrl!,
-                          fit: BoxFit.cover, // Cover to avoid white spaces
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildPlaceholder();
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              color: AppColors.greyLight,
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.black,
-                                ),
-                              ),
-                            );
-                          },
+                      ? OptimizedImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          memCacheHeight: 400,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(11),
+                            topRight: Radius.circular(11),
+                          ),
                         )
                       : _buildPlaceholder(),
                 ),
