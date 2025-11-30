@@ -170,7 +170,7 @@ router.post(
   handleBidLocking,
   async (req, res) => {
     try {
-      const io = req.app.get('io'); // Get socket.io instance
+      const io = req.app.get('io');
       const { bidResult, bidData } = req;
 
       // Emit real-time update to all clients in auction room
@@ -187,7 +187,6 @@ router.post(
 
       // Notify previous bidder if any
       if (bidResult.previousBidder) {
-        // Create notification for outbid user
         const notification = new Notification({
           user_id: bidResult.previousBidder,
           type: 'OUTBID',
@@ -197,7 +196,6 @@ router.post(
         });
         await notification.save();
 
-        // Emit notification to previous bidder
         io.to(`user_${bidResult.previousBidder}`).emit('notification', {
           type: 'OUTBID',
           title: notification.title,
@@ -206,21 +204,41 @@ router.post(
         });
       }
 
-      return res.json({
+      // Notify seller of new bid
+      const sellerId = bidData.auction.seller_id;
+      if (sellerId && sellerId.toString() !== bidData.user._id.toString()) {
+        const sellerNotification = new Notification({
+          user_id: sellerId,
+          type: 'NEW_BID',
+          title: 'Có người đặt giá mới',
+          message: `${bidData.user.full_name} đã đặt giá ${formatVnd(bidData.amountVnd)} cho phiên đấu giá "${bidData.auction.title}"`,
+          related_id: bidData.auction._id
+        });
+        await sellerNotification.save();
+
+        io.to(`user_${sellerId}`).emit('notification', {
+          type: 'NEW_BID',
+          title: sellerNotification.title,
+          formatted_amount: formatVnd(bidData.amountVnd),
+          current_price_vnd: bidData.amountVnd,
+          formatted_current_price: formatVnd(bidData.amountVnd)
+        });
+      }
+
+      return res.status(200).json({
         success: true,
-        message: 'Bid placed successfully',
-        bid_id: bidResult.bid._id,
+        message: "Bid placed successfully",
         amount_vnd: bidData.amountVnd,
-        formatted_amount: formatVnd(bidData.amountVnd),
-        current_price_vnd: bidData.amountVnd,
-        formatted_current_price: formatVnd(bidData.amountVnd)
+        amount_wei: bidData.amountWei
       });
+
     } catch (err) {
       console.error("Bid processing error:", err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
+
 router.post(
   "/:id/end", // :id là auctionId
   authMiddleware,

@@ -40,17 +40,26 @@ class AuctionDetailRemoteDataSourceImpl
     required double amountVnd,
   }) async {
     try {
+      print('Placing bid: Auction $auctionId, Amount $amountVnd VND');
+
       final response = await dioClient.post(
         ApiConstants.placeBid,
-        data: {'auctionId': auctionId, 'amountVnd': amountVnd},
+        data: {
+          'auction_id': auctionId, // ✅ Fixed: snake_case
+          'amount_vnd': amountVnd, // ✅ Fixed: snake_case
+        },
       );
 
+      print('Bid response: ${response.statusCode}');
+
       if (response.statusCode != 200) {
-        throw ServerException(
-          message: response.data['error'] ?? 'Failed to place bid',
-        );
+        final errorMsg = response.data['error'] ?? 'Failed to place bid';
+        print('Bid failed: $errorMsg');
+        throw ServerException(message: errorMsg);
       }
     } catch (e) {
+      print('Bid error: $e');
+      if (e is ServerException) rethrow;
       throw ServerException(message: e.toString());
     }
   }

@@ -41,7 +41,7 @@ class _WalletPageState extends State<WalletPage>
     super.dispose();
   }
 
- static const double ethToVnd = 50000000; // 1 ETH = 50,000,000 VND
+  static const double ethToVnd = 50000000; // 1 ETH = 50,000,000 VND
   static const double weiPerEth = 1e18;
 
   // Convert Wei → VND
@@ -56,6 +56,7 @@ class _WalletPageState extends State<WalletPage>
     final f = NumberFormat("#,###", "vi_VN");
     return "${f.format(vnd)} VND";
   }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<PaymentBloc, PaymentState>(
@@ -63,9 +64,12 @@ class _WalletPageState extends State<WalletPage>
         if (state is PaymentLoading) {
           Toast.show(context, message: 'Processing...', type: ToastType.info);
         } else if (state is DepositSuccess) {
-          // Close the input modal if open (handled in _showDepositModal but good to be safe)
           // Show success dialog with QR
           _showDepositSuccessDialog(state);
+          // Refresh user balance immediately
+          context.read<AuthBloc>().add(const AuthCheckStatusEvent());
+          // Refresh transaction history
+          context.read<PaymentBloc>().add(LoadPaymentHistory());
         } else if (state is WithdrawSuccess) {
           Toast.show(context, message: state.message, type: ToastType.success);
           // Refresh user data

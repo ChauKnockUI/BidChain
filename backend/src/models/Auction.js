@@ -6,7 +6,7 @@ const AuctionSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
   images: [{ type: String }],
-  category_id: { type: mongoose.Schema.Types.ObjectId,ref: 'Category', required: true },
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   status: {
     type: String,
     enum: ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'DEPLOYING', 'ACTIVE', 'ENDED', 'SETTLED'],
@@ -48,8 +48,13 @@ const AuctionSchema = new mongoose.Schema({
 
   highest_bidder_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   start_time: { type: Date },
-  end_time: { type: Date, required: true, index: true }
-}, { 
+  end_time: { type: Date, required: true, index: true },
+
+  // Blockchain tracking
+  blockchain_id: { type: Number }, // On-chain auction ID from smart contract
+  settled_on_chain: { type: Boolean, default: false }, // Whether settlement happened on blockchain
+  settlement_tx: { type: String } // Settlement transaction hash
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }

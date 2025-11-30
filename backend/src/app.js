@@ -35,6 +35,14 @@ const io = require("socket.io")(server, {
 // Make io available to routes
 app.set('io', io);
 
+// Make io globally available for cron jobs
+global.io = io;
+
+// Import and start settlement cron
+const { runSettlementCron } = require('./cron/settlement');
+setInterval(runSettlementCron, 60000); // Run every minute
+console.log('Settlement cron job started (runs every 60s)');
+
 // socket
 io.on("connection", (socket) => {
   console.log("New client:", socket.id);
