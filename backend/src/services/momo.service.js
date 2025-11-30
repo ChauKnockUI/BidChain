@@ -54,6 +54,8 @@ class MomoService {
         { headers: { "Content-Type": "application/json" } }
       );
 
+      console.log("MoMo Create Response:", JSON.stringify(response.data, null, 2));
+
       if (response.status !== 200 || response.data.resultCode !== 0) {
         return {
           success: false,

@@ -34,6 +34,9 @@ const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
 // CREATE WALLET FROM PRIVATE KEY
 // -----------------------
 function walletFromPrivateKey(privateKey) {
+  if (!privateKey) {
+    throw new Error('Missing privateKey. Please check ADMIN_PRIVATE_KEY in .env');
+  }
   return new ethers.Wallet(privateKey, provider);
 }
 
