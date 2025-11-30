@@ -8,110 +8,172 @@ import '../../../core/di/injection_container.dart';
 import '../../bloc/auction/auction_bloc.dart';
 import '../../bloc/auction/auction_event.dart';
 import '../../bloc/auction/auction_state.dart';
+import '../../bloc/category/category_bloc.dart';
+import '../../bloc/category/category_event.dart';
+import '../../bloc/category/category_state.dart';
 import '../../widgets/auction/auction_card.dart';
+import '../../widgets/common/category_chip.dart';
+import '../../widgets/common/section_header.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) =>
-          InjectionContainer.getAuctionBloc()..add(GetAuctions()),
-      child: Scaffold(
-        backgroundColor: AppColors.greyLight,
-        appBar: AppBar(
-          title: Text(
-            'BidChain',
-            style: AppTextStyles.h2.copyWith(
-              color: AppColors.black,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          backgroundColor: AppColors.white,
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-              icon: const Icon(
-                Icons.notifications_outlined,
-                color: AppColors.accent,
-              ),
-              onPressed: () {
-                // TODO: Navigate to notifications
-              },
-            ),
-          ],
-        ),
-        body: BlocBuilder<AuctionBloc, AuctionState>(
-          builder: (context, state) {
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<AuctionBloc>().add(RefreshAuctions());
-              },
-              color: AppColors.accent,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Welcome Section
-                          _buildWelcomeSection(),
-                          const SizedBox(height: 24),
+  State<HomePage> createState() => _HomePageState();
+}
 
-                          // Quick Actions
-                          Text(
-                            'Quick Actions',
-                            style: AppTextStyles.h3.copyWith(
-                              color: AppColors.black,
-                              fontWeight: FontWeight.bold,
+class _HomePageState extends State<HomePage> {
+  String? _selectedCategoryId;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) =>
+              InjectionContainer.getAuctionBloc()..add(GetAuctions()),
+        ),
+        BlocProvider(
+          create: (context) =>
+              InjectionContainer.getCategoryBloc()..add(GetCategories()),
+        ),
+      ],
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        appBar: _buildAppBar(),
+        body: RefreshIndicator(
+          onRefresh: () async {
+            context.read<AuctionBloc>().add(RefreshAuctions());
+            context.read<CategoryBloc>().add(GetCategories());
+          },
+          color: AppColors.black,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              // Search Bar Section
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _buildSearchBar(),
+                ),
+              ),
+
+              // Category Section
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Text(
+                        'Categories',
+                        style: AppTextStyles.h3.copyWith(
+                          color: AppColors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCategoryList(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+
+              // Popular Auctions Section
+              BlocBuilder<AuctionBloc, AuctionState>(
+                builder: (context, state) {
+                  if (state is AuctionLoaded && state.auctions.isNotEmpty) {
+                    final popularAuctions = [...state.auctions]
+                      ..sort((a, b) => b.bidCount.compareTo(a.bidCount));
+                    final topAuctions = popularAuctions.take(10).toList();
+
+                    return SliverToBoxAdapter(
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: SectionHeader(
+                              title: 'Popular Auctions',
+                              onSeeAllTap: () =>
+                                  context.go(AppRoutes.auctionList),
                             ),
                           ),
                           const SizedBox(height: 16),
-                          _buildQuickActionsGrid(context),
-                          const SizedBox(height: 24),
-
-                          // Live Auctions Header
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Live Auctions',
-                                style: AppTextStyles.h3.copyWith(
-                                  color: AppColors.black,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () =>
-                                    context.go(AppRoutes.auctionList),
-                                child: Text(
-                                  'View All',
-                                  style: AppTextStyles.bodyMedium.copyWith(
-                                    color: AppColors.accent,
-                                    fontWeight: FontWeight.bold,
+                          SizedBox(
+                            height: 245,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20),
+                              itemCount: topAuctions.length,
+                              itemBuilder: (context, index) {
+                                final auction = topAuctions[index];
+                                return Container(
+                                  width: 180,
+                                  margin: EdgeInsets.only(
+                                    right: index < topAuctions.length - 1
+                                        ? 12
+                                        : 0,
                                   ),
-                                ),
-                              ),
-                            ],
+                                  child: AuctionCard(
+                                    auctionId: auction.auctionId,
+                                    title: auction.title,
+                                    imageUrl: auction.images.isNotEmpty
+                                        ? auction.images.first
+                                        : null,
+                                    currentBid: auction.formattedCurrentPrice,
+                                    timeLeft: _calculateTimeLeft(auction.endTime),
+                                    bidCount: auction.bidCount,
+                                    sellerName: auction.sellerName,
+                                    onTap: () {
+                                      context.go(
+                                        '${AppRoutes.auctionDetail}/${auction.auctionId}',
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 32),
                         ],
                       ),
-                    ),
-                  ),
+                    );
+                  }
+                  return const SliverToBoxAdapter(child: SizedBox.shrink());
+                },
+              ),
 
-                  // Auction Grid or Loading/Error/Empty State
-                  if (state is AuctionLoading)
-                    const SliverFillRemaining(
+              // Active Auctions Section
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: SectionHeader(
+                    title: 'Active Auctions',
+                    onSeeAllTap: () => context.go(AppRoutes.auctionList),
+                  ),
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+              // Auction Grid
+              BlocBuilder<AuctionBloc, AuctionState>(
+                builder: (context, state) {
+                  if (state is AuctionLoading) {
+                    return const SliverFillRemaining(
                       child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (state is AuctionError)
-                    SliverFillRemaining(
+                    );
+                  } else if (state is AuctionError) {
+                    return SliverFillRemaining(
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -119,7 +181,7 @@ class HomePage extends StatelessWidget {
                             const Icon(
                               Icons.error_outline,
                               size: 48,
-                              color: AppColors.error,
+                              color: AppColors.black,
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -130,18 +192,18 @@ class HomePage extends StatelessWidget {
                             ElevatedButton(
                               onPressed: () {
                                 context.read<AuctionBloc>().add(
-                                  RefreshAuctions(),
-                                );
+                                      RefreshAuctions(),
+                                    );
                               },
                               child: const Text('Retry'),
                             ),
                           ],
                         ),
                       ),
-                    )
-                  else if (state is AuctionLoaded)
-                    if (state.auctions.isEmpty)
-                      SliverFillRemaining(
+                    );
+                  } else if (state is AuctionLoaded) {
+                    if (state.auctions.isEmpty) {
+                      return SliverFillRemaining(
                         child: Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -161,9 +223,9 @@ class HomePage extends StatelessWidget {
                             ],
                           ),
                         ),
-                      )
-                    else
-                      SliverPadding(
+                      );
+                    } else {
+                      return SliverPadding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 0,
@@ -171,199 +233,208 @@ class HomePage extends StatelessWidget {
                         sliver: SliverGrid(
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.65,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                              ),
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final auction = state.auctions[index];
-                            return AuctionCard(
-                              auctionId: auction.auctionId,
-                              title: auction.title,
-                              imageUrl: auction.images.isNotEmpty
-                                  ? auction.images.first
-                                  : null,
-                              currentBid: auction.formattedCurrentPrice,
-                              timeLeft: _calculateTimeLeft(auction.endTime),
-                              bidCount: auction.bidCount,
-                              sellerName: auction.sellerName,
-                              onTap: () {
-                                context.go(
-                                  '${AppRoutes.auctionDetail}/${auction.auctionId}',
-                                );
-                              },
-                            );
-                          }, childCount: state.auctions.length),
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.65,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final auction = state.auctions[index];
+                              return AuctionCard(
+                                auctionId: auction.auctionId,
+                                title: auction.title,
+                                imageUrl: auction.images.isNotEmpty
+                                    ? auction.images.first
+                                    : null,
+                                currentBid: auction.formattedCurrentPrice,
+                                timeLeft: _calculateTimeLeft(auction.endTime),
+                                bidCount: auction.bidCount,
+                                sellerName: auction.sellerName,
+                                onTap: () {
+                                  context.go(
+                                    '${AppRoutes.auctionDetail}/${auction.auctionId}',
+                                  );
+                                },
+                              );
+                            },
+                            childCount: state.auctions.length,
+                          ),
                         ),
-                      ),
-
-                  // Bottom Padding
-                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                ],
+                      );
+                    }
+                  }
+                  return const SliverToBoxAdapter(child: SizedBox.shrink());
+                },
               ),
-            );
+
+              // Bottom Padding
+              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      title: Text(
+        'BidChain',
+        style: AppTextStyles.h2.copyWith(
+          color: AppColors.black,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      backgroundColor: AppColors.white,
+      elevation: 0,
+      automaticallyImplyLeading: false,
+      actions: [
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: AppColors.black,
+          ),
+          onPressed: () {
+            // TODO: Navigate to notifications
           },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWelcomeSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.accent, AppColors.accentDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accent.withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Welcome Back!',
-                  style: AppTextStyles.h3.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Explore and bid on amazing items',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.white.withOpacity(0.9),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.waving_hand_rounded,
-            color: AppColors.white,
-            size: 40,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionsGrid(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.3,
-      children: [
-        _buildQuickActionCard(
-          context,
-          icon: Icons.gavel_rounded,
-          label: 'Browse Auctions',
-          color: AppColors.tertiary,
-          onTap: () => context.go(AppRoutes.auctionList),
-        ),
-        _buildQuickActionCard(
-          context,
-          icon: Icons.gavel_rounded,
-          label: 'My activity',
-          color: AppColors.tertiary,
-          onTap: () => context.go(AppRoutes.myActivity),
-        ),
-        _buildQuickActionCard(
-          context,
-          icon: Icons.add_circle_outline_rounded,
-          label: 'Create Auction',
-          color: AppColors.accent,
-          onTap: () => context.go(AppRoutes.createAuction),
-        ),
-        _buildQuickActionCard(
-          context,
-          icon: Icons.account_balance_wallet_rounded,
-          label: 'My Wallet',
-          color: AppColors.secondary,
-          onTap: () => context.go(AppRoutes.wallet),
-        ),
-        _buildQuickActionCard(
-          context,
-          icon: Icons.person_rounded,
-          label: 'My Profile',
-          color: AppColors.accentDark,
-          onTap: () => context.go(AppRoutes.profile),
         ),
       ],
     );
   }
 
-  Widget _buildQuickActionCard(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.2), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.black, width: 1.5),
+      ),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search auctions...',
+          hintStyle: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.grey,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 32, color: color),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.black,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+          prefixIcon: const Icon(Icons.search, color: AppColors.black),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
           ),
         ),
+        onSubmitted: (query) {
+          if (query.isNotEmpty) {
+            // Navigate to auction list with search query
+            context.go('${AppRoutes.auctionList}?search=$query');
+          }
+        },
       ),
     );
   }
 
-  /// Calculate time left until auction ends
+  Widget _buildCategoryList() {
+    return BlocBuilder<CategoryBloc, CategoryState>(
+      builder: (context, state) {
+        if (state is CategoryLoaded) {
+          // Add "All" category at the beginning
+          final allCategories = [
+            {'id': null, 'name': 'All', 'icon': Icons.apps},
+            ...state.categories.map((cat) => {
+                  'id': cat.id,
+                  'name': cat.name,
+                  'icon': _getCategoryIcon(cat.name),
+                }),
+          ];
+
+          return SizedBox(
+            height: 50,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: allCategories.length,
+              itemBuilder: (context, index) {
+                final category = allCategories[index];
+                final isSelected = _selectedCategoryId == category['id'];
+
+                return Padding(
+                  padding: EdgeInsets.only(
+                    right: index < allCategories.length - 1 ? 8 : 0,
+                  ),
+                  child: CategoryChip(
+                    label: category['name'] as String,
+                    icon: category['icon'] as IconData?,
+                    isSelected: isSelected,
+                    onTap: () {
+                      setState(() {
+                        _selectedCategoryId = category['id'] as String?;
+                      });
+                      // TODO: Filter auctions by category
+                    },
+                  ),
+                );
+              },
+            ),
+          );
+        } else if (state is CategoryLoading) {
+          return const SizedBox(
+            height: 50,
+            child: Center(
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        } else {
+          // Show default categories if loading fails
+          return SizedBox(
+            height: 50,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                CategoryChip(
+                  label: 'All',
+                  icon: Icons.apps,
+                  isSelected: _selectedCategoryId == null,
+                  onTap: () {
+                    setState(() {
+                      _selectedCategoryId = null;
+                    });
+                  },
+                ),
+              ],
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  IconData _getCategoryIcon(String categoryName) {
+    final name = categoryName.toLowerCase();
+    if (name.contains('electronic') || name.contains('tech')) {
+      return Icons.devices;
+    } else if (name.contains('fashion') || name.contains('cloth')) {
+      return Icons.checkroom;
+    } else if (name.contains('art')) {
+      return Icons.palette;
+    } else if (name.contains('collect')) {
+      return Icons.stars;
+    } else if (name.contains('vehicle') || name.contains('car')) {
+      return Icons.directions_car;
+    } else if (name.contains('real estate') || name.contains('home')) {
+      return Icons.home;
+    } else if (name.contains('sport')) {
+      return Icons.sports_soccer;
+    } else if (name.contains('book')) {
+      return Icons.book;
+    } else if (name.contains('music')) {
+      return Icons.music_note;
+    } else {
+      return Icons.category;
+    }
+  }
+
   String _calculateTimeLeft(DateTime endTime) {
     final now = DateTime.now();
     final difference = endTime.difference(now);
