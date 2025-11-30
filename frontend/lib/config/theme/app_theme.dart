@@ -7,39 +7,39 @@ class AppTheme {
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    primaryColor: AppColors.accent,
-    scaffoldBackgroundColor: AppColors.primary,
+    primaryColor: AppColors.black,
+    scaffoldBackgroundColor: AppColors.white,
     fontFamily: GoogleFonts.lexend().fontFamily,
 
     // Color Scheme
     colorScheme: ColorScheme.light(
-      primary: AppColors.accent,
-      onPrimary: AppColors.primary,
-      secondary: AppColors.secondary,
-      onSecondary: AppColors.accent,
-      tertiary: AppColors.tertiary,
+      primary: AppColors.black,
+      onPrimary: AppColors.white,
+      secondary: AppColors.greyLight,
+      onSecondary: AppColors.black,
+      tertiary: AppColors.grey,
       onTertiary: AppColors.white,
-      surface: AppColors.primary,
-      onSurface: AppColors.accent,
-      error: AppColors.error,
+      surface: AppColors.white,
+      onSurface: AppColors.black,
+      error: AppColors.black,
       onError: AppColors.white,
     ),
 
     // AppBar
     appBarTheme: AppBarTheme(
-      backgroundColor: AppColors.secondary,
+      backgroundColor: AppColors.white,
       elevation: 0,
-      iconTheme: const IconThemeData(color: AppColors.accent),
-      titleTextStyle: AppTextStyles.h4.copyWith(color: AppColors.accent),
+      iconTheme: const IconThemeData(color: AppColors.black),
+      titleTextStyle: AppTextStyles.h4.copyWith(color: AppColors.black),
     ),
 
     // Button
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.accent,
-        foregroundColor: AppColors.primary,
+        backgroundColor: AppColors.black,
+        foregroundColor: AppColors.white,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        textStyle: AppTextStyles.labelLarge.copyWith(color: AppColors.primary),
+        textStyle: AppTextStyles.labelLarge.copyWith(color: AppColors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     ),
@@ -47,10 +47,10 @@ class AppTheme {
     // OutlinedButton
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.accent,
-        side: const BorderSide(color: AppColors.accent),
+        foregroundColor: AppColors.black,
+        side: const BorderSide(color: AppColors.black, width: 1.5),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        textStyle: AppTextStyles.labelLarge.copyWith(color: AppColors.accent),
+        textStyle: AppTextStyles.labelLarge.copyWith(color: AppColors.black),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     ),
@@ -58,29 +58,32 @@ class AppTheme {
     // TextField
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.secondary,
+      fillColor: AppColors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.tertiary),
+        borderSide: const BorderSide(color: AppColors.black, width: 1.5),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.tertiary),
+        borderSide: const BorderSide(color: AppColors.black, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: AppColors.accent, width: 2),
+        borderSide: const BorderSide(color: AppColors.black, width: 2.5),
       ),
-      labelStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.accent),
+      labelStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.black),
       hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.grey),
     ),
 
     // Card
     cardTheme: CardThemeData(
       color: AppColors.white,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.black, width: 1.5),
+      ),
     ),
 
     // Text Theme

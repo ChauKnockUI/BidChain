@@ -51,7 +51,6 @@ class PrimaryButton extends StatelessWidget {
           disabledBackgroundColor: AppColors.grey.withOpacity(0.3),
           disabledForegroundColor: AppColors.grey,
           elevation: 0,
-          shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
