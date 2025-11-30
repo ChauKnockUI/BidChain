@@ -23,7 +23,7 @@ class MyBidCard extends StatelessWidget {
       color: AppColors.white,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -38,9 +38,9 @@ class MyBidCard extends StatelessWidget {
                   children: [
                     Image.network(
                       bid.images.first,
-                      height: 140,
+                      height: 300,
                       width: double.infinity,
-                      fit: BoxFit.contain,
+                      fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return _buildPlaceholder();
                       },
@@ -277,7 +277,7 @@ class MyBidCard extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Container(
-      height: 140,
+      height: 200,
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.secondary.withValues(alpha: 0.2),

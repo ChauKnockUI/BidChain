@@ -36,9 +36,9 @@ class MyAuctionCard extends StatelessWidget {
                   children: [
                     Image.network(
                       auction.images.first,
-                      height: 140,
+                      height: 300,
                       width: double.infinity,
-                      fit: BoxFit.contain,
+                      fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return _buildPlaceholder();
                       },
@@ -186,7 +186,7 @@ class MyAuctionCard extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Container(
-      height: 140,
+      height: 200,
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.secondary.withValues(alpha: 0.2),

@@ -13,18 +13,26 @@ class StatusBadge extends StatelessWidget {
     final config = _getStatusConfig(status);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: config.backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: config.borderColor, width: 1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: config.borderColor, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Text(
         config.label,
         style: AppTextStyles.labelSmall.copyWith(
           color: config.textColor,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w600,
+          fontSize: fontSize ?? 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -35,72 +43,72 @@ class StatusBadge extends StatelessWidget {
       case 'PENDING_APPROVAL':
         return _StatusConfig(
           label: 'Chờ duyệt',
-          backgroundColor: AppColors.warning.withValues(alpha: 0.1),
-          borderColor: AppColors.warning,
-          textColor: AppColors.warning,
+          backgroundColor: const Color(0xFFFFA726).withOpacity(0.95), // Warm Orange
+          borderColor: const Color(0xFFFF9800),
+          textColor: Colors.white,
         );
       case 'APPROVED':
         return _StatusConfig(
           label: 'Đã duyệt',
-          backgroundColor: AppColors.info.withValues(alpha: 0.1),
-          borderColor: AppColors.info,
-          textColor: AppColors.info,
+          backgroundColor: const Color(0xFF42A5F5).withOpacity(0.95), // Bright Blue
+          borderColor: const Color(0xFF2196F3),
+          textColor: Colors.white,
         );
       case 'ACTIVE':
         return _StatusConfig(
           label: 'Đang diễn ra',
-          backgroundColor: AppColors.success.withValues(alpha: 0.15),
-          borderColor: AppColors.success,
-          textColor: AppColors.accent,
+          backgroundColor: const Color(0xFF66BB6A).withOpacity(0.95), // Bright Green
+          borderColor: const Color(0xFF4CAF50),
+          textColor: Colors.white,
         );
       case 'ENDED':
         return _StatusConfig(
           label: 'Đã kết thúc',
-          backgroundColor: AppColors.grey.withValues(alpha: 0.1),
-          borderColor: AppColors.grey,
-          textColor: AppColors.grey,
+          backgroundColor: const Color(0xFF78909C).withOpacity(0.95), // Blue Grey
+          borderColor: const Color(0xFF607D8B),
+          textColor: Colors.white,
         );
       case 'SETTLED':
         return _StatusConfig(
           label: 'Đã thanh toán',
-          backgroundColor: AppColors.tertiary.withValues(alpha: 0.15),
-          borderColor: AppColors.tertiary,
-          textColor: AppColors.accent,
+          backgroundColor: const Color(0xFF9C27B0).withOpacity(0.95), // Purple
+          borderColor: const Color(0xFF7B1FA2),
+          textColor: Colors.white,
         );
       case 'REJECTED':
         return _StatusConfig(
           label: 'Bị từ chối',
-          backgroundColor: AppColors.error.withValues(alpha: 0.1),
-          borderColor: AppColors.error,
-          textColor: AppColors.error,
+          backgroundColor: const Color(0xFFEF5350).withOpacity(0.95), // Bright Red
+          borderColor: const Color(0xFFF44336),
+          textColor: Colors.white,
         );
       case 'WINNING':
         return _StatusConfig(
           label: 'Đang thắng',
-          backgroundColor: AppColors.success.withValues(alpha: 0.15),
-          borderColor: AppColors.success,
-          textColor: AppColors.accent,
+          backgroundColor: const Color(0xFF66BB6A).withOpacity(0.95), // Bright Green
+          borderColor: const Color(0xFF4CAF50),
+          textColor: Colors.white,
         );
       case 'OUTBID':
         return _StatusConfig(
           label: 'Bị vượt giá',
-          backgroundColor: AppColors.warning.withValues(alpha: 0.1),
-          borderColor: AppColors.warning,
-          textColor: AppColors.warning,
+          backgroundColor: const Color(0xFFFF7043).withOpacity(0.95), // Deep Orange
+          borderColor: const Color(0xFFFF5722),
+          textColor: Colors.white,
         );
       case 'VALID':
         return _StatusConfig(
           label: 'Hợp lệ',
-          backgroundColor: AppColors.info.withValues(alpha: 0.1),
-          borderColor: AppColors.info,
-          textColor: AppColors.info,
+          backgroundColor: const Color(0xFF42A5F5).withOpacity(0.95), // Bright Blue
+          borderColor: const Color(0xFF2196F3),
+          textColor: Colors.white,
         );
       default:
         return _StatusConfig(
           label: status,
-          backgroundColor: AppColors.grey.withValues(alpha: 0.1),
-          borderColor: AppColors.grey,
-          textColor: AppColors.grey,
+          backgroundColor: const Color(0xFF9E9E9E).withOpacity(0.95), // Grey
+          borderColor: const Color(0xFF757575),
+          textColor: Colors.white,
         );
     }
   }

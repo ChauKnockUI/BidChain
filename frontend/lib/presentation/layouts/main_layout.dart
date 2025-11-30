@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/presentation/pages/my_activity/my_activity_page.dart';
 import '../../config/theme/app_colors.dart';
 import '../pages/home/home_page.dart';
 import '../pages/auction/auction_list_page.dart';
@@ -18,7 +19,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   final List<Widget> _pages = [
     const HomePage(),
-    const AuctionListPage(),
+    const MyActivityPage(),
     const SizedBox.shrink(), // Placeholder for center button
     const WalletPage(),
     const ProfilePage(),

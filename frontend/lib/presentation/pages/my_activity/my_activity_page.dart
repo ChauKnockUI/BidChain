@@ -26,6 +26,7 @@ class _MyActivityPageState extends State<MyActivityPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
     // Load data when page opens
     context.read<MyActivityBloc>().add(const LoadMyAuctions());
   }
@@ -39,40 +40,74 @@ class _MyActivityPageState extends State<MyActivityPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.white,
       appBar: CustomAppBar(
-        title: 'Hoạt động của tôi',
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          color: AppColors.accent,
-          onPressed: () => context.go(AppRoutes.home),
-        ),
+        title: 'My Activity',
+        centerTitle: true,
       ),
       body: Column(
         children: [
-          // Custom TabBar
+          // Modern Custom TabBar with Pill Design
           Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppColors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.grey.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              color: AppColors.greyLight,
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: AppColors.accent,
-              unselectedLabelColor: AppColors.grey,
-              labelStyle: AppTextStyles.labelLarge,
-              unselectedLabelStyle: AppTextStyles.labelLarge,
-              indicatorColor: AppColors.accent,
-              indicatorWeight: 3,
-              tabs: const [
-                Tab(text: 'Đấu giá của tôi'),
-                Tab(text: 'Bid của tôi'),
-              ],
+            child: Theme(
+              data: ThemeData(
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+              ),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: AppColors.white,
+                unselectedLabelColor: AppColors.grey,
+                labelStyle: AppTextStyles.labelLarge.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: AppTextStyles.labelLarge.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+                indicator: BoxDecoration(
+                  color: AppColors.black,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                tabs: const [
+                  Tab(
+                    height: 44,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.gavel, size: 18),
+                        SizedBox(width: 8),
+                        Text('My Bids'),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    height: 44,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.history, size: 18),
+                        SizedBox(width: 8),
+                        Text('My Auctions'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -81,70 +116,17 @@ class _MyActivityPageState extends State<MyActivityPage>
             child: BlocBuilder<MyActivityBloc, MyActivityState>(
               builder: (context, state) {
                 if (state is MyActivityLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return _buildLoadingState();
                 }
 
                 if (state is MyActivityError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: AppColors.error,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Đã xảy ra lỗi',
-                            style: AppTextStyles.h4.copyWith(
-                              color: AppColors.accent,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            state.message,
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.grey,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton(
-                            onPressed: () {
-                              context.read<MyActivityBloc>().add(
-                                const LoadMyAuctions(),
-                              );
-                            },
-                            child: const Text('Thử lại'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _buildErrorState(context, state.message);
                 }
 
                 if (state is MyActivityLoaded) {
                   return TabBarView(
                     controller: _tabController,
                     children: [
-                      // My Auctions Tab
-                      MyAuctionsTab(
-                        auctions: state.auctions,
-                        onRefresh: () {
-                          context.read<MyActivityBloc>().add(
-                            const RefreshMyActivity(),
-                          );
-                        },
-                        onAuctionTap: (auctionId) {
-                          // Navigate to auction detail
-                          context.go('/auction-detail/$auctionId');
-                        },
-                      ),
-
-                      // My Bids Tab
                       MyBidsTab(
                         bids: state.bids,
                         onRefresh: () {
@@ -153,7 +135,19 @@ class _MyActivityPageState extends State<MyActivityPage>
                           );
                         },
                         onBidTap: (auctionId) {
-                          // Navigate to auction detail
+                          context.go('/auction-detail/$auctionId');
+                        },
+                      ),
+
+                      // Participated Auctions Tab
+                      MyAuctionsTab(
+                        auctions: state.auctions,
+                        onRefresh: () {
+                          context.read<MyActivityBloc>().add(
+                            const RefreshMyActivity(),
+                          );
+                        },
+                        onAuctionTap: (auctionId) {
                           context.go('/auction-detail/$auctionId');
                         },
                       ),
@@ -161,12 +155,137 @@ class _MyActivityPageState extends State<MyActivityPage>
                   );
                 }
 
-                // Initial state
-                return const Center(child: CircularProgressIndicator());
+                return _buildLoadingState();
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Modern loading state with shimmer effect
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 60,
+            height: 60,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppColors.black,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Đang tải dữ liệu...',
+            style: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.grey,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Enhanced error state with better visuals
+  Widget _buildErrorState(BuildContext context, String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Error Icon with Circle Background
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 50,
+                color: AppColors.error,
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Error Title
+            Text(
+              'Đã Xảy Ra Lỗi',
+              style: AppTextStyles.h3.copyWith(
+                color: AppColors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            
+            // Error Message
+            Text(
+              message,
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.grey,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            
+            // Retry Button with Modern Style
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.black.withOpacity(0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  context.read<MyActivityBloc>().add(
+                    const LoadMyAuctions(),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.black,
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.refresh_rounded, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Thử Lại',
+                      style: AppTextStyles.labelLarge.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
