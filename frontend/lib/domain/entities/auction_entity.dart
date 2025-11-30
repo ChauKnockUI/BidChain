@@ -17,6 +17,7 @@ class AuctionEntity extends Equatable {
   final String formattedCurrentPrice;
   final String sellerName;
   final int bidCount;
+  final String? categoryId;
 
   const AuctionEntity({
     required this.auctionId,
@@ -35,6 +36,7 @@ class AuctionEntity extends Equatable {
     required this.formattedCurrentPrice,
     required this.sellerName,
     required this.bidCount,
+    this.categoryId,
   });
 
   @override
@@ -55,5 +57,6 @@ class AuctionEntity extends Equatable {
     formattedCurrentPrice,
     sellerName,
     bidCount,
+    categoryId,
   ];
 }

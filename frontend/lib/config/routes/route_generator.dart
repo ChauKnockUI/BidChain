@@ -31,10 +31,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.auctionList,
-      builder: (context, state) => BlocProvider(
-        create: (context) => InjectionContainer.getAuctionListBloc(),
-        child: const AuctionListPage(),
-      ),
+      builder: (context, state) => const AuctionListPage(),
     ),
 
     GoRoute(

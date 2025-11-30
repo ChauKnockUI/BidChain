@@ -20,6 +20,7 @@ class AuctionModel extends AuctionEntity {
     required super.formattedCurrentPrice,
     required super.sellerName,
     required super.bidCount,
+    super.categoryId,
   });
 
   factory AuctionModel.fromJson(Map<String, dynamic> json) {
@@ -51,6 +52,7 @@ class AuctionModel extends AuctionEntity {
           ? (json['seller_id']['full_name'] ?? 'Unknown')
           : 'Unknown',
       bidCount: json['bid_count'] ?? 0,
+      categoryId: json['category_id']?.toString(),
     );
   }
 
@@ -79,6 +81,7 @@ class AuctionModel extends AuctionEntity {
       'images': images,
       'formatted_current_price': formattedCurrentPrice,
       'bid_count': bidCount,
+      'category_id': categoryId,
     };
   }
 }

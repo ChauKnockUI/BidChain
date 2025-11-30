@@ -4,12 +4,14 @@ import '../../data/datasources/remote/auth_remote_datasource.dart';
 import '../../data/datasources/remote/my_activity_remote_datasource.dart';
 import '../../data/datasources/remote/auction_detail_remote_datasource.dart';
 import '../../data/datasources/remote/auction_remote_datasource.dart';
+import '../../data/datasources/remote/category_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/my_activity_repository_impl.dart';
 import '../../data/repositories/auction_detail_repository_impl.dart';
 import '../../data/repositories/auction_repository_impl.dart';
 import '../../domain/repositories/auction_repository.dart';
 import '../../domain/usecases/create_auction_usecase.dart';
+import '../../data/repositories/category_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/my_activity_repository.dart';
 import '../../domain/repositories/auction_detail_repository.dart';
@@ -19,8 +21,10 @@ import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/my_activity/my_activity_bloc.dart';
 import '../../presentation/bloc/auction_detail/auction_detail_bloc.dart';
 import '../../presentation/bloc/auction_list/auction_list_bloc.dart';
+import '../../domain/usecases/get_categories_usecase.dart';
 import '../../presentation/bloc/create_auction/create_auction_bloc.dart';
 import '../../presentation/bloc/auction/auction_bloc.dart';
+import '../../presentation/bloc/category/category_bloc.dart';
 import '../../data/repositories/payment_repository.dart';
 import '../../presentation/bloc/payment/payment_bloc.dart';
 import '../network/dio_client.dart';
@@ -50,6 +54,11 @@ class InjectionContainer {
 
   static late CreateAuctionUseCase _createAuctionUseCase;
   static late NetworkInfo _networkInfo;
+
+  // Category dependencies
+  static late CategoryRemoteDataSource _categoryRemoteDataSource;
+  static late CategoryRepository _categoryRepository;
+  static late GetCategoriesUseCase _getCategoriesUseCase;
 
   // Payment dependencies
   static late PaymentRepository _paymentRepository;
@@ -91,6 +100,15 @@ class InjectionContainer {
 
     // Initialize Payment dependencies
     _paymentRepository = PaymentRepository(_dioClient);
+
+    // Initialize Category dependencies
+    _categoryRemoteDataSource = CategoryRemoteDataSourceImpl(
+      dioClient: _dioClient,
+    );
+    _categoryRepository = CategoryRepositoryImpl(
+      remoteDataSource: _categoryRemoteDataSource,
+    );
+    _getCategoriesUseCase = GetCategoriesUseCase(_categoryRepository);
   }
 
   // Getters
@@ -123,4 +141,8 @@ class InjectionContainer {
       AuctionBloc(repository: _auctionRepository);
 
   static PaymentBloc getPaymentBloc() => PaymentBloc(_paymentRepository);
+
+  static CategoryBloc getCategoryBloc() => CategoryBloc(
+    getCategoriesUseCase: _getCategoriesUseCase,
+  );
 }

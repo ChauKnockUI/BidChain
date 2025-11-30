@@ -50,173 +50,186 @@ class AuctionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
 
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      color: AppColors.white,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Thumbnail Image
-            if (hasImage)
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grey.withOpacity(0.3),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Thumbnail Image with Fixed Aspect Ratio
               ClipRRect(
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  topRight: Radius.circular(14),
+                  topLeft: Radius.circular(11),
+                  topRight: Radius.circular(11),
                 ),
-                child: Image.network(
-                  imageUrl!,
-                  height: 100,
-                  width: double.infinity,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return _buildPlaceholder();
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      height: 100,
-                      color: AppColors.secondary.withValues(alpha: 0.3),
-                      child: const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    );
-                  },
-                ),
-              )
-            else
-              _buildPlaceholder(),
-
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Title
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.bodyLarge.copyWith(
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  // Highest Bid & Bid Count
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Giá cao nhất',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.grey,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              currentBid,
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.accent,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Số lượt',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.grey,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '$bidCount bids',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.tertiary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  // Divider
-                  Divider(
-                    color: AppColors.secondary.withValues(alpha: 0.5),
-                    thickness: 1,
-                    height: 6,
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  // Time Left & Seller
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.timer_outlined,
-                              size: 14,
-                              color: AppColors.secondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                timeLeft,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.secondary,
-                                  fontWeight: FontWeight.w600,
+                child: AspectRatio(
+                  aspectRatio: 1.1, // Slightly landscape
+                  child: hasImage
+                      ? Image.network(
+                          imageUrl!,
+                          fit: BoxFit.cover, // Cover to avoid white spaces
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildPlaceholder();
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: AppColors.greyLight,
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.black,
                                 ),
                               ),
-                            ),
-                          ],
+                            );
+                          },
+                        )
+                      : _buildPlaceholder(),
+                ),
+              ),
+
+              // Content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Title
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.black,
+                          fontWeight: FontWeight.bold,
+                          height: 1.2,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Seller Avatar
-                      UserAvatar(
-                        name: sellerName,
-                        imageUrl: sellerImageUrl,
-                        size: 28,
+
+                      const SizedBox(height: 8),
+
+                      // Price & Bids Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Giá cao nhất',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.grey,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  currentBid,
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.greyLight,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: AppColors.tertiary,
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              '$bidCount bids',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.black,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const Spacer(),
+
+                      // Divider
+                      const Divider(
+                        color: AppColors.tertiary,
+                        thickness: 1,
+                        height: 16,
+                      ),
+
+                      // Time Left & Seller
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.timer_outlined,
+                                  size: 14,
+                                  color: AppColors.grey,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    timeLeft,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.grey,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Seller Avatar
+                          UserAvatar(
+                            name: sellerName,
+                            imageUrl: sellerImageUrl,
+                            size: 24,
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -225,19 +238,13 @@ class AuctionCard extends StatelessWidget {
   /// Widget placeholder khi không có ảnh
   Widget _buildPlaceholder() {
     return Container(
-      height: 100,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.secondary.withValues(alpha: 0.2),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(14),
-          topRight: Radius.circular(14),
+      color: AppColors.greyLight,
+      child: Center(
+        child: Icon(
+          Icons.image_outlined,
+          size: 48,
+          color: AppColors.grey.withOpacity(0.5),
         ),
-      ),
-      child: Icon(
-        Icons.image_outlined,
-        size: 48,
-        color: AppColors.tertiary.withValues(alpha: 0.5),
       ),
     );
   }
