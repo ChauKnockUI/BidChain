@@ -9,28 +9,26 @@ import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/my_activity_repository_impl.dart';
 import '../../data/repositories/auction_detail_repository_impl.dart';
 import '../../data/repositories/auction_repository_impl.dart';
+import '../../domain/repositories/auction_repository.dart';
+import '../../domain/usecases/create_auction_usecase.dart';
 import '../../data/repositories/category_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/my_activity_repository.dart';
 import '../../domain/repositories/auction_detail_repository.dart';
-import '../../domain/repositories/auction_repository.dart';
 import '../../domain/usecases/auth/login_usecase.dart';
 import '../../domain/usecases/auth/register_usecase.dart';
-import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/my_activity/my_activity_bloc.dart';
 import '../../presentation/bloc/auction_detail/auction_detail_bloc.dart';
 import '../../presentation/bloc/auction_list/auction_list_bloc.dart';
-import '../network/dio_client.dart';
-import '../network/network_info.dart';
-import '../../data/datasources/remote/auction_remote_datasource.dart';
-import '../../data/repositories/auction_repository_impl.dart';
-import '../../domain/repositories/auction_repository.dart';
-import '../../domain/usecases/create_auction_usecase.dart';
 import '../../domain/usecases/get_categories_usecase.dart';
 import '../../presentation/bloc/create_auction/create_auction_bloc.dart';
 import '../../presentation/bloc/auction/auction_bloc.dart';
 import '../../presentation/bloc/category/category_bloc.dart';
+import '../../data/repositories/payment_repository.dart';
+import '../../presentation/bloc/payment/payment_bloc.dart';
+import '../network/dio_client.dart';
+import '../network/network_info.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 class InjectionContainer {
@@ -53,7 +51,7 @@ class InjectionContainer {
   // Auction dependencies
   static late AuctionRemoteDataSource _auctionRemoteDataSource;
   static late AuctionRepository _auctionRepository;
-  
+
   static late CreateAuctionUseCase _createAuctionUseCase;
   static late NetworkInfo _networkInfo;
 
@@ -61,6 +59,9 @@ class InjectionContainer {
   static late CategoryRemoteDataSource _categoryRemoteDataSource;
   static late CategoryRepository _categoryRepository;
   static late GetCategoriesUseCase _getCategoriesUseCase;
+
+  // Payment dependencies
+  static late PaymentRepository _paymentRepository;
 
   /// Initialize all dependencies - call this in main() before running the app
   static Future<void> init() async {
@@ -89,9 +90,6 @@ class InjectionContainer {
       _auctionDetailRemoteDataSource,
     );
 
-    // Initialize Auction dependencies
-    _auctionRemoteDataSource = AuctionRemoteDataSourceImpl(_dioClient);
-   
     _networkInfo = NetworkInfoImpl(InternetConnectionChecker.instance);
     _auctionRemoteDataSource = AuctionRemoteDataSourceImpl(_dioClient);
     _auctionRepository = AuctionRepositoryImpl(
@@ -99,6 +97,9 @@ class InjectionContainer {
       networkInfo: _networkInfo,
     );
     _createAuctionUseCase = CreateAuctionUseCase(_auctionRepository);
+
+    // Initialize Payment dependencies
+    _paymentRepository = PaymentRepository(_dioClient);
 
     // Initialize Category dependencies
     _categoryRemoteDataSource = CategoryRemoteDataSourceImpl(
@@ -117,7 +118,7 @@ class InjectionContainer {
   static AuthRepository getAuthRepository() => _authRepository;
   static LoginUseCase getLoginUseCase() => _loginUseCase;
   static RegisterUseCase getRegisterUseCase() => _registerUseCase;
-   // MyActivity getters
+  // MyActivity getters
   static MyActivityBloc getMyActivityBloc() =>
       MyActivityBloc(repository: _myActivityRepository);
 
@@ -133,13 +134,13 @@ class InjectionContainer {
 
   static AuctionListBloc getAuctionListBloc() =>
       AuctionListBloc(repository: _auctionRepository);
-      static CreateAuctionBloc getCreateAuctionBloc() => CreateAuctionBloc(
-    createAuctionUseCase: _createAuctionUseCase,
-  );
+  static CreateAuctionBloc getCreateAuctionBloc() =>
+      CreateAuctionBloc(createAuctionUseCase: _createAuctionUseCase);
 
-  static AuctionBloc getAuctionBloc() => AuctionBloc(
-    repository: _auctionRepository,
-  );
+  static AuctionBloc getAuctionBloc() =>
+      AuctionBloc(repository: _auctionRepository);
+
+  static PaymentBloc getPaymentBloc() => PaymentBloc(_paymentRepository);
 
   static CategoryBloc getCategoryBloc() => CategoryBloc(
     getCategoriesUseCase: _getCategoriesUseCase,

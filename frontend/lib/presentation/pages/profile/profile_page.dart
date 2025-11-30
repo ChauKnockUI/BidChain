@@ -14,6 +14,7 @@ import '../../widgets/common/form_input.dart';
 import '../../widgets/common/custom_toast.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_state.dart';
+
 import '../../../domain/entities/user_entity.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -24,6 +25,11 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
   // Avatar state
   Uint8List? _avatarBytes;
   String? _avatarUrl;
@@ -414,40 +420,7 @@ class _ProfilePageState extends State<ProfilePage> {
             AppColors.success,
           ),
           const SizedBox(height: 20),
-          // Quick Actions
-          Row(
-            children: [
-              Expanded(
-                child: SecondaryButton(
-                  title: 'Deposit',
-                  icon: Icons.add_circle_outline,
-                  height: 44,
-                  onPress: () {
-                    Toast.show(
-                      context,
-                      message: 'Deposit feature coming soon!',
-                      type: ToastType.info,
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SecondaryButton(
-                  title: 'Withdraw',
-                  icon: Icons.remove_circle_outline,
-                  height: 44,
-                  onPress: () {
-                    Toast.show(
-                      context,
-                      message: 'Withdraw feature coming soon!',
-                      type: ToastType.info,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 20),
         ],
       ),
     );

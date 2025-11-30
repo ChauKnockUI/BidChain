@@ -5,7 +5,7 @@ const config = {
   partnerCode: 'MOMO',
   redirectUrl: 'myapp://',
   ipnUrl: 'https://0778-14-178-58-205.ngrok-free.app/callback',
-  requestType: 'payWithMethod',
+  requestType: 'captureWallet',
   extraData: '',
   orderGroupId: '',
   autoCapture: true,

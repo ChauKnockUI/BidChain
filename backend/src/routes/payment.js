@@ -1,18 +1,16 @@
+const { ethers } = require("ethers");
+const { walletFromPrivateKey, provider } = require("../blockchain/contract");
 const express = require("express");
 const router = express.Router();
 const { body, validationResult } = require("express-validator");
-const { authMiddleware } = require("../middleware/auth");
 
+const { authMiddleware } = require("../middleware/auth");
+const { ethToVnd, formatVnd, toWei, vndToEth } = require("../utils/conversion");
+const { EXCHANGE_RATE, TRANSACTION_TYPES } = require("../config/constants");
 const DepositRequest = require("../models/DepositRequest");
+const momoService = require("../services/momo.service");
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
-
-const momoService = require("../services/momo.service");
-const { vndToEth, toWei, formatVnd } = require("../utils/conversion");
-const { EXCHANGE_RATE, TRANSACTION_TYPES } = require("../config/constants");
-
-const { ethers } = require("ethers");
-const { walletFromPrivateKey, provider } = require("../blockchain/contract");
 
 // ======================================================
 // 1) USER TẠO YÊU CẦU NẠP TIỀN (VND → ETH) - Với auto-check 60s fallback
@@ -141,7 +139,7 @@ async function handlePaymentSuccess(orderId, depositId, source = "unknown") {
     console.log(`${source}: Updated to PAID`);
 
     // Bước 2: Chuyển ETH ngay từ admin → user
-    const adminWallet = walletFromPrivateKey(process.env.ADMIN_PRIVATE_KEY);
+    const adminWallet = walletFromPrivateKey(process.env.DEPLOYER_PRIVATE_KEY);
     const amountWeiStr = toWei(deposit.amount_eth);  // ETH string → wei string (an toàn)
     const amountWei = ethers.BigNumber.from(amountWeiStr);  // BigNumber cho ethers
     const balance = await provider.getBalance(adminWallet.address);
@@ -286,8 +284,17 @@ router.get("/deposit/history", authMiddleware, async (req, res) => {
       created_at: -1,
     });
 
-    res.json({ deposit_requests: requests });
+    // Serialize to plain objects to avoid Decimal128 serialization issues
+    const serialized = requests.map(r => ({
+      ...r.toObject(),
+      amount_vnd: Number(r.amount_vnd),
+      amount_eth: String(r.amount_eth),
+      exchange_rate: Number(r.exchange_rate)
+    }));
+
+    res.json({ deposit_requests: serialized });
   } catch (err) {
+    console.error("Get deposit history error:", err);
     res.status(500).json({ error: "Failed to get history" });
   }
 });
@@ -299,28 +306,28 @@ router.get("/deposit/history", authMiddleware, async (req, res) => {
 router.get('/user/balance/:address', async (req, res) => {
   try {
     const { address } = req.params;
-    
+
     // Validate address (optional, để an toàn)
     if (!ethers.utils.isAddress(address)) {
       return res.status(400).json({ error: 'Invalid Ethereum address' });
     }
-    
+
     // Query balance từ provider (on-chain)
     const balanceWei = await provider.getBalance(address);
     const balanceEth = ethers.utils.formatEther(balanceWei);  // FIX: Thêm .utils cho v5
-    
+
     // Optional: Convert sang VND (dùng utils - import nếu chưa có)
     const { weiToVnd, formatEth } = require('../utils/conversion');  // Import nếu chưa
     const balanceVnd = weiToVnd(balanceWei.toString());
-    
-    res.json({ 
+
+    res.json({
       address: address.toLowerCase(),
       balance_eth: balanceEth,
       balance_wei: balanceWei.toString(),
       balance_vnd: balanceVnd,
       formatted_eth: formatEth(balanceWei.toString())  // Dùng utils để format đẹp
     });
-    
+
     console.log(`Balance query for ${address}: ${balanceEth} ETH`);
   } catch (err) {
     console.error('Balance query error:', err);
@@ -348,6 +355,124 @@ router.get("/admin/deposit-requests", authMiddleware, async (req, res) => {
     res.json({ deposit_requests: requests });
   } catch (err) {
     res.status(500).json({ error: "Failed to get all requests" });
+  }
+});
+
+// ======================================================
+// 9) USER TẠO YÊU CẦU RÚT TIỀN (ETH → VND)
+// ======================================================
+router.post(
+  "/withdraw/request",
+  authMiddleware,
+  [
+    body("amount_vnd").isFloat({ min: 50000, max: 100000000 }),
+    body("bank_name").notEmpty(),
+    body("account_number").notEmpty(),
+    body("account_holder_name").notEmpty(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty())
+      return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const { amount_vnd, bank_name, account_number, account_holder_name } = req.body;
+      const userId = req.user.id;
+
+      // 1. Get User & Check Balance
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      // Convert VND request to ETH
+      const amountEthStr = vndToEth(amount_vnd);
+      const amountWeiStr = toWei(amountEthStr);
+      const amountWei = ethers.BigNumber.from(amountWeiStr).toBigInt();
+
+      // Check user balance (stored as wei string in DB)
+      const currentBalanceWei = BigInt(user.balance_eth || 0n);
+
+      if (currentBalanceWei < amountWei) {
+        return res.status(400).json({
+          error: "Insufficient balance",
+          details: `You need ${amountEthStr} ETH but have ${(Number(currentBalanceWei) / 1e18).toFixed(4)} ETH`
+        });
+      }
+
+      // 2. Deduct Balance Immediately (Lock funds)
+      const newBalanceWei = currentBalanceWei - amountWei;
+
+      // Update User Balance
+      await User.findByIdAndUpdate(userId, {
+        balance_eth: newBalanceWei.toString()
+      });
+
+      // 3. Create Withdraw Request
+      // Import WithdrawRequest model if not already imported at top, but assuming it is or will be.
+      // Wait, I need to check if WithdrawRequest is imported.
+      // Looking at file content, it is NOT imported. I need to add the import too.
+      const WithdrawRequest = require("../models/WithdrawRequest");
+
+      const withdrawRequest = await WithdrawRequest.create({
+        user_id: userId,
+        amount_vnd,
+        amount_eth: amountEthStr,
+        exchange_rate: EXCHANGE_RATE.ETH_TO_VND,
+        bank_name,
+        account_number,
+        account_holder_name,
+        status: "PENDING"
+      });
+
+      // 4. Log Transaction
+      await Transaction.create({
+        user_id: userId,
+        type: TRANSACTION_TYPES.WITHDRAW,
+        amount_vnd: amount_vnd,
+        amount_eth: amountEthStr,
+        status: "PENDING",
+        exchange_rate: EXCHANGE_RATE.ETH_TO_VND,
+        amount_eth_wei: amountWeiStr
+      });
+
+      res.json({
+        success: true,
+        message: "Withdraw request created successfully",
+        withdraw_request: withdrawRequest,
+        remaining_balance_eth: ethers.utils.formatEther(newBalanceWei)
+      });
+
+    } catch (err) {
+      console.error("Create withdraw request error:", err);
+      res.status(500).json({
+        error: "Failed to create withdraw request",
+        details: err.message
+      });
+    }
+  }
+);
+
+// ======================================================
+// 10) USER LỊCH SỬ RÚT TIỀN
+// ======================================================
+router.get("/withdraw/history", authMiddleware, async (req, res) => {
+  try {
+    const WithdrawRequest = require("../models/WithdrawRequest");
+    const requests = await WithdrawRequest.find({ user_id: req.user.id }).sort({
+      created_at: -1,
+    });
+
+    // Serialize to plain objects to avoid Decimal128 serialization issues
+    const serialized = requests.map(r => ({
+      ...r.toObject(),
+      amount_vnd: Number(r.amount_vnd),
+      amount_eth: String(r.amount_eth),
+      exchange_rate: Number(r.exchange_rate)
+    }));
+
+    res.json({ withdraw_requests: serialized });
+  } catch (err) {
+    console.error("Get withdraw history error:", err);
+    res.status(500).json({ error: "Failed to get withdraw history" });
   }
 });
 

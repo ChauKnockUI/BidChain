@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 
 const DepositRequestSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  amount_vnd: { type: mongoose.Decimal128, required: true },
-  amount_eth: { type: mongoose.Decimal128, required: true },
-  exchange_rate: { type: mongoose.Decimal128, required: true },
+  amount_vnd: { type: Number, required: true },
+  amount_eth: { type: String, required: true },
+  exchange_rate: { type: Number, required: true },
 
   // Momo payment details
   momo_order_id: { type: String, required: true, unique: true },
