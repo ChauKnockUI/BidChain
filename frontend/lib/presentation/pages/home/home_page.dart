@@ -91,9 +91,21 @@ class _HomePageState extends State<HomePage> {
               BlocBuilder<AuctionBloc, AuctionState>(
                 builder: (context, state) {
                   if (state is AuctionLoaded && state.auctions.isNotEmpty) {
-                    final popularAuctions = [...state.auctions]
+                    // Filter auctions by selected category
+                    var filteredAuctions = state.auctions;
+                    if (_selectedCategoryId != null) {
+                      filteredAuctions = filteredAuctions
+                          .where((auction) => auction.categoryId == _selectedCategoryId)
+                          .toList();
+                    }
+
+                    final popularAuctions = [...filteredAuctions]
                       ..sort((a, b) => b.bidCount.compareTo(a.bidCount));
                     final topAuctions = popularAuctions.take(10).toList();
+
+                    if (topAuctions.isEmpty) {
+                      return const SliverToBoxAdapter(child: SizedBox.shrink());
+                    }
 
                     return SliverToBoxAdapter(
                       child: Column(
@@ -205,7 +217,15 @@ class _HomePageState extends State<HomePage> {
                       ),
                     );
                   } else if (state is AuctionLoaded) {
-                    if (state.auctions.isEmpty) {
+                    // Filter auctions by selected category
+                    var filteredAuctions = state.auctions;
+                    if (_selectedCategoryId != null) {
+                      filteredAuctions = filteredAuctions
+                          .where((auction) => auction.categoryId == _selectedCategoryId)
+                          .toList();
+                    }
+
+                    if (filteredAuctions.isEmpty) {
                       return SliverFillRemaining(
                         child: Center(
                           child: Column(
@@ -218,7 +238,9 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'No active auctions found',
+                                _selectedCategoryId != null
+                                    ? 'No auctions found in this category'
+                                    : 'No active auctions found',
                                 style: AppTextStyles.bodyMedium.copyWith(
                                   color: AppColors.grey,
                                 ),
@@ -245,7 +267,7 @@ class _HomePageState extends State<HomePage> {
                             context,
                             index,
                           ) {
-                            final auction = state.auctions[index];
+                            final auction = filteredAuctions[index];
                             return AuctionCard(
                               auctionId: auction.auctionId,
                               title: auction.title,
@@ -262,7 +284,7 @@ class _HomePageState extends State<HomePage> {
                                 );
                               },
                             );
-                          }, childCount: state.auctions.length),
+                          }, childCount: filteredAuctions.length),
                         ),
                       );
                     }
@@ -373,7 +395,6 @@ class _HomePageState extends State<HomePage> {
                       setState(() {
                         _selectedCategoryId = category['id'] as String?;
                       });
-                      // TODO: Filter auctions by category
                     },
                   ),
                 );
