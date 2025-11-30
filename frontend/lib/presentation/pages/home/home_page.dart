@@ -91,9 +91,21 @@ class _HomePageState extends State<HomePage> {
               BlocBuilder<AuctionBloc, AuctionState>(
                 builder: (context, state) {
                   if (state is AuctionLoaded && state.auctions.isNotEmpty) {
-                    final popularAuctions = [...state.auctions]
+                    // Filter auctions by selected category
+                    var filteredAuctions = state.auctions;
+                    if (_selectedCategoryId != null) {
+                      filteredAuctions = filteredAuctions
+                          .where((auction) => auction.categoryId == _selectedCategoryId)
+                          .toList();
+                    }
+
+                    final popularAuctions = [...filteredAuctions]
                       ..sort((a, b) => b.bidCount.compareTo(a.bidCount));
                     final topAuctions = popularAuctions.take(10).toList();
+
+                    if (topAuctions.isEmpty) {
+                      return const SliverToBoxAdapter(child: SizedBox.shrink());
+                    }
 
                     return SliverToBoxAdapter(
                       child: Column(
@@ -108,11 +120,12 @@ class _HomePageState extends State<HomePage> {
                           ),
                           const SizedBox(height: 16),
                           SizedBox(
-                            height: 245,
+                            height: 310,
                             child: ListView.builder(
                               scrollDirection: Axis.horizontal,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
                               itemCount: topAuctions.length,
                               itemBuilder: (context, index) {
                                 final auction = topAuctions[index];
@@ -130,7 +143,9 @@ class _HomePageState extends State<HomePage> {
                                         ? auction.images.first
                                         : null,
                                     currentBid: auction.formattedCurrentPrice,
-                                    timeLeft: _calculateTimeLeft(auction.endTime),
+                                    timeLeft: _calculateTimeLeft(
+                                      auction.endTime,
+                                    ),
                                     bidCount: auction.bidCount,
                                     sellerName: auction.sellerName,
                                     onTap: () {
@@ -192,8 +207,8 @@ class _HomePageState extends State<HomePage> {
                             ElevatedButton(
                               onPressed: () {
                                 context.read<AuctionBloc>().add(
-                                      RefreshAuctions(),
-                                    );
+                                  RefreshAuctions(),
+                                );
                               },
                               child: const Text('Retry'),
                             ),
@@ -202,7 +217,15 @@ class _HomePageState extends State<HomePage> {
                       ),
                     );
                   } else if (state is AuctionLoaded) {
-                    if (state.auctions.isEmpty) {
+                    // Filter auctions by selected category
+                    var filteredAuctions = state.auctions;
+                    if (_selectedCategoryId != null) {
+                      filteredAuctions = filteredAuctions
+                          .where((auction) => auction.categoryId == _selectedCategoryId)
+                          .toList();
+                    }
+
+                    if (filteredAuctions.isEmpty) {
                       return SliverFillRemaining(
                         child: Center(
                           child: Column(
@@ -215,7 +238,9 @@ class _HomePageState extends State<HomePage> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'No active auctions found',
+                                _selectedCategoryId != null
+                                    ? 'No auctions found in this category'
+                                    : 'No active auctions found',
                                 style: AppTextStyles.bodyMedium.copyWith(
                                   color: AppColors.grey,
                                 ),
@@ -233,33 +258,33 @@ class _HomePageState extends State<HomePage> {
                         sliver: SliverGrid(
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.65,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final auction = state.auctions[index];
-                              return AuctionCard(
-                                auctionId: auction.auctionId,
-                                title: auction.title,
-                                imageUrl: auction.images.isNotEmpty
-                                    ? auction.images.first
-                                    : null,
-                                currentBid: auction.formattedCurrentPrice,
-                                timeLeft: _calculateTimeLeft(auction.endTime),
-                                bidCount: auction.bidCount,
-                                sellerName: auction.sellerName,
-                                onTap: () {
-                                  context.go(
-                                    '${AppRoutes.auctionDetail}/${auction.auctionId}',
-                                  );
-                                },
-                              );
-                            },
-                            childCount: state.auctions.length,
-                          ),
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.6,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                              ),
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final auction = filteredAuctions[index];
+                            return AuctionCard(
+                              auctionId: auction.auctionId,
+                              title: auction.title,
+                              imageUrl: auction.images.isNotEmpty
+                                  ? auction.images.first
+                                  : null,
+                              currentBid: auction.formattedCurrentPrice,
+                              timeLeft: _calculateTimeLeft(auction.endTime),
+                              bidCount: auction.bidCount,
+                              sellerName: auction.sellerName,
+                              onTap: () {
+                                context.go(
+                                  '${AppRoutes.auctionDetail}/${auction.auctionId}',
+                                );
+                              },
+                            );
+                          }, childCount: filteredAuctions.length),
                         ),
                       );
                     }
@@ -314,9 +339,7 @@ class _HomePageState extends State<HomePage> {
         controller: _searchController,
         decoration: InputDecoration(
           hintText: 'Search auctions...',
-          hintStyle: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.grey,
-          ),
+          hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.grey),
           prefixIcon: const Icon(Icons.search, color: AppColors.black),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -341,11 +364,13 @@ class _HomePageState extends State<HomePage> {
           // Add "All" category at the beginning
           final allCategories = [
             {'id': null, 'name': 'All', 'icon': Icons.apps},
-            ...state.categories.map((cat) => {
-                  'id': cat.id,
-                  'name': cat.name,
-                  'icon': _getCategoryIcon(cat.name),
-                }),
+            ...state.categories.map(
+              (cat) => {
+                'id': cat.id,
+                'name': cat.name,
+                'icon': _getCategoryIcon(cat.name),
+              },
+            ),
           ];
 
           return SizedBox(
@@ -370,7 +395,6 @@ class _HomePageState extends State<HomePage> {
                       setState(() {
                         _selectedCategoryId = category['id'] as String?;
                       });
-                      // TODO: Filter auctions by category
                     },
                   ),
                 );
@@ -380,9 +404,7 @@ class _HomePageState extends State<HomePage> {
         } else if (state is CategoryLoading) {
           return const SizedBox(
             height: 50,
-            child: Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           );
         } else {
           // Show default categories if loading fails
@@ -412,27 +434,38 @@ class _HomePageState extends State<HomePage> {
 
   IconData _getCategoryIcon(String categoryName) {
     final name = categoryName.toLowerCase();
-    if (name.contains('electronic') || name.contains('tech')) {
+
+    if (name.contains('điện tử') ||
+        name.contains('điện thoại') ||
+        name.contains('laptop')) {
       return Icons.devices;
-    } else if (name.contains('fashion') || name.contains('cloth')) {
+    } else if (name.contains('thời trang') ||
+        name.contains('quần áo') ||
+        name.contains('giày')) {
       return Icons.checkroom;
-    } else if (name.contains('art')) {
+    } else if (name.contains('nghệ thuật') ||
+        name.contains('tranh') ||
+        name.contains('tác phẩm')) {
       return Icons.palette;
-    } else if (name.contains('collect')) {
+    } else if (name.contains('đồ cổ') || name.contains('sưu tầm')) {
       return Icons.stars;
-    } else if (name.contains('vehicle') || name.contains('car')) {
+    } else if (name.contains('xe') ||
+        name.contains('phương tiện') ||
+        name.contains('ô tô') ||
+        name.contains('xe máy')) {
       return Icons.directions_car;
-    } else if (name.contains('real estate') || name.contains('home')) {
-      return Icons.home;
-    } else if (name.contains('sport')) {
-      return Icons.sports_soccer;
-    } else if (name.contains('book')) {
+    } else if (name.contains('thủ công') ||
+        name.contains('mỹ nghệ') ||
+        name.contains('handmade') ||
+        name.contains('gốm')) {
+      return Icons.handyman;
+    } else if (name.contains('sách') || name.contains('book')) {
       return Icons.book;
-    } else if (name.contains('music')) {
-      return Icons.music_note;
-    } else {
+    } else if (name.contains('khác')) {
       return Icons.category;
     }
+
+    return Icons.category; // default
   }
 
   String _calculateTimeLeft(DateTime endTime) {
