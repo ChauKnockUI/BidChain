@@ -284,8 +284,17 @@ router.get("/deposit/history", authMiddleware, async (req, res) => {
       created_at: -1,
     });
 
-    res.json({ deposit_requests: requests });
+    // Serialize to plain objects to avoid Decimal128 serialization issues
+    const serialized = requests.map(r => ({
+      ...r.toObject(),
+      amount_vnd: Number(r.amount_vnd),
+      amount_eth: String(r.amount_eth),
+      exchange_rate: Number(r.exchange_rate)
+    }));
+
+    res.json({ deposit_requests: serialized });
   } catch (err) {
+    console.error("Get deposit history error:", err);
     res.status(500).json({ error: "Failed to get history" });
   }
 });
@@ -452,7 +461,15 @@ router.get("/withdraw/history", authMiddleware, async (req, res) => {
       created_at: -1,
     });
 
-    res.json({ withdraw_requests: requests });
+    // Serialize to plain objects to avoid Decimal128 serialization issues
+    const serialized = requests.map(r => ({
+      ...r.toObject(),
+      amount_vnd: Number(r.amount_vnd),
+      amount_eth: String(r.amount_eth),
+      exchange_rate: Number(r.exchange_rate)
+    }));
+
+    res.json({ withdraw_requests: serialized });
   } catch (err) {
     console.error("Get withdraw history error:", err);
     res.status(500).json({ error: "Failed to get withdraw history" });

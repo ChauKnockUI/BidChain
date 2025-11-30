@@ -183,7 +183,7 @@ class _WalletPageState extends State<WalletPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      formatVnd(available),
+                      formatVnd(weiToVnd(available)),
                       style: AppTextStyles.h4.copyWith(color: AppColors.black),
                     ),
                   ],
@@ -207,7 +207,7 @@ class _WalletPageState extends State<WalletPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      formatVnd(locked),
+                      formatVnd(weiToVnd(locked)),
                       style: AppTextStyles.h4.copyWith(color: AppColors.black),
                     ),
                   ],
