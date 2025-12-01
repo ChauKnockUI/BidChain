@@ -276,9 +276,9 @@ class _WalletPageState extends State<WalletPage>
         children: [
           TabBar(
             controller: _tabController,
-            labelColor: AppColors.primary,
+            labelColor: const Color.fromARGB(255, 0, 0, 0),
             unselectedLabelColor: AppColors.grey,
-            indicatorColor: AppColors.primary,
+            indicatorColor: const Color.fromARGB(255, 63, 0, 0),
             tabs: const [
               Tab(text: 'Deposits'),
               Tab(text: 'Withdrawals'),
