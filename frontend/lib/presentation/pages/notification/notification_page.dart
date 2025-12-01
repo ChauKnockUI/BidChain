@@ -141,6 +141,8 @@ class _NotificationPageState extends State<NotificationPage> {
         return Icons.emoji_events;
       case 'AUCTION_APPROVED':
         return Icons.check_circle;
+      case 'AUCTION_STARTED':
+        return Icons.play_circle_fill;
       case 'AUCTION_REJECTED':
         return Icons.cancel;
       case 'DEPOSIT_SUCCESS':
@@ -157,6 +159,7 @@ class _NotificationPageState extends State<NotificationPage> {
         return Colors.red;
       case 'NEW_BID':
       case 'DEPOSIT_SUCCESS':
+      case 'AUCTION_STARTED':
         return Colors.green;
       case 'AUCTION_SOLD':
       case 'WON_AUCTION':
