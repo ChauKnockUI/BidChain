@@ -27,13 +27,18 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       currentAuctionId = event.auctionId;
       currentAuctionData = event.auctionData;
 
-      // Create initial empty state
-      emit(const ChatLoaded(messages: []));
+      // Always add welcome message
+      const uuid = Uuid();
+      final welcomeMessage = ChatMessageModel(
+        id: uuid.v4(),
+        content:
+            'Hello! I\'m here to help you with questions about products, prices, trends, and bidding strategies. What can I help you with today?',
+        timestamp: DateTime.now(),
+        isUserMessage: false,
+      );
 
-      // Optionally add welcome message
-      if (currentAuctionData != null) {
-        _addWelcomeMessage(emit);
-      }
+      // Create initial state with welcome message
+      emit(ChatLoaded(messages: [welcomeMessage]));
     } catch (e) {
       emit(ChatError('Failed to initialize chat: $e'));
     }
@@ -46,7 +51,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     // Get current state
     final currentState = state;
-    if (currentState is! ChatLoaded) return;
+    if (currentState is! ChatLoaded) {
+      emit(const ChatLoading());
+      return;
+    }
 
     try {
       // Create user message
@@ -61,10 +69,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       // Update state with user message
       final updatedMessages = [...currentState.messages, userMessage];
-      emit(currentState.copyWith(
-        messages: updatedMessages,
-        isWaitingForResponse: true,
-      ));
+      emit(
+        currentState.copyWith(
+          messages: updatedMessages,
+          isWaitingForResponse: true,
+        ),
+      );
 
       // Build prompt with auction context if available
       String prompt = event.userMessage;
@@ -86,15 +96,24 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       );
 
       // Update state with AI message
-      final finalMessages = [...updatedMessages, aiMessage];
-      emit(currentState.copyWith(
-        messages: finalMessages,
-        isWaitingForResponse: false,
-      ));
+      final currentLoadedState = state;
+      if (currentLoadedState is ChatLoaded) {
+        final finalMessages = [...currentLoadedState.messages, aiMessage];
+        emit(
+          currentLoadedState.copyWith(
+            messages: finalMessages,
+            isWaitingForResponse: false,
+          ),
+        );
+      }
     } catch (e) {
-      emit(ChatError('Failed to send message: $e'));
-      // Emit loaded state to allow retry
-      emit(currentState.copyWith(isWaitingForResponse: false));
+      final errorState = state;
+      if (errorState is ChatLoaded) {
+        emit(ChatError('Failed to send message: $e'));
+        emit(errorState.copyWith(isWaitingForResponse: false));
+      } else {
+        emit(ChatError('Failed to send message: $e'));
+      }
     }
   }
 
@@ -126,33 +145,19 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       // Emit cleared state
       emit(const ChatCleared());
 
-      // Reinitialize if auction data exists
-      if (currentAuctionData != null) {
-        emit(const ChatLoaded(messages: []));
-        _addWelcomeMessage(emit);
-      } else {
-        emit(const ChatLoaded(messages: []));
-      }
+      // Reinitialize with welcome message
+      const uuid = Uuid();
+      final welcomeMessage = ChatMessageModel(
+        id: uuid.v4(),
+        content:
+            'Hello! I\'m here to help you with questions about products, prices, trends, and bidding strategies. What can I help you with today?',
+        timestamp: DateTime.now(),
+        isUserMessage: false,
+      );
+
+      emit(ChatLoaded(messages: [welcomeMessage]));
     } catch (e) {
       emit(ChatError('Failed to clear chat: $e'));
-    }
-  }
-
-  /// Add welcome message
-  void _addWelcomeMessage(Emitter<ChatState> emit) {
-    const uuid = Uuid();
-    final welcomeMessage = ChatMessageModel(
-      id: uuid.v4(),
-      content: 'Hello! I\'m here to help you with questions about this auction. Feel free to ask me anything about the product, pricing, or bidding strategies!',
-      timestamp: DateTime.now(),
-      isUserMessage: false,
-    );
-
-    final currentState = state;
-    if (currentState is ChatLoaded) {
-      emit(currentState.copyWith(
-        messages: [welcomeMessage],
-      ));
     }
   }
 

@@ -27,15 +27,15 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController = TextEditingController();
     _scrollController = ScrollController();
 
-    // Initialize chat with auction context if provided
-    if (widget.auctionId != null || widget.auctionData != null) {
+    // Always initialize chat when opening
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ChatBloc>().add(
         InitializeChatEvent(
           auctionId: widget.auctionId,
           auctionData: widget.auctionData,
         ),
       );
-    }
+    });
   }
 
   @override
