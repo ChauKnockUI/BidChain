@@ -20,15 +20,6 @@ class _ChatBubbleWrapperState extends State<ChatBubbleWrapper> {
       children: [
         widget.child,
         if (_isChatOpen)
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _isChatOpen = false;
-              });
-            },
-            child: Container(color: Colors.black.withOpacity(0.3)),
-          ),
-        if (_isChatOpen)
           ChatScreen(
             auctionId: null,
             auctionData: null,
