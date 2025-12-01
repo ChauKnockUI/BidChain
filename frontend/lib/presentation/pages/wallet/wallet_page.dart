@@ -42,12 +42,9 @@ class _WalletPageState extends State<WalletPage>
   }
 
   static const double ethToVnd = 50000000; // 1 ETH = 50,000,000 VND
-  static const double weiPerEth = 1e18;
 
-  // Convert Wei → VND
-  static double weiToVnd(dynamic wei) {
-    double value = double.tryParse(wei.toString()) ?? 0;
-    double eth = value / weiPerEth;
+  // Convert ETH → VND
+  static double convertEthToVnd(double eth) {
     return eth * ethToVnd;
   }
 
@@ -168,9 +165,12 @@ class _WalletPageState extends State<WalletPage>
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            formatVnd(weiToVnd(total)),
-            style: AppTextStyles.h1.copyWith(color: AppColors.black),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              formatVnd(convertEthToVnd(total)),
+              style: AppTextStyles.h1.copyWith(color: AppColors.black),
+            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -186,9 +186,15 @@ class _WalletPageState extends State<WalletPage>
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      formatVnd(weiToVnd(available)),
-                      style: AppTextStyles.h4.copyWith(color: AppColors.black),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        formatVnd(convertEthToVnd(available)),
+                        style: AppTextStyles.h4.copyWith(
+                          color: AppColors.black,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -210,9 +216,15 @@ class _WalletPageState extends State<WalletPage>
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      formatVnd(weiToVnd(locked)),
-                      style: AppTextStyles.h4.copyWith(color: AppColors.black),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        formatVnd(convertEthToVnd(locked)),
+                        style: AppTextStyles.h4.copyWith(
+                          color: AppColors.black,
+                        ),
+                      ),
                     ),
                   ],
                 ),
