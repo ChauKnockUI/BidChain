@@ -33,6 +33,10 @@ import '../../presentation/bloc/payment/payment_bloc.dart';
 import '../network/dio_client.dart';
 import '../network/network_info.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import '../../domain/repositories/notification_repository.dart';
+import '../../data/repositories/notification_repository_impl.dart';
+import '../../presentation/bloc/notification/notification_bloc.dart';
+import '../../core/services/socket_service.dart';
 
 class InjectionContainer {
   static late SharedPreferences _sharedPreferences;

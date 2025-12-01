@@ -6,6 +6,7 @@ import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_event.dart';
+import '../../bloc/auth/auth_state.dart';
 import '../../bloc/auction_detail/auction_detail_bloc.dart';
 import '../../bloc/auction_detail/auction_detail_event.dart';
 import '../../bloc/auction_detail/auction_detail_state.dart';
@@ -17,6 +18,7 @@ import '../../widgets/auction/seller_info_card.dart';
 import '../../widgets/common/custom_app_bar.dart';
 import '../../widgets/common/custom_back_button.dart';
 import '../../widgets/common/status_badge.dart';
+import '../../widgets/text/expandable_text.dart';
 
 class AuctionDetailPage extends StatefulWidget {
   final String auctionId;
@@ -78,7 +80,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
           ),
           body: _buildBody(context, state),
           floatingActionButton:
-              state is AuctionDetailLoaded && state.auction.isActive
+              state is AuctionDetailLoaded &&
+                  state.auction.isActive &&
+                  !_isAuctionCreator(context, state.auction.sellerId)
               ? FloatingActionButton.extended(
                   onPressed: () => _showPlaceBidDialog(context, state.auction),
                   backgroundColor: AppColors.accent,
@@ -94,6 +98,14 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
         );
       },
     );
+  }
+
+  bool _isAuctionCreator(BuildContext context, String sellerId) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthSuccessState) {
+      return authState.user.id == sellerId;
+    }
+    return false;
   }
 
   Widget _buildBody(BuildContext context, AuctionDetailState state) {
@@ -173,6 +185,81 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                       CountdownTimer(endTime: auction.endTime),
                     ],
                   ),
+
+                  // Owner Badge
+                  if (_isAuctionCreator(context, auction.sellerId)) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.accent.withValues(alpha: 0.1 / 1.0),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.workspace_premium_rounded,
+                              size: 22,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Phiên đấu giá của bạn',
+                                  style: AppTextStyles.labelLarge.copyWith(
+                                    color: AppColors.accent,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  'Bạn là người tạo phiên này',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'OWNER',
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
 
                   // Title
@@ -183,13 +270,19 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                   const SizedBox(height: 12),
 
                   // Description
-                  Text(
-                    auction.description,
+                  ExpandableInlineText(
+                    text: auction.description,
+                    maxLines: 5,
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.grey,
                       height: 1.6,
                     ),
+                    readMoreStyle: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
+
                   const SizedBox(height: 20),
 
                   // Seller Info
@@ -245,7 +338,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                   child: _PriceItem(
                     label: 'Giá hiện tại',
                     value: auction.formattedCurrentPrice,
-                    color: AppColors.tertiary,
+                    color: AppColors.accent,
                     isHighlight: true,
                   ),
                 ),
@@ -367,7 +460,7 @@ class _PriceItem extends StatelessWidget {
           style: AppTextStyles.bodyLarge.copyWith(
             color: color,
             fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
-            fontSize: isHighlight ? 18 : null,
+            fontSize: isHighlight ? 20 : 16,
           ),
         ),
       ],

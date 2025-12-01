@@ -49,9 +49,18 @@ class UserModel extends UserEntity {
     };
   }
 
-  static double _parseWei(dynamic value) {
+  /// Parse balance from backend
+  /// - If number (num): already ETH from login response (parseFloat on backend)
+  /// - If string: always Wei from database, need to convert to ETH
+  static double _parseBalance(dynamic value) {
     if (value == null) return 0.0;
-    if (value is num) return value.toDouble();
+    
+    // If it's a number, it's already ETH (from login/register response)
+    if (value is num) {
+      return value.toDouble();
+    }
+    
+    // If it's a string, it's Wei from database - always convert to ETH
     if (value is String) {
       if (value.isEmpty) return 0.0;
       try {

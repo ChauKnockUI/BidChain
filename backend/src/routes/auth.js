@@ -8,7 +8,7 @@ const User = require("../models/User");
 const { encrypt } = require("../utils/crypto");
 const { validateRegister, authMiddleware } = require("../middleware/auth");
 const { walletFromPrivateKey, provider } = require("../blockchain/contract");
-const { ethToVnd, formatVnd, toWei } = require("../utils/conversion");
+const { ethToVnd, formatVnd, toWei, weiToEth } = require("../utils/conversion");
 const { EXCHANGE_RATE } = require("../config/constants");
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret";
@@ -84,8 +84,8 @@ router.post("/register", validateRegister, async (req, res) => {
         full_name: user.full_name,
         role: user.role,
         wallet_address: user.wallet_address,
-        balance_eth: parseFloat(user.balance_eth),
-        locked_eth: parseFloat(user.locked_eth)
+        balance_eth: weiToEth(user.balance_eth || "0"),
+        locked_eth: weiToEth(user.locked_eth || "0")
       }
     });
 

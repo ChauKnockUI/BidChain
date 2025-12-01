@@ -1,6 +1,4 @@
 import '../../domain/entities/auction_entity.dart';
-import '../../domain/entities/user_entity.dart';
-import 'user_model.dart';
 
 class AuctionModel extends AuctionEntity {
   const AuctionModel({
@@ -54,14 +52,6 @@ class AuctionModel extends AuctionEntity {
       bidCount: json['bid_count'] ?? 0,
       categoryId: json['category_id']?.toString(),
     );
-  }
-
-  static double _parseDouble(dynamic value) {
-    if (value == null) return 0.0;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0.0;
-    return 0.0;
   }
 
   Map<String, dynamic> toJson() {
