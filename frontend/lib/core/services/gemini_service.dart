@@ -17,11 +17,11 @@ class GeminiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonString = prefs.getString(_storageKey);
-      
+
       if (jsonString != null) {
         final List<dynamic> jsonList = jsonDecode(jsonString);
         _chatHistory = List<Map<String, dynamic>>.from(
-          jsonList.map((item) => Map<String, dynamic>.from(item as Map))
+          jsonList.map((item) => Map<String, dynamic>.from(item as Map)),
         );
         print('Loaded ${_chatHistory.length} messages from storage');
       } else {

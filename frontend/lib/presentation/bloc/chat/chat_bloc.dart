@@ -32,16 +32,16 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
       // Check if we have existing chat history
       final storedMessages = geminiService.getChatHistory();
-      
+
       if (storedMessages.isNotEmpty) {
         // Convert stored messages to ChatMessageModel
         final messages = storedMessages.map((msg) {
           final uuid = Uuid();
           final parts = msg['parts'] as List<dynamic>? ?? [];
-          final text = parts.isNotEmpty 
+          final text = parts.isNotEmpty
               ? (parts[0] as Map<String, dynamic>)['text'] ?? ''
               : '';
-          
+
           return ChatMessageModel(
             id: uuid.v4(),
             content: text,
