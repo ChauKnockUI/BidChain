@@ -149,6 +149,7 @@ router.post("/create", authMiddleware, [
         formatted_step_price: formatVnd(step_price),
         end_time: auction.end_time
       }
+
     });
 
   } catch (error) {
@@ -202,6 +203,17 @@ router.post(
           message: notification.message,
           auction_id: bidData.auction._id
         });
+
+        // Emit balance update for previous bidder (unlocked funds)
+        const previousUser = await User.findById(bidResult.previousBidder);
+        if (previousUser) {
+          io.to(`user_${bidResult.previousBidder}`).emit('balance_updated', {
+            id: previousUser._id.toString(),
+            balanceEth: parseFloat(previousUser.balance_eth || 0),
+            lockedEth: parseFloat(previousUser.locked_eth || 0),
+            walletAddress: previousUser.wallet_address
+          });
+        }
       }
 
       // Notify seller of new bid
@@ -222,6 +234,17 @@ router.post(
           formatted_amount: formatVnd(bidData.amountVnd),
           current_price_vnd: bidData.amountVnd,
           formatted_current_price: formatVnd(bidData.amountVnd)
+        });
+      }
+
+      // Emit balance update for current bidder (locked funds)
+      const updatedBidder = await User.findById(bidData.user._id);
+      if (updatedBidder) {
+        io.to(`user_${bidData.user._id}`).emit('balance_updated', {
+          id: updatedBidder._id.toString(),
+          balanceEth: parseFloat(updatedBidder.balance_eth || 0),
+          lockedEth: parseFloat(updatedBidder.locked_eth || 0),
+          walletAddress: updatedBidder.wallet_address
         });
       }
 

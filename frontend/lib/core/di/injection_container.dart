@@ -142,7 +142,6 @@ class InjectionContainer {
 
   static PaymentBloc getPaymentBloc() => PaymentBloc(_paymentRepository);
 
-  static CategoryBloc getCategoryBloc() => CategoryBloc(
-    getCategoriesUseCase: _getCategoriesUseCase,
-  );
+  static CategoryBloc getCategoryBloc() =>
+      CategoryBloc(getCategoriesUseCase: _getCategoriesUseCase);
 }

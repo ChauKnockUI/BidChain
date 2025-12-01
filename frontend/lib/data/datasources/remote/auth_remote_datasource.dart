@@ -16,6 +16,8 @@ abstract class AuthRemoteDataSource {
     required String username,
     required String password,
   });
+
+  Future<UserModel> getCurrentUser();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -66,10 +68,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final response = await dioClient.post(
         ApiConstants.login,
-        data: {
-          'username': username,
-          'password': password,
-        },
+        data: {'username': username, 'password': password},
       );
 
       if (response.statusCode == 200) {
@@ -86,16 +85,50 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw ServerException(message: e.toString());
     }
   }
+
+  @override
+  Future<UserModel> getCurrentUser() async {
+    try {
+      final response = await dioClient.get(ApiConstants.getUserProfile);
+
+      if (response.statusCode == 200) {
+        final userData = response.data;
+        return UserModel(
+          id: userData['_id'] ?? userData['id'] ?? '',
+          username: userData['username'] ?? '',
+          email: userData['email'] ?? '',
+          fullName: userData['full_name'] ?? '',
+          role: userData['role'] ?? 'USER',
+          walletAddress: userData['wallet_address'] ?? '',
+          balanceEth: (userData['balance_eth'] is num)
+              ? (userData['balance_eth'] as num).toDouble()
+              : 0.0,
+          lockedEth: (userData['locked_eth'] is num)
+              ? (userData['locked_eth'] as num).toDouble()
+              : 0.0,
+          createdAt: userData['createdAt'] != null
+              ? DateTime.parse(userData['createdAt'])
+              : DateTime.now(),
+        );
+      } else {
+        throw ServerException(
+          message: response.data['error'] ?? 'Failed to get user',
+          statusCode: response.statusCode,
+        );
+      }
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
 }
 
 class AuthResponse {
   final String token;
   final UserModel user;
 
-  AuthResponse({
-    required this.token,
-    required this.user,
-  });
+  AuthResponse({required this.token, required this.user});
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
     // Backend trả về user object hoặc trực tiếp các field
