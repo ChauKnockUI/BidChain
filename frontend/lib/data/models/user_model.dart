@@ -8,6 +8,7 @@ class UserModel extends UserEntity {
     required super.fullName,
     required super.role,
     required super.walletAddress,
+    super.avatar,
     super.balanceEth,
     super.lockedEth,
     super.lastNonce,
@@ -22,6 +23,7 @@ class UserModel extends UserEntity {
       fullName: json['full_name'] ?? '',
       role: json['role'] ?? 'USER',
       walletAddress: json['wallet_address'] ?? '',
+      avatar: json['avatar'],
       balanceEth: _parseWei(json['balance_eth']),
       lockedEth: _parseWei(json['locked_eth']),
       lastNonce: json['last_nonce'] ?? 0,
@@ -39,7 +41,8 @@ class UserModel extends UserEntity {
       'full_name': fullName,
       'role': role,
       'wallet_address': walletAddress,
-      'balance_eth': balanceEth, // Note: This saves as ETH double, not Wei string
+      'avatar': avatar,
+      'balance_eth': balanceEth,
       'locked_eth': lockedEth,
       'last_nonce': lastNonce,
       'created_at': createdAt.toIso8601String(),
@@ -52,11 +55,8 @@ class UserModel extends UserEntity {
     if (value is String) {
       if (value.isEmpty) return 0.0;
       try {
-        // Backend returns Wei as string (e.g., "3000000000000000000")
-        // Convert Wei to ETH: value / 10^18
         return double.parse(value) / 1000000000000000000.0;
       } catch (e) {
-        print('Error parsing Wei: $e');
         return 0.0;
       }
     }

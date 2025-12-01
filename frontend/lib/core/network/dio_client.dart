@@ -90,13 +90,45 @@ class DioClient {
     }
   }
 
+  Future<Response> postMultipart(
+    String path, {
+    required FormData data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
+    try {
+      final response = await _dio.post(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: Options(
+          contentType: 'multipart/form-data',
+        ),
+      );
+      return response;
+    } on DioException catch (e) {
+      _handleError(e);
+      rethrow;
+    }
+  }
+
   void _handleError(DioException error) {
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout) {
       throw NetworkException(message: 'Connection timeout');
     } else if (error.response != null) {
+      String errorMessage = 'Server error';
+      final data = error.response?.data;
+      
+      if (data is Map<String, dynamic>) {
+        errorMessage = data['error'] ?? 'Server error';
+      } else if (data is String) {
+        errorMessage = data;
+      } else {
+        errorMessage = data.toString();
+      }
+
       throw ServerException(
-        message: error.response?.data['error'] ?? 'Server error',
+        message: errorMessage,
         statusCode: error.response?.statusCode,
       );
     } else {

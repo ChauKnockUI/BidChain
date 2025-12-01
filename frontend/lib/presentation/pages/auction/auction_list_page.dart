@@ -14,6 +14,7 @@ import '../../bloc/category/category_state.dart';
 import '../../widgets/auction/auction_card.dart';
 import '../../widgets/common/category_chip.dart';
 
+
 class AuctionListPage extends StatefulWidget {
   const AuctionListPage({super.key});
 
@@ -55,15 +56,16 @@ class _AuctionListPageState extends State<AuctionListPage> {
               InjectionContainer.getCategoryBloc()..add(GetCategories()),
         ),
       ],
-      child: Scaffold(
-        backgroundColor: AppColors.white,
-        appBar: _buildAppBar(),
-        body: RefreshIndicator(
-          onRefresh: () async {
-            context.read<AuctionBloc>().add(RefreshAuctions());
-            context.read<CategoryBloc>().add(GetCategories());
-          },
-          color: AppColors.black,
+      child: Builder(
+        builder: (context) => Scaffold(
+          backgroundColor: AppColors.white,
+          appBar: _buildAppBar(),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              context.read<AuctionBloc>().add(RefreshAuctions());
+              context.read<CategoryBloc>().add(GetCategories());
+            },
+            color: AppColors.black,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -231,6 +233,7 @@ class _AuctionListPageState extends State<AuctionListPage> {
             ],
           ),
         ),
+        ),
       ),
     );
   }
@@ -246,14 +249,8 @@ class _AuctionListPageState extends State<AuctionListPage> {
       ),
       backgroundColor: AppColors.white,
       elevation: 0,
-      leading: IconButton(
-        icon: const Icon(
-          Icons.arrow_back_ios_new,
-          color: AppColors.black,
-          size: 20,
-        ),
-        onPressed: () => context.go(AppRoutes.home),
-      ),
+      centerTitle: true,
+
     );
   }
 

@@ -41,14 +41,11 @@ class _WalletPageState extends State<WalletPage>
     super.dispose();
   }
 
-  static const double ethToVnd = 50000000; // 1 ETH = 50,000,000 VND
-  static const double weiPerEth = 1e18;
+  static const double ethToVndRate = 50000000; // 1 ETH = 50,000,000 VND
 
-  // Convert Wei → VND
-  static double weiToVnd(dynamic wei) {
-    double value = double.tryParse(wei.toString()) ?? 0;
-    double eth = value / weiPerEth;
-    return eth * ethToVnd;
+  // Convert ETH → VND
+  static double ethToVnd(double eth) {
+    return eth * ethToVndRate;
   }
 
   // Format VND: 1000000 → "1.000.000 VND"
@@ -96,6 +93,7 @@ class _WalletPageState extends State<WalletPage>
                 backgroundColor: AppColors.white,
                 elevation: 0,
                 centerTitle: true,
+                automaticallyImplyLeading: false,
                 iconTheme: const IconThemeData(color: AppColors.black),
               ),
               body: RefreshIndicator(
@@ -169,7 +167,7 @@ class _WalletPageState extends State<WalletPage>
           ),
           const SizedBox(height: 8),
           Text(
-            formatVnd(weiToVnd(total)),
+            formatVnd(ethToVnd(total)),
             style: AppTextStyles.h1.copyWith(color: AppColors.black),
           ),
           const SizedBox(height: 24),
@@ -187,7 +185,7 @@ class _WalletPageState extends State<WalletPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      formatVnd(weiToVnd(available)),
+                      formatVnd(ethToVnd(available)),
                       style: AppTextStyles.h4.copyWith(color: AppColors.black),
                     ),
                   ],
@@ -211,7 +209,7 @@ class _WalletPageState extends State<WalletPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      formatVnd(weiToVnd(locked)),
+                      formatVnd(ethToVnd(locked)),
                       style: AppTextStyles.h4.copyWith(color: AppColors.black),
                     ),
                   ],

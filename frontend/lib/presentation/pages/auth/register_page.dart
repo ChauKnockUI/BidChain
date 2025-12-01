@@ -12,6 +12,7 @@ import '../../widgets/common/primary_button.dart';
 import '../../widgets/common/form_input.dart';
 import '../../widgets/common/full_screen_loading.dart';
 import '../../widgets/common/custom_toast.dart';
+import '../../widgets/common/custom_back_button.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -164,13 +165,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     const SizedBox(height: 20),
 
                     // Back button
-                    IconButton(
+                    CustomBackButton(
                       onPressed: () => context.go(AppRoutes.login),
-                      icon: const Icon(Icons.arrow_back_ios, size: 20),
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.white,
-                        padding: const EdgeInsets.all(12),
-                      ),
                     ),
 
                     const SizedBox(height: 24),

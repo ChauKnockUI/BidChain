@@ -348,6 +348,7 @@ class _HomePageState extends State<HomePage> {
       ),
       backgroundColor: AppColors.white,
       elevation: 0,
+      centerTitle: true,
       automaticallyImplyLeading: false,
       actions: [
         IconButton(

@@ -2,6 +2,7 @@ import '../../../config/constants/api_constants.dart';
 import '../../../core/error/exceptions.dart';
 import '../../../core/network/dio_client.dart';
 import '../../models/user_model.dart';
+import 'package:dio/dio.dart';
 
 abstract class AuthRemoteDataSource {
   Future<AuthResponse> register({
@@ -15,6 +16,17 @@ abstract class AuthRemoteDataSource {
   Future<AuthResponse> login({
     required String username,
     required String password,
+  });
+
+  Future<AuthResponse> updateProfile({
+    String? fullName,
+    String? username,
+    String? email,
+  });
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
   });
 }
 
@@ -86,6 +98,61 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw ServerException(message: e.toString());
     }
   }
+
+  @override
+  Future<AuthResponse> updateProfile({
+    String? fullName,
+    String? username,
+    String? email,
+  }) async {
+    try {
+      final data = <String, dynamic>{};
+      if (fullName != null) data['full_name'] = fullName;
+      if (username != null) data['username'] = username;
+      if (email != null) data['email'] = email;
+
+      final response = await dioClient.put(
+        ApiConstants.updateUserProfile,
+        data: data,
+      );
+
+      if (response.statusCode == 200) {
+        return AuthResponse.fromJson(response.data);
+      } else {
+        throw ServerException(
+          message: response.data['error'] ?? 'Update failed',
+          statusCode: response.statusCode,
+        );
+      }
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await dioClient.put(
+        ApiConstants.changePassword,
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+    } on DioException catch (error) {
+      throw ServerException(
+        message: error.response?.data['error'] ?? 'Failed to change password',
+        statusCode: error.response?.statusCode ?? 500,
+      );
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
 }
 
 class AuthResponse {
@@ -98,7 +165,6 @@ class AuthResponse {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    // Backend trả về user object hoặc trực tiếp các field
     final user = json['user'] ?? json;
     return AuthResponse(
       token: json['token'] ?? json['access_token'] ?? '',

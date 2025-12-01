@@ -7,6 +7,7 @@ class UserEntity extends Equatable {
   final String fullName;
   final String role;
   final String walletAddress;
+  final String? avatar;
   final double balanceEth;
   final double lockedEth;
   final int lastNonce;
@@ -19,6 +20,7 @@ class UserEntity extends Equatable {
     required this.fullName,
     required this.role,
     required this.walletAddress,
+    this.avatar,
     this.balanceEth = 0.0,
     this.lockedEth = 0.0,
     this.lastNonce = 0,
@@ -33,6 +35,7 @@ class UserEntity extends Equatable {
     fullName,
     role,
     walletAddress,
+    avatar,
     balanceEth,
     lockedEth,
     lastNonce,

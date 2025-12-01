@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../domain/entities/user_entity.dart';
 
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
@@ -43,4 +44,41 @@ class AuthLogoutEvent extends AuthEvent {
 
 class AuthCheckStatusEvent extends AuthEvent {
   const AuthCheckStatusEvent();
+}
+
+class UpdateUserEvent extends AuthEvent {
+  final UserEntity user;
+
+  const UpdateUserEvent(this.user);
+
+  @override
+  List<Object?> get props => [user];
+}
+
+class AuthUpdateProfileEvent extends AuthEvent {
+  final String? fullName;
+  final String? username;
+  final String? email;
+
+  const AuthUpdateProfileEvent({
+    this.fullName,
+    this.username,
+    this.email,
+  });
+
+  @override
+  List<Object?> get props => [fullName, username, email];
+}
+
+class AuthChangePasswordEvent extends AuthEvent {
+  final String currentPassword;
+  final String newPassword;
+
+  const AuthChangePasswordEvent({
+    required this.currentPassword,
+    required this.newPassword,
+  });
+
+  @override
+  List<Object> get props => [currentPassword, newPassword];
 }

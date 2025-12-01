@@ -31,57 +31,74 @@ router.get("/me", authMiddleware, async (req, res) => {
   }
 });
 
-// Cập nhật thông tin hồ sơ (bao gồm avatar)
+// Cập nhật thông tin hồ sơ của tôi
 router.put("/me", authMiddleware, async (req, res) => {
   try {
-    const { full_name, avatar, momo_phone } = req.body;
-    const updates = {};
-
-    if (full_name) updates.full_name = full_name.trim();
-    if (avatar) updates.avatar = avatar; // URL từ /upload/avatar
-    if (momo_phone !== undefined) updates.momo_phone = momo_phone;
-
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { $set: updates },
-      { new: true, runValidators: true }
-    ).select("-password_hash -encrypted_private_key");
+    const { full_name, avatar, momo_phone, username, email } = req.body;
+    const user = await User.findById(req.user.id);
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
+    // Check uniqueness for username if being updated
+    if (username && username !== user.username) {
+      const existingUser = await User.findOne({ username, _id: { $ne: user._id } });
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already taken" });
+      }
+      user.username = username;
+    }
+
+    // Check uniqueness for email if being updated
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email, _id: { $ne: user._id } });
+      if (existingUser) {
+        return res.status(400).json({ error: "Email already taken" });
+      }
+      user.email = email;
+    }
+
+    if (full_name !== undefined) user.full_name = full_name;
+    if (avatar !== undefined) user.avatar = avatar;
+    if (momo_phone !== undefined) user.momo_phone = momo_phone;
+
+    await user.save();
+
+    const updatedUser = await User.findById(user._id).select("-password_hash -encrypted_private_key");
     res.json({
       success: true,
       message: "Profile updated successfully",
-      user
+      user: updatedUser
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Lấy các phiên đấu giá TÔI TẠO
+// Lấy các phiên đấu giá TÔI TẠO RA
 router.get("/me/auctions", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
     const auctions = await Auction.find({ seller_id: user._id })
-      .populate('highest_bidder_id', 'username')
-      .sort({ created_at: -1 }); // Mới nhất trước
+      .populate('seller_id', 'username full_name')
+      .populate('highest_bidder_id', 'username full_name')
+      .populate('category_id', 'name')
+      .sort({ createdAt: -1 }); // Mới nhất trước
 
     // Format with VND display
     const formattedAuctions = auctions.map(auction => ({
-      _id: auction._id,
-      title: auction.title,
-      description: auction.description,
-      images: auction.images, // IPFS URLs
-      status: auction.status,
+      ...auction.toObject(),
       start_price_vnd: weiToVnd(auction.start_price.toString()),
+      step_price_vnd: weiToVnd(auction.step_price.toString()),
       current_price_vnd: weiToVnd(auction.current_price.toString()),
       formatted_start_price: formatVnd(weiToVnd(auction.start_price.toString())),
+      formatted_step_price: formatVnd(weiToVnd(auction.step_price.toString())),
       formatted_current_price: formatVnd(weiToVnd(auction.current_price.toString())),
-      end_time: auction.end_time,
-      highest_bidder: auction.highest_bidder_id?.username || null
     }));
 
     res.json(formattedAuctions);

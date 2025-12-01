@@ -17,6 +17,9 @@ import '../../domain/repositories/my_activity_repository.dart';
 import '../../domain/repositories/auction_detail_repository.dart';
 import '../../domain/usecases/auth/login_usecase.dart';
 import '../../domain/usecases/auth/register_usecase.dart';
+import '../../domain/usecases/auth/update_profile_usecase.dart';
+import '../../domain/usecases/auth/change_password_usecase.dart';
+import '../../domain/usecases/auth/logout_usecase.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/my_activity/my_activity_bloc.dart';
 import '../../presentation/bloc/auction_detail/auction_detail_bloc.dart';
@@ -39,6 +42,9 @@ class InjectionContainer {
   static late AuthRepository _authRepository;
   static late LoginUseCase _loginUseCase;
   static late RegisterUseCase _registerUseCase;
+  static late UpdateProfileUseCase _updateProfileUseCase;
+  static late ChangePasswordUseCase _changePasswordUseCase;
+  static late LogoutUseCase _logoutUseCase;
 
   // MyActivity dependencies
   static late MyActivityRemoteDataSource _myActivityRemoteDataSource;
@@ -63,10 +69,11 @@ class InjectionContainer {
   // Payment dependencies
   static late PaymentRepository _paymentRepository;
 
-  /// Initialize all dependencies - call this in main() before running the app
   static Future<void> init() async {
     _sharedPreferences = await SharedPreferences.getInstance();
     _dioClient = DioClient();
+    
+    // Auth
     _authRemoteDataSource = AuthRemoteDataSourceImpl(_dioClient);
     _authLocalDataSource = AuthLocalDataSourceImpl(_sharedPreferences);
     _authRepository = AuthRepositoryImpl(
@@ -75,14 +82,17 @@ class InjectionContainer {
     );
     _loginUseCase = LoginUseCase(_authRepository);
     _registerUseCase = RegisterUseCase(_authRepository);
+    _updateProfileUseCase = UpdateProfileUseCase(_authRepository);
+    _changePasswordUseCase = ChangePasswordUseCase(_authRepository);
+    _logoutUseCase = LogoutUseCase(_authRepository);
 
-    // Initialize MyActivity dependencies
+    // MyActivity
     _myActivityRemoteDataSource = MyActivityRemoteDataSourceImpl(_dioClient);
     _myActivityRepository = MyActivityRepositoryImpl(
       _myActivityRemoteDataSource,
     );
 
-    // Initialize AuctionDetail dependencies
+    // AuctionDetail
     _auctionDetailRemoteDataSource = AuctionDetailRemoteDataSourceImpl(
       _dioClient,
     );
@@ -98,10 +108,10 @@ class InjectionContainer {
     );
     _createAuctionUseCase = CreateAuctionUseCase(_auctionRepository);
 
-    // Initialize Payment dependencies
+    // Payment
     _paymentRepository = PaymentRepository(_dioClient);
 
-    // Initialize Category dependencies
+    // Category
     _categoryRemoteDataSource = CategoryRemoteDataSourceImpl(
       dioClient: _dioClient,
     );
@@ -111,21 +121,12 @@ class InjectionContainer {
     _getCategoriesUseCase = GetCategoriesUseCase(_categoryRepository);
   }
 
-  // Getters
-  static AuthBloc getAuthBloc() =>
-      AuthBloc(loginUseCase: _loginUseCase, registerUseCase: _registerUseCase);
-
-  static AuthRepository getAuthRepository() => _authRepository;
-  static LoginUseCase getLoginUseCase() => _loginUseCase;
-  static RegisterUseCase getRegisterUseCase() => _registerUseCase;
-  // MyActivity getters
   static MyActivityBloc getMyActivityBloc() =>
       MyActivityBloc(repository: _myActivityRepository);
 
   static MyActivityRepository getMyActivityRepository() =>
       _myActivityRepository;
-
-  // AuctionDetail getters
+      
   static AuctionDetailBloc getAuctionDetailBloc() =>
       AuctionDetailBloc(repository: _auctionDetailRepository);
 
@@ -134,6 +135,7 @@ class InjectionContainer {
 
   static AuctionListBloc getAuctionListBloc() =>
       AuctionListBloc(repository: _auctionRepository);
+      
   static CreateAuctionBloc getCreateAuctionBloc() =>
       CreateAuctionBloc(createAuctionUseCase: _createAuctionUseCase);
 
@@ -145,4 +147,12 @@ class InjectionContainer {
   static CategoryBloc getCategoryBloc() => CategoryBloc(
     getCategoriesUseCase: _getCategoriesUseCase,
   );
+
+  static AuthBloc getAuthBloc() => AuthBloc(
+        loginUseCase: _loginUseCase,
+        registerUseCase: _registerUseCase,
+        updateProfileUseCase: _updateProfileUseCase,
+        changePasswordUseCase: _changePasswordUseCase,
+        logoutUseCase: _logoutUseCase,
+      );
 }

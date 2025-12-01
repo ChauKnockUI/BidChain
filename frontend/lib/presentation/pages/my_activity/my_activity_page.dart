@@ -8,6 +8,7 @@ import '../../bloc/my_activity/my_activity_bloc.dart';
 import '../../bloc/my_activity/my_activity_event.dart';
 import '../../bloc/my_activity/my_activity_state.dart';
 import '../../widgets/common/custom_app_bar.dart';
+import '../../widgets/common/custom_back_button.dart';
 import '../../widgets/my_activity/my_auctions_tab.dart';
 import '../../widgets/my_activity/my_bids_tab.dart';
 
@@ -43,7 +44,11 @@ class _MyActivityPageState extends State<MyActivityPage>
       backgroundColor: AppColors.white,
       appBar: CustomAppBar(
         title: 'My Activity',
-        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          color: AppColors.accent,
+          onPressed: () => context.go(AppRoutes.home),
+        ),
       ),
       body: Column(
         children: [
