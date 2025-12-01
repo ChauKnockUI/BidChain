@@ -360,45 +360,14 @@ class _HomePageState extends State<HomePage> {
       centerTitle: true,
       automaticallyImplyLeading: false,
       actions: [
-        BlocBuilder<NotificationBloc, NotificationState>(
-          builder: (context, state) {
-            return Stack(
-              children: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.notifications_outlined,
-                    color: AppColors.black,
-                  ),
-                  onPressed: () {
-                    context.push('/notifications');
-                  },
-                ),
-                if (state.unreadCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 14,
-                        minHeight: 14,
-                      ),
-                      child: Text(
-                        '${state.unreadCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            );
+        // TODO: Re-enable NotificationBloc when implemented
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: AppColors.black,
+          ),
+          onPressed: () {
+            context.push('/notifications');
           },
         ),
       ],
@@ -567,4 +536,194 @@ class _HomePageState extends State<HomePage> {
       return '${difference.inSeconds}s';
     }
   }
+}
+
+        'BidChain',
+        style: AppTextStyles.h2.copyWith(
+          color: AppColors.black,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      backgroundColor: AppColors.white,
+      elevation: 0,
+      centerTitle: true,
+      automaticallyImplyLeading: false,
+      actions: [
+        // TODO: Re-enable NotificationBloc when implemented
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: AppColors.black,
+          ),
+          onPressed: () {
+            context.push('/notifications');
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.black, width: 1.5),
+      ),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search auctions...',
+          hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.grey),
+          prefixIcon: const Icon(Icons.search, color: AppColors.black),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: AppColors.grey),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryList() {
+    return BlocBuilder<CategoryBloc, CategoryState>(
+      builder: (context, state) {
+        if (state is CategoryLoaded) {
+          // Add "All" category at the beginning
+          final allCategories = [
+            {'id': null, 'name': 'All', 'icon': Icons.apps},
+            ...state.categories.map(
+              (cat) => {
+                'id': cat.id,
+                'name': cat.name,
+                'icon': _getCategoryIcon(cat.name),
+              },
+            ),
+          ];
+
+          return SizedBox(
+            height: 50,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: allCategories.length,
+              itemBuilder: (context, index) {
+                final category = allCategories[index];
+                final isSelected = _selectedCategoryId == category['id'];
+
+                return Padding(
+                  padding: EdgeInsets.only(
+                    right: index < allCategories.length - 1 ? 8 : 0,
+                  ),
+                  child: CategoryChip(
+                    label: category['name'] as String,
+                    icon: category['icon'] as IconData?,
+                    isSelected: isSelected,
+                    onTap: () {
+                      setState(() {
+                        _selectedCategoryId = category['id'] as String?;
+                      });
+                    },
+                  ),
+                );
+              },
+            ),
+          );
+        } else if (state is CategoryLoading) {
+          return const SizedBox(
+            height: 50,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
+        } else {
+          // Show default categories if loading fails
+          return SizedBox(
+            height: 50,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                CategoryChip(
+                  label: 'All',
+                  icon: Icons.apps,
+                  isSelected: _selectedCategoryId == null,
+                  onTap: () {
+                    setState(() {
+                      _selectedCategoryId = null;
+                    });
+                  },
+                ),
+              ],
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  IconData _getCategoryIcon(String categoryName) {
+    final name = categoryName.toLowerCase();
+
+    if (name.contains('điện tử') ||
+        name.contains('điện thoại') ||
+        name.contains('laptop')) {
+      return Icons.devices;
+    } else if (name.contains('thời trang') ||
+        name.contains('quần áo') ||
+        name.contains('giày')) {
+      return Icons.checkroom;
+    } else if (name.contains('nghệ thuật') ||
+        name.contains('tranh') ||
+        name.contains('tác phẩm')) {
+      return Icons.palette;
+    } else if (name.contains('đồ cổ') || name.contains('sưu tầm')) {
+      return Icons.stars;
+    } else if (name.contains('xe') ||
+        name.contains('phương tiện') ||
+        name.contains('ô tô') ||
+        name.contains('xe máy')) {
+      return Icons.directions_car;
+    } else if (name.contains('thủ công') ||
+        name.contains('mỹ nghệ') ||
+        name.contains('handmade') ||
+        name.contains('gốm')) {
+      return Icons.handyman;
+    } else if (name.contains('sách') || name.contains('book')) {
+      return Icons.book;
+    } else if (name.contains('khác')) {
+      return Icons.category;
+    }
+
+    return Icons.category; // default
+  }
+
+  String _calculateTimeLeft(DateTime endTime) {
+    final now = DateTime.now();
+    final difference = endTime.difference(now);
+
+    if (difference.isNegative) {
+      return 'Ended';
+    }
+
+    if (difference.inDays > 0) {
+      final hours = difference.inHours % 24;
+      return '${difference.inDays}d ${hours}h';
+    } else if (difference.inHours > 0) {
+      final minutes = difference.inMinutes % 60;
+      return '${difference.inHours}h ${minutes}m';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m';
+    } else {
+      return '${difference.inSeconds}s';
+    }
+  }
+>>>>>>> Stashed changes
 }

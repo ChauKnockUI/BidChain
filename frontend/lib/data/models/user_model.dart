@@ -52,7 +52,7 @@ class UserModel extends UserEntity {
   /// Parse balance from backend
   /// - If number (num): already ETH from login response (parseFloat on backend)
   /// - If string: always Wei from database, need to convert to ETH
-  static double _parseBalance(dynamic value) {
+  static double _parseWei(dynamic value) {
     if (value == null) return 0.0;
     
     // If it's a number, it's already ETH (from login/register response)

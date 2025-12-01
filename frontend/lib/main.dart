@@ -58,11 +58,6 @@ class MyApp extends StatelessWidget {
         BlocProvider<PaymentBloc>(
           create: (context) => InjectionContainer.getPaymentBloc(),
         ),
-        BlocProvider<NotificationBloc>(
-          create: (context) =>
-              InjectionContainer.getNotificationBloc()
-                ..add(FetchNotificationsEvent()),
-        ),
       ],
 
       child: MaterialApp.router(
