@@ -12,6 +12,10 @@ abstract class UserRemoteDataSource {
     String? momoPhone,
   });
   Future<UserModel> uploadAndUpdateAvatar(String filePath);
+  Future<UserModel> uploadAndUpdateAvatarBytes(
+    List<int> bytes,
+    String fileName,
+  );
   Future<UserModel> deleteAvatar();
   Future<List<dynamic>> getUserAuctions();
   Future<List<dynamic>> getUserBids();
@@ -89,11 +93,47 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
         data: formData,
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data['success'] == true) {
         return UserModel.fromJson(response.data['user']);
       } else {
         throw ServerException(
-          message: response.data['error'] ?? 'Failed to upload avatar',
+          message:
+              response.data['error'] ??
+              response.data['message'] ??
+              'Failed to upload avatar',
+          statusCode: response.statusCode,
+        );
+      }
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<UserModel> uploadAndUpdateAvatarBytes(
+    List<int> bytes,
+    String fileName,
+  ) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: fileName),
+      });
+
+      final response = await dioClient.postMultipart(
+        ApiConstants.uploadAvatar,
+        data: formData,
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return UserModel.fromJson(response.data['user']);
+      } else {
+        throw ServerException(
+          message:
+              response.data['error'] ??
+              response.data['message'] ??
+              'Failed to upload avatar',
           statusCode: response.statusCode,
         );
       }
@@ -148,12 +188,11 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       }
     } on ServerException {
       rethrow;
-    } catch (e, stackTrace) {
+    } catch (e) {
       throw ServerException(message: e.toString());
     }
   }
 
-  @override
   Future<List<dynamic>> getUserBids() async {
     try {
       final response = await dioClient.get(ApiConstants.getUserBids);
@@ -174,7 +213,7 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       }
     } on ServerException {
       rethrow;
-    } catch (e, stackTrace) {
+    } catch (e) {
       throw ServerException(message: e.toString());
     }
   }

@@ -33,11 +33,11 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late UserRepository _userRepository;
-  
+
   // Loading states
   bool _isLoadingStats = false;
   bool _isUploadingAvatar = false;
-  
+
   // Statistics data
   int _totalAuctions = 0;
   int _totalBids = 0;
@@ -47,9 +47,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _userRepository = UserRepository(
-      UserRemoteDataSourceImpl(DioClient()),
-    );
+    _userRepository = UserRepository(UserRemoteDataSourceImpl(DioClient()));
     _loadUserStatistics();
   }
 
@@ -138,13 +136,20 @@ class _ProfilePageState extends State<ProfilePage> {
         _isUploadingAvatar = true;
       });
 
+      // Read image bytes (works on both web and mobile)
+      final bytes = await image.readAsBytes();
+      final fileName = image.name;
+
       // Upload to backend (Cloudinary)
-      final updatedUser = await _userRepository.uploadAndUpdateAvatar(image.path);
+      final updatedUser = await _userRepository.uploadAndUpdateAvatarBytes(
+        bytes,
+        fileName,
+      );
 
       // Update auth state with new user data
       if (mounted) {
         context.read<AuthBloc>().add(UpdateUserEvent(updatedUser));
-        
+
         setState(() {
           _isUploadingAvatar = false;
         });
@@ -159,7 +164,7 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _isUploadingAvatar = false;
       });
-      
+
       if (mounted) {
         Toast.show(
           context,
@@ -180,7 +185,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (mounted) {
         context.read<AuthBloc>().add(UpdateUserEvent(updatedUser));
-        
+
         setState(() {
           _isUploadingAvatar = false;
         });
@@ -195,7 +200,7 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _isUploadingAvatar = false;
       });
-      
+
       if (mounted) {
         Toast.show(
           context,
@@ -283,12 +288,14 @@ class _ProfilePageState extends State<ProfilePage> {
           // User logged out, navigate to login page
           context.go(AppRoutes.login);
         } else if (state is AuthSuccessState) {
-          if (state.message.isNotEmpty && !state.message.startsWith('Login') && !state.message.startsWith('Registration')) {
-             if (state.message.contains('Error')) {
-                Toast.error(context, state.message);
-             } else {
-                Toast.success(context, state.message);
-             }
+          if (state.message.isNotEmpty &&
+              !state.message.startsWith('Login') &&
+              !state.message.startsWith('Registration')) {
+            if (state.message.contains('Error')) {
+              Toast.error(context, state.message);
+            } else {
+              Toast.success(context, state.message);
+            }
           }
         } else if (state is AuthErrorState) {
           Toast.error(context, state.message);
@@ -657,7 +664,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   gradient: AppColors.accentGradient,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.person_outline, color: AppColors.white, size: 24),
+                child: Icon(
+                  Icons.person_outline,
+                  color: AppColors.white,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
@@ -803,12 +814,14 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 8),
           Flexible(
-            child: FittedBox( // Use FittedBox to auto-scale text
+            child: FittedBox(
+              // Use FittedBox to auto-scale text
               fit: BoxFit.scaleDown,
               child: Text(
                 value,
                 style: TextStyle(
-                  fontSize: 22, // Fixed size instead of h3 (which might be too large)
+                  fontSize:
+                      22, // Fixed size instead of h3 (which might be too large)
                   color: AppColors.accent,
                   fontWeight: FontWeight.bold,
                 ),
@@ -867,9 +880,7 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Confirm Logout',
           style: AppTextStyles.h4.copyWith(color: AppColors.accent),
@@ -916,7 +927,7 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-      builder: (context, setDialogState) {
+        builder: (context, setDialogState) {
           return BlocListener<AuthBloc, AuthState>(
             listener: (context, state) {
               if (state is AuthSuccessState) {
@@ -1076,49 +1087,53 @@ class _ProfilePageState extends State<ProfilePage> {
       isChangingPassword = true;
     });
 
-    context.read<AuthBloc>().add(AuthChangePasswordEvent(
-      currentPassword: currentPassword,
-      newPassword: newPassword,
-    ));
+    context.read<AuthBloc>().add(
+      AuthChangePasswordEvent(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      ),
+    );
 
     // Listen to Bloc state changes is handled in the main build method
     // We just need to close the dialog if successful, but since we can't easily listen inside this function without a BlocListener in the dialog,
     // we might need to rely on the main page listener to close the dialog or show toast.
     // However, to close the dialog from here, we need to know when it's done.
     // A common pattern is to wait for the state change or use a Completer, but with Bloc, we usually react to state.
-    
-    // For now, let's just close the dialog and let the main page show the toast. 
+
+    // For now, let's just close the dialog and let the main page show the toast.
     // BUT, we want to keep the dialog open if there is an error.
     // So we should wrap the dialog content in a BlocListener.
-    
+
     // Actually, the best way is to wrap the Dialog content in a BlocListener.
     // Let's modify the showDialog part instead.
-    
-    // For this step, I will just dispatch the event. 
+
+    // For this step, I will just dispatch the event.
     // I will modify the showDialog to include BlocListener in the next step.
-    
+
     // Wait, I can't leave this function broken.
     // I'll remove the mock delay and just dispatch.
     // The UI update (loading) is local to the dialog.
     // The Bloc will emit states.
-    
+
     // Let's just dispatch here.
-    context.read<AuthBloc>().add(AuthChangePasswordEvent(
-      currentPassword: currentPassword,
-      newPassword: newPassword,
-    ));
+    context.read<AuthBloc>().add(
+      AuthChangePasswordEvent(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      ),
+    );
   }
 
   void _showEditProfileDialog(BuildContext context) {
     // Get current user info from Bloc state
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthSuccessState) return;
-    
+
     final user = authState.user;
     String fullName = user.fullName;
     String username = user.username;
     String email = user.email;
-    
+
     String fullNameError = '';
     String usernameError = '';
     String emailError = '';
@@ -1197,8 +1212,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 loading: isUpdating,
                 onPress: () {
                   // Validate
-                  final fullNameValidation = Validators.validateFullName(fullName);
-                  final usernameValidation = Validators.validateUsername(username);
+                  final fullNameValidation = Validators.validateFullName(
+                    fullName,
+                  );
+                  final usernameValidation = Validators.validateUsername(
+                    username,
+                  );
                   final emailValidation = Validators.validateEmail(email);
 
                   setDialogState(() {
@@ -1214,12 +1233,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   }
 
                   Navigator.of(context).pop();
-                  
-                  context.read<AuthBloc>().add(AuthUpdateProfileEvent(
-                    fullName: fullName,
-                    username: username,
-                    email: email,
-                  ));
+
+                  context.read<AuthBloc>().add(
+                    AuthUpdateProfileEvent(
+                      fullName: fullName,
+                      username: username,
+                      email: email,
+                    ),
+                  );
                 },
                 width: 100,
                 height: 44,

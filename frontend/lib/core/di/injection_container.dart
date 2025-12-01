@@ -73,10 +73,14 @@ class InjectionContainer {
   // Payment dependencies
   static late PaymentRepository _paymentRepository;
 
+  // Notification dependencies
+  static late NotificationRepository _notificationRepository;
+  static late SocketService _socketService;
+
   static Future<void> init() async {
     _sharedPreferences = await SharedPreferences.getInstance();
     _dioClient = DioClient();
-    
+
     // Auth
     _authRemoteDataSource = AuthRemoteDataSourceImpl(_dioClient);
     _authLocalDataSource = AuthLocalDataSourceImpl(_sharedPreferences);
@@ -115,6 +119,10 @@ class InjectionContainer {
     // Payment
     _paymentRepository = PaymentRepository(_dioClient);
 
+    // Notification
+    _socketService = SocketService();
+    _notificationRepository = NotificationRepositoryImpl();
+
     // Category
     _categoryRemoteDataSource = CategoryRemoteDataSourceImpl(
       dioClient: _dioClient,
@@ -130,7 +138,7 @@ class InjectionContainer {
 
   static MyActivityRepository getMyActivityRepository() =>
       _myActivityRepository;
-      
+
   static AuctionDetailBloc getAuctionDetailBloc() =>
       AuctionDetailBloc(repository: _auctionDetailRepository);
 
@@ -139,7 +147,7 @@ class InjectionContainer {
 
   static AuctionListBloc getAuctionListBloc() =>
       AuctionListBloc(repository: _auctionRepository);
-      
+
   static CreateAuctionBloc getCreateAuctionBloc() =>
       CreateAuctionBloc(createAuctionUseCase: _createAuctionUseCase);
 
@@ -148,15 +156,19 @@ class InjectionContainer {
 
   static PaymentBloc getPaymentBloc() => PaymentBloc(_paymentRepository);
 
-  static CategoryBloc getCategoryBloc() => CategoryBloc(
-    getCategoriesUseCase: _getCategoriesUseCase,
-  );
+  static CategoryBloc getCategoryBloc() =>
+      CategoryBloc(getCategoriesUseCase: _getCategoriesUseCase);
 
   static AuthBloc getAuthBloc() => AuthBloc(
-        loginUseCase: _loginUseCase,
-        registerUseCase: _registerUseCase,
-        updateProfileUseCase: _updateProfileUseCase,
-        changePasswordUseCase: _changePasswordUseCase,
-        logoutUseCase: _logoutUseCase,
-      );
+    loginUseCase: _loginUseCase,
+    registerUseCase: _registerUseCase,
+    updateProfileUseCase: _updateProfileUseCase,
+    changePasswordUseCase: _changePasswordUseCase,
+    logoutUseCase: _logoutUseCase,
+  );
+
+  static NotificationBloc getNotificationBloc() => NotificationBloc(
+    repository: _notificationRepository,
+    socketService: _socketService,
+  );
 }
