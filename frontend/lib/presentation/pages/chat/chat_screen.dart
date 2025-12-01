@@ -9,9 +9,14 @@ import '../../widgets/chat/message_bubble.dart';
 class ChatScreen extends StatefulWidget {
   final String? auctionId;
   final Map<String, dynamic>? auctionData;
+  final VoidCallback? onClose;
 
-  const ChatScreen({Key? key, this.auctionId, this.auctionData})
-    : super(key: key);
+  const ChatScreen({
+    Key? key,
+    this.auctionId,
+    this.auctionData,
+    this.onClose,
+  }) : super(key: key);
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -111,7 +116,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => Navigator.pop(context),
+                          onTap: widget.onClose ?? () {},
                           child: Icon(
                             Icons.close,
                             color: Colors.white,

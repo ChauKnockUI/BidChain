@@ -28,7 +28,16 @@ class _ChatBubbleWrapperState extends State<ChatBubbleWrapper> {
             },
             child: Container(color: Colors.black.withOpacity(0.3)),
           ),
-        if (_isChatOpen) ChatScreen(auctionId: null, auctionData: null),
+        if (_isChatOpen)
+          ChatScreen(
+            auctionId: null,
+            auctionData: null,
+            onClose: () {
+              setState(() {
+                _isChatOpen = false;
+              });
+            },
+          ),
         if (!_isChatOpen)
           FloatingChatBubble(
             onTap: () {
