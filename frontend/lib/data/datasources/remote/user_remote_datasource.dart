@@ -12,7 +12,10 @@ abstract class UserRemoteDataSource {
     String? momoPhone,
   });
   Future<UserModel> uploadAndUpdateAvatar(String filePath);
-  Future<UserModel> uploadAndUpdateAvatarBytes(List<int> bytes, String fileName);
+  Future<UserModel> uploadAndUpdateAvatarBytes(
+    List<int> bytes,
+    String fileName,
+  );
   Future<UserModel> deleteAvatar();
   Future<List<dynamic>> getUserAuctions();
   Future<List<dynamic>> getUserBids();
@@ -112,10 +115,7 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
   ) async {
     try {
       final formData = FormData.fromMap({
-        'file': MultipartFile.fromBytes(
-          bytes,
-          filename: fileName,
-        ),
+        'file': MultipartFile.fromBytes(bytes, filename: fileName),
       });
 
       final response = await dioClient.postMultipart(
