@@ -51,6 +51,15 @@ const processBid = async (req, res, next) => {
       return res.status(400).json({ error: 'Auction has ended' });
     }
 
+    // Check if bidder is the auction creator
+    if (auction.seller_id && auction.seller_id.toString() === userId.toString()) {
+      console.error(`Bid failed: User ${userId} is the auction creator`);
+      return res.status(403).json({
+        error: 'Auction creator cannot bid on their own auction',
+        message: 'Bạn không thể đấu giá trên phiên đấu giá của chính mình'
+      });
+    }
+
     const amountWei = vndToWei(amount_vnd);
     const nonce = (user.last_nonce || 0) + 1;
     const timestamp = Math.floor(Date.now() / 1000);
