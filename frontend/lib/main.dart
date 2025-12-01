@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/presentation/bloc/auction_detail/auction_detail_bloc.dart';
 import 'package:frontend/presentation/bloc/auction_list/auction_list_bloc.dart';
 import 'package:frontend/presentation/bloc/my_activity/my_activity_bloc.dart';
@@ -27,6 +28,10 @@ class ApiConfig {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables from .env file
+  await dotenv.load(fileName: ".env");
+
   ApiConfig.init();
 
   await InjectionContainer.init();
