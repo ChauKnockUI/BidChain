@@ -26,6 +26,13 @@ class UserRepository {
     return await remoteDataSource.uploadAndUpdateAvatar(filePath);
   }
 
+  Future<UserModel> uploadAndUpdateAvatarBytes(
+    List<int> bytes,
+    String fileName,
+  ) async {
+    return await remoteDataSource.uploadAndUpdateAvatarBytes(bytes, fileName);
+  }
+
   Future<UserModel> deleteAvatar() async {
     return await remoteDataSource.deleteAvatar();
   }

@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../config/routes/app_routes.dart';
 import 'package:flutter/services.dart';
-import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/theme/app_colors.dart';
@@ -138,8 +136,15 @@ class _ProfilePageState extends State<ProfilePage> {
         _isUploadingAvatar = true;
       });
 
+      // Read image bytes (works on web and mobile)
+      final imageBytes = await image.readAsBytes();
+      final fileName = image.name;
+
       // Upload to backend (Cloudinary)
-      final updatedUser = await _userRepository.uploadAndUpdateAvatar(image.path);
+      final updatedUser = await _userRepository.uploadAndUpdateAvatarBytes(
+        imageBytes,
+        fileName,
+      );
 
       // Update auth state with new user data
       if (mounted) {

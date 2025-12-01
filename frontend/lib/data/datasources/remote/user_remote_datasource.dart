@@ -12,6 +12,7 @@ abstract class UserRemoteDataSource {
     String? momoPhone,
   });
   Future<UserModel> uploadAndUpdateAvatar(String filePath);
+  Future<UserModel> uploadAndUpdateAvatarBytes(List<int> bytes, String fileName);
   Future<UserModel> deleteAvatar();
   Future<List<dynamic>> getUserAuctions();
   Future<List<dynamic>> getUserBids();
@@ -105,6 +106,39 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
   }
 
   @override
+  Future<UserModel> uploadAndUpdateAvatarBytes(
+    List<int> bytes,
+    String fileName,
+  ) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(
+          bytes,
+          filename: fileName,
+        ),
+      });
+
+      final response = await dioClient.postMultipart(
+        ApiConstants.uploadAvatar,
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        return UserModel.fromJson(response.data['user']);
+      } else {
+        throw ServerException(
+          message: response.data['error'] ?? 'Failed to upload avatar',
+          statusCode: response.statusCode,
+        );
+      }
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
   Future<UserModel> deleteAvatar() async {
     try {
       final response = await dioClient.put(
@@ -148,7 +182,7 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       }
     } on ServerException {
       rethrow;
-    } catch (e, stackTrace) {
+    } catch (e) {
       throw ServerException(message: e.toString());
     }
   }
@@ -174,7 +208,7 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       }
     } on ServerException {
       rethrow;
-    } catch (e, stackTrace) {
+    } catch (e) {
       throw ServerException(message: e.toString());
     }
   }
