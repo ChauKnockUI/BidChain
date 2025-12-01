@@ -153,7 +153,16 @@ const handleBidLocking = async (req, res, next) => {
 
     const currentLocked = BigInt(user.locked_eth || "0");
     const bidWeiBigInt = BigInt(amountWei);
-    const newLocked = (currentLocked + bidWeiBigInt).toString();
+    let newLockedBigInt = currentLocked + bidWeiBigInt;
+
+    // If same user is outbidding themselves, subtract the old bid amount immediately
+    if (auction.highest_bidder_id && auction.highest_bidder_id.toString() === user._id.toString()) {
+      const oldPriceBigInt = BigInt(auction.current_price.toString());
+      newLockedBigInt = newLockedBigInt - oldPriceBigInt;
+      console.log(`User outbidding themselves. Net lock change: +${weiToVnd((bidWeiBigInt - oldPriceBigInt).toString())} VND`);
+    }
+
+    const newLocked = newLockedBigInt >= 0n ? newLockedBigInt.toString() : "0";
 
     await User.findByIdAndUpdate(user._id, {
       $set: {
@@ -164,28 +173,27 @@ const handleBidLocking = async (req, res, next) => {
 
     let previousBidder = null;
 
-    if (
-      auction.highest_bidder_id &&
-      auction.highest_bidder_id.toString() !== user._id.toString()
-    ) {
+    if (auction.highest_bidder_id) {
       previousBidder = auction.highest_bidder_id;
 
-      const oldUser = await User.findById(auction.highest_bidder_id).session(session);
-      if (!oldUser) {
-        throw new Error("Previous bidder not found");
+      // Only unlock previous bidder if it's a DIFFERENT user
+      if (auction.highest_bidder_id.toString() !== user._id.toString()) {
+        const oldUser = await User.findById(auction.highest_bidder_id).session(session);
+        if (oldUser) {
+          const oldPriceBigInt = BigInt(auction.current_price.toString());
+          const oldLockedBigInt = BigInt(oldUser.locked_eth || "0");
+          const unlockedAmount = oldLockedBigInt - oldPriceBigInt;
+          const newOldLocked = unlockedAmount >= 0n ? unlockedAmount.toString() : "0";
+
+          console.log(`Unlocking previous bidder ${previousBidder}: ${weiToVnd(oldPriceBigInt.toString())} VND`);
+
+          await User.findByIdAndUpdate(auction.highest_bidder_id, {
+            $set: { locked_eth: newOldLocked }
+          }, { session });
+        }
       }
 
-      const oldPriceBigInt = BigInt(auction.current_price.toString());
-      const oldLockedBigInt = BigInt(oldUser.locked_eth || "0");
-      const unlockedAmount = oldLockedBigInt - oldPriceBigInt;
-      const newOldLocked = unlockedAmount >= 0n ? unlockedAmount.toString() : "0";
-
-      console.log(`Unlocking previous bidder ${previousBidder}: ${weiToVnd(oldPriceBigInt.toString())} VND`);
-
-      await User.findByIdAndUpdate(auction.highest_bidder_id, {
-        $set: { locked_eth: newOldLocked }
-      }, { session });
-
+      // ALWAYS mark old bids as OUTBID, regardless of who the bidder was
       await Bid.updateMany(
         { auction_id: auction._id, status: 'WINNING' },
         { status: 'OUTBID' },
