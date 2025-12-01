@@ -21,7 +21,7 @@ class ApiConstants {
   static const String getUserAuctions = '/user/me/auctions';
   static const String getUserBids = '/user/me/bids';
   static const String updateUserProfile = '/user/me';
-  static const String uploadAvatar = '/user/me/avatar';
+  static const String uploadAvatar = '/upload/avatar/update';
 
   // Category endpoints
   static const String getCategories = '/category/all';
