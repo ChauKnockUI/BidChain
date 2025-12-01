@@ -11,12 +11,8 @@ class ChatScreen extends StatefulWidget {
   final Map<String, dynamic>? auctionData;
   final VoidCallback? onClose;
 
-  const ChatScreen({
-    Key? key,
-    this.auctionId,
-    this.auctionData,
-    this.onClose,
-  }) : super(key: key);
+  const ChatScreen({Key? key, this.auctionId, this.auctionData, this.onClose})
+    : super(key: key);
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -31,6 +27,11 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _messageController = TextEditingController();
     _scrollController = ScrollController();
+
+    // Listen to text changes to trigger rebuild
+    _messageController.addListener(() {
+      setState(() {});
+    });
 
     // Always initialize chat when opening
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -222,6 +223,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   BlocBuilder<ChatBloc, ChatState>(
                     builder: (context, state) {
                       final isLoading = state is ChatLoading;
+                      final hasText = _messageController.text.trim().isNotEmpty;
 
                       return Container(
                         padding: const EdgeInsets.all(10),
@@ -260,7 +262,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(20),
                                     borderSide: BorderSide(
-                                      color: AppColors.tertiary,
+                                      color: hasText
+                                          ? AppColors.accent
+                                          : AppColors.tertiary,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
@@ -279,9 +283,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                             const SizedBox(width: 6),
                             GestureDetector(
-                              onTap:
-                                  isLoading ||
-                                      _messageController.text.trim().isEmpty
+                              onTap: (isLoading || !hasText)
                                   ? null
                                   : _sendMessage,
                               child: Container(
@@ -289,9 +291,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 height: 32,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color:
-                                      isLoading ||
-                                          _messageController.text.trim().isEmpty
+                                  color: (isLoading || !hasText)
                                       ? AppColors.tertiary
                                       : AppColors.accent,
                                 ),
@@ -310,10 +310,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                         )
                                       : Icon(
                                           Icons.send,
-                                          color:
-                                              _messageController.text
-                                                  .trim()
-                                                  .isEmpty
+                                          color: (isLoading || !hasText)
                                               ? AppColors.grey
                                               : Colors.white,
                                           size: 16,

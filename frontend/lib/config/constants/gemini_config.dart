@@ -5,7 +5,7 @@ class GeminiConfig {
   static String get apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
 
   // Model configuration
-  static const String modelName = 'gemini-pro';
+  static const String modelName = 'gemini-2.0-flash';
 
   // Chatbot system prompt
   static const String systemPrompt = '''

@@ -8,12 +8,12 @@ class ChatMessageModel extends ChatMessageEntity {
     required bool isUserMessage,
     String? auctionId,
   }) : super(
-    id: id,
-    content: content,
-    timestamp: timestamp,
-    isUserMessage: isUserMessage,
-    auctionId: auctionId,
-  );
+         id: id,
+         content: content,
+         timestamp: timestamp,
+         isUserMessage: isUserMessage,
+         auctionId: auctionId,
+       );
 
   // Convert from Entity to Model
   factory ChatMessageModel.fromEntity(ChatMessageEntity entity) {

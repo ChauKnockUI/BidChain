@@ -27,18 +27,43 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       currentAuctionId = event.auctionId;
       currentAuctionData = event.auctionData;
 
-      // Always add welcome message
-      const uuid = Uuid();
-      final welcomeMessage = ChatMessageModel(
-        id: uuid.v4(),
-        content:
-            'Hello! I\'m here to help you with questions about products, prices, trends, and bidding strategies. What can I help you with today?',
-        timestamp: DateTime.now(),
-        isUserMessage: false,
-      );
+      // Load chat history from local storage
+      await geminiService.loadChatHistory();
 
-      // Create initial state with welcome message
-      emit(ChatLoaded(messages: [welcomeMessage]));
+      // Check if we have existing chat history
+      final storedMessages = geminiService.getChatHistory();
+      
+      if (storedMessages.isNotEmpty) {
+        // Convert stored messages to ChatMessageModel
+        final messages = storedMessages.map((msg) {
+          final uuid = Uuid();
+          final parts = msg['parts'] as List<dynamic>? ?? [];
+          final text = parts.isNotEmpty 
+              ? (parts[0] as Map<String, dynamic>)['text'] ?? ''
+              : '';
+          
+          return ChatMessageModel(
+            id: uuid.v4(),
+            content: text,
+            timestamp: DateTime.now(),
+            isUserMessage: msg['role'] == 'user',
+          );
+        }).toList();
+
+        emit(ChatLoaded(messages: messages));
+      } else {
+        // No stored history, create welcome message
+        const uuid = Uuid();
+        final welcomeMessage = ChatMessageModel(
+          id: uuid.v4(),
+          content:
+              'Hello! I\'m here to help you with questions about products, prices, trends, and bidding strategies. What can I help you with today?',
+          timestamp: DateTime.now(),
+          isUserMessage: false,
+        );
+
+        emit(ChatLoaded(messages: [welcomeMessage]));
+      }
     } catch (e) {
       emit(ChatError('Failed to initialize chat: $e'));
     }
@@ -139,8 +164,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     Emitter<ChatState> emit,
   ) async {
     try {
-      // Clear Gemini chat history
-      geminiService.clearChatHistory();
+      // Clear Gemini chat history and local storage
+      await geminiService.clearStoredChatHistory();
 
       // Emit cleared state
       emit(const ChatCleared());
