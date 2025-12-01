@@ -33,10 +33,6 @@ class _CreateAuctionPageState extends State<CreateAuctionPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
 
-    final starting = _startingController.text.trim();
-    final duration = _durationController.text.trim();
-    final metadata = _metadataController.text.trim();
-
     // TODO: convert starting ETH to wei, call createAuction usecase -> backend
     await Future.delayed(const Duration(seconds: 1));
 

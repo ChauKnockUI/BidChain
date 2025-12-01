@@ -11,6 +11,7 @@ class SocketService {
   IO.Socket? _socket;
   String? _userId;
   Function(UserModel)? onBalanceUpdated;
+  Function(dynamic)? onNotificationReceived;
 
   bool get isConnected => _socket?.connected ?? false;
 
@@ -43,6 +44,11 @@ class SocketService {
     _socket!.on('balance_updated', (data) async {
       print('💰 Balance updated event received: $data');
       await fetchAndUpdateBalance();
+    });
+
+    _socket!.on('notification', (data) {
+      print('🔔 Notification received: $data');
+      onNotificationReceived?.call(data);
     });
 
     _socket!.onDisconnect((_) {

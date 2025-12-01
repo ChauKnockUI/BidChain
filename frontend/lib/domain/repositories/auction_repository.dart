@@ -18,7 +18,7 @@ abstract class AuctionRepository {
 
   Future<Either<Failure, String>> placeBid({
     required String auctionId,
-    required String amountWei,
+    required double amountVnd,
   });
 
   Future<Either<Failure, String>> endAuction(String auctionId);

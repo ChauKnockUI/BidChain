@@ -2,9 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/services/socket_service.dart';
 import 'package:frontend/domain/usecases/auth/login_usecase.dart';
 import 'package:frontend/domain/usecases/auth/register_usecase.dart';
-import 'package:frontend/core/services/socket_service.dart';
 import 'package:frontend/main.dart';
-import 'package:frontend/config/constants/api_constants.dart';
 
 import 'auth_event.dart';
 import 'auth_state.dart';

@@ -32,7 +32,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // Avatar state
   Uint8List? _avatarBytes;
-  String? _avatarUrl;
   bool _hasAvatar = false;
 
   // Change password dialog state
@@ -113,7 +112,6 @@ class _ProfilePageState extends State<ProfilePage> {
   void _deleteAvatar() {
     setState(() {
       _avatarBytes = null;
-      _avatarUrl = null;
       _hasAvatar = false;
     });
     Toast.show(

@@ -11,7 +11,10 @@ import '../../bloc/auction/auction_state.dart';
 import '../../bloc/category/category_bloc.dart';
 import '../../bloc/category/category_event.dart';
 import '../../bloc/category/category_state.dart';
+import '../../bloc/notification/notification_bloc.dart';
+
 import '../../widgets/auction/auction_card.dart';
+
 import '../../widgets/common/category_chip.dart';
 import '../../widgets/common/section_header.dart';
 
@@ -104,21 +107,24 @@ class _HomePageState extends State<HomePage> {
                   if (state is AuctionLoaded && state.auctions.isNotEmpty) {
                     // Filter auctions by selected category and search query
                     var filteredAuctions = state.auctions;
-                    
+
                     // Filter by category
                     if (_selectedCategoryId != null) {
                       filteredAuctions = filteredAuctions
-                          .where((auction) => auction.categoryId == _selectedCategoryId)
+                          .where(
+                            (auction) =>
+                                auction.categoryId == _selectedCategoryId,
+                          )
                           .toList();
                     }
-                    
+
                     // Filter by search query
                     if (_searchQuery.isNotEmpty) {
                       filteredAuctions = filteredAuctions.where((auction) {
                         final titleLower = auction.title.toLowerCase();
                         final descLower = auction.description.toLowerCase();
                         return titleLower.contains(_searchQuery) ||
-                               descLower.contains(_searchQuery);
+                            descLower.contains(_searchQuery);
                       }).toList();
                     }
 
@@ -242,21 +248,24 @@ class _HomePageState extends State<HomePage> {
                   } else if (state is AuctionLoaded) {
                     // Filter auctions by selected category and search query
                     var filteredAuctions = state.auctions;
-                    
+
                     // Filter by category
                     if (_selectedCategoryId != null) {
                       filteredAuctions = filteredAuctions
-                          .where((auction) => auction.categoryId == _selectedCategoryId)
+                          .where(
+                            (auction) =>
+                                auction.categoryId == _selectedCategoryId,
+                          )
                           .toList();
                     }
-                    
+
                     // Filter by search query
                     if (_searchQuery.isNotEmpty) {
                       filteredAuctions = filteredAuctions.where((auction) {
                         final titleLower = auction.title.toLowerCase();
                         final descLower = auction.description.toLowerCase();
                         return titleLower.contains(_searchQuery) ||
-                               descLower.contains(_searchQuery);
+                            descLower.contains(_searchQuery);
                       }).toList();
                     }
 
@@ -350,13 +359,45 @@ class _HomePageState extends State<HomePage> {
       elevation: 0,
       automaticallyImplyLeading: false,
       actions: [
-        IconButton(
-          icon: const Icon(
-            Icons.notifications_outlined,
-            color: AppColors.black,
-          ),
-          onPressed: () {
-            // TODO: Navigate to notifications
+        BlocBuilder<NotificationBloc, NotificationState>(
+          builder: (context, state) {
+            return Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.notifications_outlined,
+                    color: AppColors.black,
+                  ),
+                  onPressed: () {
+                    context.push('/notifications');
+                  },
+                ),
+                if (state.unreadCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 14,
+                        minHeight: 14,
+                      ),
+                      child: Text(
+                        '${state.unreadCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            );
           },
         ),
       ],

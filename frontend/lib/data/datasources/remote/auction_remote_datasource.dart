@@ -15,7 +15,7 @@ abstract class AuctionRemoteDataSource {
   Future<List<CategoryModel>> getCategories();
   Future<String> placeBid({
     required String auctionId,
-    required String amountWei,
+    required double amountVnd,
   });
   Future<String> endAuction(String auctionId);
 }
@@ -102,14 +102,12 @@ class AuctionRemoteDataSourceImpl implements AuctionRemoteDataSource {
       if (response.statusCode == 200) {
         final List<dynamic> urls = response.data['images'];
         print('✅ Upload successful: ${urls.length} URLs');
-      
+
         return urls.map((e) => e.toString()).toList();
       } else {
         throw ServerException(
           message: response.data['error'] ?? 'Failed to upload images',
-          
         );
-       
       }
     } catch (e) {
       throw ServerException(message: e.toString());
@@ -139,12 +137,12 @@ class AuctionRemoteDataSourceImpl implements AuctionRemoteDataSource {
   @override
   Future<String> placeBid({
     required String auctionId,
-    required String amountWei,
+    required double amountVnd,
   }) async {
     try {
       final response = await dioClient.post(
         ApiConstants.placeBid,
-        data: {'auctionId': auctionId, 'amountWei': amountWei},
+        data: {'auction_id': auctionId, 'amount_vnd': amountVnd},
       );
 
       if (response.statusCode == 200) {

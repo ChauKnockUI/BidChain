@@ -1,24 +1,18 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
+const { body, param, validationResult } = require("express-validator");
 const Auction = require("../models/Auction");
 const Bid = require("../models/Bid");
 const Transaction = require("../models/Transaction");
-const Notification = require("../models/Notification");
-const { ethers } = require("ethers");
-const { decrypt } = require("../utils/crypto");
 const { authMiddleware } = require("../middleware/auth");
-const { provider, contract } = require("../blockchain/contract");
-const { body, param, validationResult } = require("express-validator");
+const { weiToVnd, formatVnd, weiToEth, formatEth, vndToWei } = require("../utils/conversion");
+const { AUCTION_STATUS, EXCHANGE_RATE, TRANSACTION_TYPES } = require("../config/constants");
 const { validateBidRequest, processBid, handleBidLocking } = require("../middleware/bid");
-const { ethToVnd, weiToVnd, formatVnd, vndToWei, weiToEth, formatEth } = require("../utils/conversion");
-const { EXCHANGE_RATE, AUCTION_STATUS, TRANSACTION_TYPES } = require("../config/constants");
 const { deployAuctionContract } = require("../blockchain/deploy");
-
-require("dotenv").config();
+const ethers = require("ethers");
 
 // ========== API LẤY SỐ DƯ ==========
-// routes/auction.js hoặc wallet route
 router.get("/wallet/balance", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -57,6 +51,17 @@ router.get("/wallet/balance", authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// ========== API ĐẶT GIÁ (BID) ==========
+router.post("/bid", authMiddleware, validateBidRequest, processBid, handleBidLocking, async (req, res) => {
+  res.json({
+    success: true,
+    message: "Bid placed successfully",
+    bid: req.bidResult.bid,
+    previous_bidder: req.bidResult.previousBidder
+  });
+});
+
 // ========== API TẠO PHIÊN ĐẤU GIÁ (REQUEST APPROVAL) ==========
 router.post("/create", authMiddleware, [
   body("title").isString().notEmpty().withMessage("Title is required"),
@@ -133,7 +138,6 @@ router.post("/create", authMiddleware, [
         type: 'AUCTION_PENDING_APPROVAL',
         title: 'Yêu cầu duyệt phiên đấu giá mới',
         message: `${user.full_name} đã tạo yêu cầu duyệt phiên đấu giá: ${title}`,
-        related_id: auction._id
       });
     }
 
@@ -145,11 +149,10 @@ router.post("/create", authMiddleware, [
         status: auction.status,
         start_price_vnd: start_price,
         step_price_vnd: step_price,
-        formatted_start_price: formatVnd(start_price),
-        formatted_step_price: formatVnd(step_price),
+        formatted_start_price: formatVnd(startPriceWei.toString()),
+        formatted_step_price: formatVnd(stepPriceWei.toString()),
         end_time: auction.end_time
       }
-
     });
 
   } catch (error) {
@@ -162,194 +165,6 @@ router.post("/create", authMiddleware, [
   }
 });
 
-// ========== API BID ==========
-router.post(
-  "/bid",
-  authMiddleware,
-  validateBidRequest,
-  processBid,
-  handleBidLocking,
-  async (req, res) => {
-    try {
-      const io = req.app.get('io');
-      const { bidResult, bidData } = req;
-
-      // Emit real-time update to all clients in auction room
-      const roomName = `auction_${bidData.auction._id}`;
-      io.to(roomName).emit('new_bid', {
-        auction_id: bidData.auction._id,
-        bidder_id: bidData.user._id,
-        bidder_name: bidData.user.full_name,
-        amount_wei: bidData.amountWei,
-        amount_vnd: bidData.amountVnd,
-        formatted_amount: formatVnd(bidData.amountVnd),
-        timestamp: new Date()
-      });
-
-      // Notify previous bidder if any
-      if (bidResult.previousBidder) {
-        const notification = new Notification({
-          user_id: bidResult.previousBidder,
-          type: 'OUTBID',
-          title: 'Bạn đã bị vượt giá',
-          message: `Giá của bạn đã bị vượt mặt trong phiên đấu giá. Số dư đã được hoàn lại.`,
-          related_id: bidData.auction._id
-        });
-        await notification.save();
-
-        io.to(`user_${bidResult.previousBidder}`).emit('notification', {
-          type: 'OUTBID',
-          title: notification.title,
-          message: notification.message,
-          auction_id: bidData.auction._id
-        });
-
-        // Emit balance update for previous bidder (unlocked funds)
-        const previousUser = await User.findById(bidResult.previousBidder);
-        if (previousUser) {
-          io.to(`user_${bidResult.previousBidder}`).emit('balance_updated', {
-            id: previousUser._id.toString(),
-            balanceEth: parseFloat(previousUser.balance_eth || 0),
-            lockedEth: parseFloat(previousUser.locked_eth || 0),
-            walletAddress: previousUser.wallet_address
-          });
-        }
-      }
-
-      // Notify seller of new bid
-      const sellerId = bidData.auction.seller_id;
-      if (sellerId && sellerId.toString() !== bidData.user._id.toString()) {
-        const sellerNotification = new Notification({
-          user_id: sellerId,
-          type: 'NEW_BID',
-          title: 'Có người đặt giá mới',
-          message: `${bidData.user.full_name} đã đặt giá ${formatVnd(bidData.amountVnd)} cho phiên đấu giá "${bidData.auction.title}"`,
-          related_id: bidData.auction._id
-        });
-        await sellerNotification.save();
-
-        io.to(`user_${sellerId}`).emit('notification', {
-          type: 'NEW_BID',
-          title: sellerNotification.title,
-          formatted_amount: formatVnd(bidData.amountVnd),
-          current_price_vnd: bidData.amountVnd,
-          formatted_current_price: formatVnd(bidData.amountVnd)
-        });
-      }
-
-      // Emit balance update for current bidder (locked funds)
-      const updatedBidder = await User.findById(bidData.user._id);
-      if (updatedBidder) {
-        io.to(`user_${bidData.user._id}`).emit('balance_updated', {
-          id: updatedBidder._id.toString(),
-          balanceEth: parseFloat(updatedBidder.balance_eth || 0),
-          lockedEth: parseFloat(updatedBidder.locked_eth || 0),
-          walletAddress: updatedBidder.wallet_address
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: "Bid placed successfully",
-        amount_vnd: bidData.amountVnd,
-        amount_wei: bidData.amountWei
-      });
-
-    } catch (err) {
-      console.error("Bid processing error:", err);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-  }
-);
-
-router.post(
-  "/:id/end", // :id là auctionId
-  authMiddleware,
-  [param("id").isNumeric()],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-      const auctionId = BigInt(req.params.id);
-      // Bất kỳ ai cũng có thể gọi kết thúc, nhưng chúng ta hãy
-      // dùng ví của người bán (hoặc 1 ví hệ thống) để trả gas
-      const user = await User.findById(req.user.id);
-      if (!user) return res.status(404).json({ error: "User not found" });
-      const privateKey = decrypt(user.encryptedPrivateKey, process.env.MASTER_KEY);
-      const wallet = new ethers.Wallet(privateKey, provider);
-
-      // (Nên kiểm tra xem đã hết giờ chưa ở đây trước khi gửi)
-
-      const tx = await contract.connect(wallet).endAuction(auctionId);
-      const receipt = await tx.wait();
-
-      return res.json({
-        success: true,
-        message: "Auction ended successfully",
-        txHash: receipt.transactionHash,
-      });
-    } catch (err) {
-      console.error(err);
-      const reason = err.reason || err.message;
-      return res.status(500).json({ error: reason });
-    }
-  }
-);
-
-// ========== API RÚT TIỀN (MỚI) ==========
-router.post(
-  "/wallet/withdraw",
-  authMiddleware,
-  [
-    body("toAddress").isEthereumAddress().withMessage("Invalid Ethereum address"),
-    body("amountEther").isString().notEmpty().withMessage("Amount is required"),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-      const { toAddress, amountEther } = req.body;
-      const user = await User.findById(req.user.id);
-      if (!user) return res.status(404).json({ error: "User not found" });
-
-      const privateKey = decrypt(user.encryptedPrivateKey, process.env.MASTER_KEY);
-      const wallet = new ethers.Wallet(privateKey, provider);
-
-      const amountWei = ethers.utils.parseUnits(amountEther, "ether");
-      const balance = await provider.getBalance(wallet.address);
-      const { gasPrice } = await provider.getFeeData();
-
-      // Ước lượng gas (21000 là gas limit chuẩn)
-      const gasLimit = 21000n; // Dùng BigInt
-      const gasCost = gasLimit * gasPrice;
-
-      if (balance < (amountWei + gasCost)) {
-        return res.status(400).json({ error: "Insufficient funds for withdrawal + gas" });
-      }
-
-      const tx = await wallet.sendTransaction({
-        to: toAddress,
-        value: amountWei
-      });
-
-      await tx.wait();
-
-      return res.json({ success: true, txHash: tx.hash, amountSent: amountEther });
-
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({ error: err.message });
-    }
-  }
-);
-
-
 // ========== API LẤY DỮ LIỆU AUCTIONS ==========
 
 // Lấy tất cả phiên đấu giá active (đã được duyệt)
@@ -357,13 +172,12 @@ router.get("/all", async (req, res) => {
   try {
     const auctions = await Auction.find({
       status: { $in: [AUCTION_STATUS.ACTIVE, AUCTION_STATUS.APPROVED] },
-      start_time: { $lte: new Date() } // Đã đến thời gian bắt đầu
+      start_time: { $lte: new Date() }
     })
       .populate('seller_id', 'username full_name')
       .populate('highest_bidder_id', 'username full_name')
-      .sort({ end_time: 1 }); // Sắp hết hạn trước
+      .sort({ end_time: 1 });
 
-    // Convert prices to VND for display
     const auctionsWithVnd = auctions.map(auction => ({
       ...auction.toObject(),
       start_price_vnd: weiToVnd(auction.start_price.toString()),

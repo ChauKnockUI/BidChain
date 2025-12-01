@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/presentation/pages/my_activity/my_activity_page.dart';
 import '../../config/theme/app_colors.dart';
 import '../pages/home/home_page.dart';
-import '../pages/auction/auction_list_page.dart';
+
 import '../pages/wallet/wallet_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/create_auction/create_auction_screen.dart';
@@ -42,10 +42,7 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: _buildBottomNavigationBar(),
       floatingActionButton: _buildFloatingActionButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -61,10 +58,7 @@ class _MainLayoutState extends State<MainLayout> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppColors.accent,
-            AppColors.accentDark,
-          ],
+          colors: [AppColors.accent, AppColors.accentDark],
         ),
         boxShadow: [
           BoxShadow(
@@ -79,11 +73,7 @@ class _MainLayoutState extends State<MainLayout> {
         child: InkWell(
           onTap: () => _onTabTapped(2),
           borderRadius: BorderRadius.circular(32),
-          child: const Icon(
-            Icons.add_rounded,
-            color: Colors.white,
-            size: 32,
-          ),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
         ),
       ),
     );
@@ -182,36 +172,36 @@ class BottomNavClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
-    
+
     final notchRadius = 32.0; // Radius of the circular notch
     final notchMargin = 8.0; // Space around the button
     final centerX = size.width / 2;
-    
+
     // Start from top left
     path.moveTo(0, 0);
-    
+
     // Draw to the start of the curve
     path.lineTo(centerX - notchRadius - notchMargin, 0);
-    
+
     // Create smooth U-shaped curve going DOWN
     path.arcToPoint(
       Offset(centerX + notchRadius + notchMargin, 0),
       radius: Radius.circular(notchRadius + notchMargin),
       clockwise: false, // This makes it curve downward (U-shape)
     );
-    
+
     // Draw to top right
     path.lineTo(size.width, 0);
-    
+
     // Draw right side
     path.lineTo(size.width, size.height);
-    
+
     // Draw bottom
     path.lineTo(0, size.height);
-    
+
     // Close path
     path.close();
-    
+
     return path;
   }
 
