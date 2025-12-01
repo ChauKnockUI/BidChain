@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/presentation/bloc/auction_detail/auction_detail_bloc.dart';
 import 'package:frontend/presentation/bloc/auction_list/auction_list_bloc.dart';
 import 'package:frontend/presentation/bloc/my_activity/my_activity_bloc.dart';
+import 'package:frontend/presentation/bloc/chat/chat_bloc.dart';
 import 'config/routes/route_generator.dart';
 import 'config/theme/app_theme.dart';
 import 'core/di/injection_container.dart';
@@ -62,6 +63,9 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<PaymentBloc>(
           create: (context) => InjectionContainer.getPaymentBloc(),
+        ),
+        BlocProvider<ChatBloc>(
+          create: (context) => InjectionContainer.getChatBloc(),
         ),
       ],
 

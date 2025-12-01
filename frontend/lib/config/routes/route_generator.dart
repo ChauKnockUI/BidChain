@@ -11,6 +11,7 @@ import '../../presentation/pages/auction/auction_detail_page.dart';
 import '../../presentation/pages/wallet/wallet_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
 import '../../presentation/pages/notification/notification_page.dart';
+import '../../presentation/widgets/chat/chat_bubble_wrapper.dart';
 import 'app_routes.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -26,7 +27,7 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.home,
-      builder: (context, state) => const MainLayout(),
+      builder: (context, state) => ChatBubbleWrapper(child: const MainLayout()),
     ),
     GoRoute(
       path: AppRoutes.auctionList,

@@ -37,6 +37,8 @@ import '../../domain/repositories/notification_repository.dart';
 import '../../data/repositories/notification_repository_impl.dart';
 import '../../presentation/bloc/notification/notification_bloc.dart';
 import '../../core/services/socket_service.dart';
+import '../../core/services/gemini_service.dart';
+import '../../presentation/bloc/chat/chat_bloc.dart';
 
 class InjectionContainer {
   static late SharedPreferences _sharedPreferences;
@@ -72,6 +74,10 @@ class InjectionContainer {
 
   // Payment dependencies
   static late PaymentRepository _paymentRepository;
+
+  // Chat dependencies
+  static late GeminiService _geminiService;
+  static late ChatBloc _chatBloc;
 
   static Future<void> init() async {
     _sharedPreferences = await SharedPreferences.getInstance();
@@ -123,6 +129,10 @@ class InjectionContainer {
       remoteDataSource: _categoryRemoteDataSource,
     );
     _getCategoriesUseCase = GetCategoriesUseCase(_categoryRepository);
+
+    // Chat
+    _geminiService = GeminiService();
+    _chatBloc = ChatBloc(geminiService: _geminiService);
   }
 
   static MyActivityBloc getMyActivityBloc() =>
@@ -158,4 +168,8 @@ class InjectionContainer {
     changePasswordUseCase: _changePasswordUseCase,
     logoutUseCase: _logoutUseCase,
   );
+
+  static ChatBloc getChatBloc() => _chatBloc;
+
+  static GeminiService getGeminiService() => _geminiService;
 }
