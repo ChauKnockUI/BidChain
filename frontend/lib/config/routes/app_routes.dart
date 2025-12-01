@@ -9,4 +9,5 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String componentShowcase = '/component-showcase';
   static const String myActivity = '/my-activity';
+  static const String notifications = '/notifications';
 }

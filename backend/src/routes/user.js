@@ -1,9 +1,9 @@
-// routes/user.js
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const Auction = require("../models/Auction");
 const Bid = require("../models/Bid");
+const Notification = require("../models/Notification");
 const { authMiddleware } = require("../middleware/auth");
 const { weiToVnd, formatVnd } = require("../utils/conversion");
 
@@ -130,6 +130,44 @@ router.get("/me/bids", authMiddleware, async (req, res) => {
     }));
 
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== API NOTIFICATIONS ==========
+
+// Lấy danh sách thông báo
+router.get("/me/notifications", authMiddleware, async (req, res) => {
+  try {
+    const notifications = await Notification.find({ user_id: req.user.id })
+      .sort({ created_at: -1 })
+      .limit(50); // Limit to last 50 notifications
+    res.json(notifications);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Đánh dấu thông báo đã đọc
+router.put("/me/notifications/read", authMiddleware, async (req, res) => {
+  try {
+    const { notification_ids } = req.body; // Array of IDs, or empty for all
+
+    if (notification_ids && notification_ids.length > 0) {
+      await Notification.updateMany(
+        { _id: { $in: notification_ids }, user_id: req.user.id },
+        { $set: { is_read: true } }
+      );
+    } else {
+      // Mark all as read
+      await Notification.updateMany(
+        { user_id: req.user.id, is_read: false },
+        { $set: { is_read: true } }
+      );
+    }
+
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

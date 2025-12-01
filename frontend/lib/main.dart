@@ -10,6 +10,7 @@ import 'core/di/injection_container.dart';
 import 'presentation/bloc/auth/auth_bloc.dart';
 import 'presentation/bloc/auth/auth_event.dart';
 import 'presentation/bloc/payment/payment_bloc.dart';
+import 'presentation/bloc/notification/notification_bloc.dart';
 
 class ApiConfig {
   static late final String baseUrl;
@@ -19,7 +20,7 @@ class ApiConfig {
       baseUrl = 'http://localhost:3000';
     } else {
       // Android emulator -> 10.0.2.2 ; iOS simulator -> localhost
-      baseUrl = 'http://10.0.2.2:3000';
+      baseUrl = 'http://192.168.48.246:3000';
     }
   }
 }
@@ -57,7 +58,13 @@ class MyApp extends StatelessWidget {
         BlocProvider<PaymentBloc>(
           create: (context) => InjectionContainer.getPaymentBloc(),
         ),
+        BlocProvider<NotificationBloc>(
+          create: (context) =>
+              InjectionContainer.getNotificationBloc()
+                ..add(FetchNotificationsEvent()),
+        ),
       ],
+
       child: MaterialApp.router(
         title: 'BidChain',
         debugShowCheckedModeBanner: false,

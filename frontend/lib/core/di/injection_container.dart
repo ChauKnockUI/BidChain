@@ -30,6 +30,10 @@ import '../../presentation/bloc/payment/payment_bloc.dart';
 import '../network/dio_client.dart';
 import '../network/network_info.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import '../../domain/repositories/notification_repository.dart';
+import '../../data/repositories/notification_repository_impl.dart';
+import '../../presentation/bloc/notification/notification_bloc.dart';
+import '../../core/services/socket_service.dart';
 
 class InjectionContainer {
   static late SharedPreferences _sharedPreferences;
@@ -62,6 +66,9 @@ class InjectionContainer {
 
   // Payment dependencies
   static late PaymentRepository _paymentRepository;
+
+  // Notification dependencies
+  static late NotificationRepository _notificationRepository;
 
   /// Initialize all dependencies - call this in main() before running the app
   static Future<void> init() async {
@@ -100,6 +107,9 @@ class InjectionContainer {
 
     // Initialize Payment dependencies
     _paymentRepository = PaymentRepository(_dioClient);
+
+    // Initialize Notification dependencies
+    _notificationRepository = NotificationRepositoryImpl();
 
     // Initialize Category dependencies
     _categoryRemoteDataSource = CategoryRemoteDataSourceImpl(
@@ -144,4 +154,9 @@ class InjectionContainer {
 
   static CategoryBloc getCategoryBloc() =>
       CategoryBloc(getCategoriesUseCase: _getCategoriesUseCase);
+
+  static NotificationBloc getNotificationBloc() => NotificationBloc(
+    repository: _notificationRepository,
+    socketService: SocketService(),
+  );
 }

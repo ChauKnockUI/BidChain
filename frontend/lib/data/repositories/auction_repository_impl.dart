@@ -10,13 +10,12 @@ import '../models/category_model.dart';
 import '../models/create_auction_request.dart';
 
 class AuctionRepositoryImpl implements AuctionRepository {
- final AuctionRemoteDataSource remoteDataSource;
+  final AuctionRemoteDataSource remoteDataSource;
   final NetworkInfo networkInfo;
 
   AuctionRepositoryImpl({
     required this.remoteDataSource,
     required this.networkInfo,
-  
   });
 
   @override
@@ -34,10 +33,14 @@ class AuctionRepositoryImpl implements AuctionRepository {
   }
 
   @override
-  Future<Either<Failure, AuctionEntity>> getAuctionDetail(String auctionId) async {
+  Future<Either<Failure, AuctionEntity>> getAuctionDetail(
+    String auctionId,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
-        final remoteAuction = await remoteDataSource.getAuctionDetail(auctionId);
+        final remoteAuction = await remoteDataSource.getAuctionDetail(
+          auctionId,
+        );
         return Right(remoteAuction);
       } on ServerException catch (e) {
         return Left(ServerFailure(message: e.message));
@@ -48,7 +51,9 @@ class AuctionRepositoryImpl implements AuctionRepository {
   }
 
   @override
-  Future<Either<Failure, String>> createAuction(CreateAuctionRequest request) async {
+  Future<Either<Failure, String>> createAuction(
+    CreateAuctionRequest request,
+  ) async {
     if (await networkInfo.isConnected) {
       try {
         final auctionId = await remoteDataSource.createAuction(request);
@@ -92,13 +97,13 @@ class AuctionRepositoryImpl implements AuctionRepository {
   @override
   Future<Either<Failure, String>> placeBid({
     required String auctionId,
-    required String amountWei,
+    required double amountVnd,
   }) async {
     if (await networkInfo.isConnected) {
       try {
         final txHash = await remoteDataSource.placeBid(
           auctionId: auctionId,
-          amountWei: amountWei,
+          amountVnd: amountVnd,
         );
         return Right(txHash);
       } on ServerException catch (e) {
