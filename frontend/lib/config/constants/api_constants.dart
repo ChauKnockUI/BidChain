@@ -20,4 +20,15 @@ class ApiConstants {
   static const String getUserProfile = '/user/me';
   static const String getUserAuctions = '/user/me/auctions';
   static const String getUserBids = '/user/me/bids';
+<<<<<<< Updated upstream
+=======
+  static const String updateUserProfile = '/user/me';
+  static const String uploadAvatar = '/upload/avatar/update';
+
+  // Category endpoints
+  static const String getCategories = '/category/all';
+
+  // Upload endpoints
+  static const String uploadImages = '/upload/ipfs/multiple';
+>>>>>>> Stashed changes
 }

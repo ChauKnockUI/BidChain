@@ -1,6 +1,12 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/domain/usecases/auth/login_usecase.dart';
 import 'package:frontend/domain/usecases/auth/register_usecase.dart';
+<<<<<<< Updated upstream
+=======
+import 'package:frontend/domain/usecases/auth/update_profile_usecase.dart';
+import 'package:frontend/domain/usecases/auth/change_password_usecase.dart';
+import 'package:frontend/domain/usecases/auth/logout_usecase.dart';
+>>>>>>> Stashed changes
 
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -8,15 +14,24 @@ import 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUseCase loginUseCase;
   final RegisterUseCase registerUseCase;
+  final UpdateProfileUseCase updateProfileUseCase;
+  final ChangePasswordUseCase changePasswordUseCase;
+  final LogoutUseCase logoutUseCase;
 
   AuthBloc({
     required this.loginUseCase,
     required this.registerUseCase,
+    required this.updateProfileUseCase,
+    required this.changePasswordUseCase,
+    required this.logoutUseCase,
   }) : super(const AuthInitialState()) {
     on<AuthLoginEvent>(_onLogin);
     on<AuthRegisterEvent>(_onRegister);
     on<AuthLogoutEvent>(_onLogout);
     on<AuthCheckStatusEvent>(_onCheckStatus);
+    on<UpdateUserEvent>(_onUpdateUser);
+    on<AuthUpdateProfileEvent>(_onUpdateProfile);
+    on<AuthChangePasswordEvent>(_onChangePassword);
   }
 
   Future<void> _onLogin(AuthLoginEvent event, Emitter<AuthState> emit) async {
@@ -61,11 +76,80 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLogout(AuthLogoutEvent event, Emitter<AuthState> emit) async {
+    await logoutUseCase();
     emit(const AuthInitialState());
   }
 
   Future<void> _onCheckStatus(AuthCheckStatusEvent event, Emitter<AuthState> emit) async {
     // Implementation for checking if user has valid token on app start
-    // This can be expanded to validate stored tokens
+  }
+
+  Future<void> _onUpdateUser(UpdateUserEvent event, Emitter<AuthState> emit) async {
+    if (state is AuthSuccessState) {
+      emit(AuthSuccessState(
+        user: event.user,
+        message: 'Profile updated',
+      ));
+    }
+  }
+
+  Future<void> _onUpdateProfile(
+    AuthUpdateProfileEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthSuccessState) return;
+    final currentUser = currentState.user;
+
+    emit(const AuthLoadingState());
+
+    final result = await updateProfileUseCase(
+      fullName: event.fullName,
+      username: event.username,
+      email: event.email,
+    );
+
+    result.fold(
+      (failure) {
+        emit(AuthSuccessState(
+          user: currentUser,
+          message: 'Error: ${failure.message}',
+        ));
+      },
+      (updatedUser) {
+        emit(AuthSuccessState(
+          user: updatedUser,
+          message: 'Profile updated successfully',
+        ));
+      },
+    );
+  }
+
+  Future<void> _onChangePassword(
+    AuthChangePasswordEvent event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthSuccessState) return;
+
+    final result = await changePasswordUseCase(
+      currentPassword: event.currentPassword,
+      newPassword: event.newPassword,
+    );
+
+    result.fold(
+      (failure) {
+        emit(AuthSuccessState(
+          user: currentState.user,
+          message: 'Error: ${failure.message}',
+        ));
+      },
+      (_) {
+        emit(AuthSuccessState(
+          user: currentState.user,
+          message: 'Password changed successfully',
+        ));
+      },
+    );
   }
 }

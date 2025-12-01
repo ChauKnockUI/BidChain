@@ -73,9 +73,30 @@ class _ProfilePageState extends State<ProfilePage> {
       final files = uploadInput.files;
       if (files!.isEmpty) return;
 
+<<<<<<< Updated upstream
       final reader = html.FileReader();
       reader.readAsArrayBuffer(files[0]);
       reader.onLoadEnd.listen((event) {
+=======
+      setState(() {
+        _isUploadingAvatar = true;
+      });
+
+      // Read file as bytes for web compatibility
+      final bytes = await image.readAsBytes();
+      final filename = image.name;
+
+      // Upload to backend (Cloudinary)
+      final updatedUser = await _userRepository.uploadAndUpdateAvatar(
+        bytes,
+        filename,
+      );
+
+      // Update auth state with new user data
+      if (mounted) {
+        context.read<AuthBloc>().add(UpdateUserEvent(updatedUser));
+        
+>>>>>>> Stashed changes
         setState(() {
           _avatarBytes = reader.result as Uint8List;
           _hasAvatar = true;

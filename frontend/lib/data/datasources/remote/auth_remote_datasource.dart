@@ -16,6 +16,17 @@ abstract class AuthRemoteDataSource {
     required String username,
     required String password,
   });
+
+  Future<AuthResponse> updateProfile({
+    String? fullName,
+    String? username,
+    String? email,
+  });
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -82,6 +93,61 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
     } on ServerException {
       rethrow;
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<AuthResponse> updateProfile({
+    String? fullName,
+    String? username,
+    String? email,
+  }) async {
+    try {
+      final data = <String, dynamic>{};
+      if (fullName != null) data['full_name'] = fullName;
+      if (username != null) data['username'] = username;
+      if (email != null) data['email'] = email;
+
+      final response = await dioClient.put(
+        ApiConstants.updateUserProfile,
+        data: data,
+      );
+
+      if (response.statusCode == 200) {
+        return AuthResponse.fromJson(response.data);
+      } else {
+        throw ServerException(
+          message: response.data['error'] ?? 'Update failed',
+          statusCode: response.statusCode,
+        );
+      }
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await dioClient.put(
+        ApiConstants.changePassword,
+        data: {
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+    } on DioException catch (error) {
+      throw ServerException(
+        message: error.response?.data['error'] ?? 'Failed to change password',
+        statusCode: error.response?.statusCode ?? 500,
+      );
     } catch (e) {
       throw ServerException(message: e.toString());
     }

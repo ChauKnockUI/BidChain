@@ -41,6 +41,21 @@ class MyApp extends StatelessWidget {
               InjectionContainer.getAuthBloc()
                 ..add(const AuthCheckStatusEvent()),
         ),
+<<<<<<< Updated upstream
+=======
+        BlocProvider<MyActivityBloc>(
+          create: (context) => InjectionContainer.getMyActivityBloc(),
+        ),
+        BlocProvider<AuctionDetailBloc>(
+          create: (context) => InjectionContainer.getAuctionDetailBloc(),
+        ),
+        BlocProvider<AuctionListBloc>(
+          create: (context) => InjectionContainer.getAuctionListBloc(),
+        ),
+        BlocProvider<PaymentBloc>(
+          create: (context) => InjectionContainer.getPaymentBloc(),
+        ),
+>>>>>>> Stashed changes
       ],
       child: MaterialApp.router(
         title: 'BidChain',
