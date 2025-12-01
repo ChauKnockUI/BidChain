@@ -24,7 +24,7 @@ class _FloatingChatBubbleState extends State<FloatingChatBubble> {
     if (!widget.isVisible) return const SizedBox.shrink();
 
     return Positioned(
-      bottom: 20,
+      bottom: 90,
       right: 20,
       child: BlocBuilder<ChatBloc, ChatState>(
         builder: (context, state) {

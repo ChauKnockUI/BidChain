@@ -71,7 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Padding(
           padding: EdgeInsets.only(
             right: 24,
-            bottom: 100, // Position above the floating bubble
+            bottom: 170, // Position above the floating bubble
           ),
           child: SizedBox(
             width: 350, // Fixed width for compact chat
