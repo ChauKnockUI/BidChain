@@ -14,28 +14,30 @@ class ChatBubbleWrapper extends StatefulWidget {
 class _ChatBubbleWrapperState extends State<ChatBubbleWrapper> {
   bool _isChatOpen = false;
 
-  void _openChatDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (context) => ChatScreen(auctionId: null, auctionData: null),
-    ).then((_) {
-      setState(() {
-        _isChatOpen = false;
-      });
-    });
-
-    setState(() {
-      _isChatOpen = true;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         widget.child,
-        FloatingChatBubble(onTap: _openChatDialog, isVisible: !_isChatOpen),
+        if (_isChatOpen)
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isChatOpen = false;
+              });
+            },
+            child: Container(color: Colors.black.withOpacity(0.3)),
+          ),
+        if (_isChatOpen) ChatScreen(auctionId: null, auctionData: null),
+        if (!_isChatOpen)
+          FloatingChatBubble(
+            onTap: () {
+              setState(() {
+                _isChatOpen = true;
+              });
+            },
+            isVisible: true,
+          ),
       ],
     );
   }
