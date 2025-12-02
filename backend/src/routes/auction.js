@@ -178,15 +178,22 @@ router.get("/all", async (req, res) => {
       .populate('highest_bidder_id', 'username full_name')
       .sort({ end_time: 1 });
 
-    const auctionsWithVnd = auctions.map(auction => ({
-      ...auction.toObject(),
-      start_price_vnd: weiToVnd(auction.start_price.toString()),
-      current_price_vnd: weiToVnd(auction.current_price.toString()),
-      step_price_vnd: weiToVnd(auction.step_price.toString()),
-      formatted_start_price: formatVnd(weiToVnd(auction.start_price.toString())),
-      formatted_current_price: formatVnd(weiToVnd(auction.current_price.toString())),
-      formatted_step_price: formatVnd(weiToVnd(auction.step_price.toString()))
-    }));
+    const auctionsWithVnd = await Promise.all(
+      auctions.map(async (auction) => {
+        const bidCount = await Bid.countDocuments({ auction_id: auction._id });
+
+        return {
+          ...auction.toObject(),
+          start_price_vnd: weiToVnd(auction.start_price.toString()),
+          current_price_vnd: weiToVnd(auction.current_price.toString()),
+          step_price_vnd: weiToVnd(auction.step_price.toString()),
+          formatted_start_price: formatVnd(weiToVnd(auction.start_price.toString())),
+          formatted_current_price: formatVnd(weiToVnd(auction.current_price.toString())),
+          formatted_step_price: formatVnd(weiToVnd(auction.step_price.toString())),
+          bid_count: bidCount
+        };
+      })
+    );
 
     res.json(auctionsWithVnd);
   } catch (err) {

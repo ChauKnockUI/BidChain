@@ -7,6 +7,7 @@ class CustomButton extends StatelessWidget {
   final bool isLoading;
   final double? width;
   final double height;
+  final Color? color;
 
   const CustomButton({
     super.key,
@@ -15,6 +16,7 @@ class CustomButton extends StatelessWidget {
     this.isLoading = false,
     this.width,
     this.height = 58,
+    this.color,
   });
 
   @override
@@ -26,7 +28,7 @@ class CustomButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: color != null ? color : AppColors.primary,
           foregroundColor: AppColors.white,
           elevation: 3, 
           shape: RoundedRectangleBorder(
@@ -53,7 +55,7 @@ class CustomButton extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700, 
-                  color: AppColors.accent,
+                  color: AppColors.white,
                 ),
               ),
       ),

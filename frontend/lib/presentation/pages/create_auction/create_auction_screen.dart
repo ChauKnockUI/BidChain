@@ -19,8 +19,8 @@ class CreateAuctionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => InjectionContainer.getCreateAuctionBloc()
-        ..add(LoadCategoriesEvent()),
+      create: (context) =>
+          InjectionContainer.getCreateAuctionBloc()..add(LoadCategoriesEvent()),
       child: const _CreateAuctionView(),
     );
   }
@@ -93,9 +93,10 @@ class _CreateAuctionViewState extends State<_CreateAuctionView> {
         bottomNavigationBar: Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
           child: CustomButton(
-                text: 'Submit Art Auction',
-                onPressed: _submitAuction,
-              ),
+            color: AppColors.accent,
+            text: 'Submit Art Auction',
+            onPressed: _submitAuction,
+          ),
         ),
       ),
     );
@@ -103,7 +104,7 @@ class _CreateAuctionViewState extends State<_CreateAuctionView> {
 
   void _handleStateChange(BuildContext context, CreateAuctionState state) {
     print('🔔 State changed: ${state.runtimeType}');
-    
+
     if (state is CategoriesLoaded) {
       print('✅ Categories loaded: ${state.categories.length} categories');
       for (var cat in state.categories) {
@@ -111,7 +112,9 @@ class _CreateAuctionViewState extends State<_CreateAuctionView> {
       }
       setState(() {
         _categories = state.categories;
-        print('✅ _categories updated in widget state: ${_categories.length} items');
+        print(
+          '✅ _categories updated in widget state: ${_categories.length} items',
+        );
       });
     } else if (state is ImagesUploaded) {
       setState(() {
@@ -131,26 +134,28 @@ class _CreateAuctionViewState extends State<_CreateAuctionView> {
   }
 
   void _showSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       title: const Text(
-        'Art Auction',
+        'Create Auction',
         style: TextStyle(
           color: AppColors.black,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
       ),
+
       backgroundColor: AppColors.white,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios, color: AppColors.black, size: 20),
-      onPressed: () => context.go(AppRoutes.home),
+        icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+        color: AppColors.accent,
+        onPressed: () => Navigator.of(context).pop(),
       ),
       centerTitle: true,
     );
@@ -187,7 +192,7 @@ class _CreateAuctionViewState extends State<_CreateAuctionView> {
             ),
             const SizedBox(height: 20),
             _buildTextField(
-              label: 'Maximum Bid',
+              label: 'Step Bid',
               controller: _stepPriceController,
               hint: '500.000 VND',
               keyboardType: TextInputType.number,
@@ -199,7 +204,6 @@ class _CreateAuctionViewState extends State<_CreateAuctionView> {
             if (_selectedImages.isEmpty) _buildImageUploadPlaceholder(),
             if (_selectedImages.isNotEmpty) _buildImagePreview(),
             const SizedBox(height: 32),
-            
           ],
         ),
       ),
@@ -239,48 +243,46 @@ class _CreateAuctionViewState extends State<_CreateAuctionView> {
     );
   }
 
-Widget _buildCategoryDropdown() {
-  return DropdownMenuTheme(
-    data: DropdownMenuThemeData(
-      menuStyle: MenuStyle(
-        // ignore: deprecated_member_use
-        shape: MaterialStateProperty.all(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20), 
+  Widget _buildCategoryDropdown() {
+    return DropdownMenuTheme(
+      data: DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          // ignore: deprecated_member_use
+          shape: MaterialStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           ),
         ),
       ),
-    ),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        border: Border.all(color: AppColors.greyLight),
-        borderRadius: BorderRadius.circular(8), 
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedCategoryId,
-          isExpanded: true,
-          hint: Text(
-            'Select Category',
-            style: TextStyle(color: AppColors.grey, fontSize: 14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          border: Border.all(color: AppColors.greyLight),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: _selectedCategoryId,
+            isExpanded: true,
+            hint: Text(
+              'Select Category',
+              style: TextStyle(color: AppColors.grey, fontSize: 14),
+            ),
+            icon: const Icon(Icons.keyboard_arrow_down),
+            items: _categories.map((category) {
+              return DropdownMenuItem<String>(
+                value: category.id,
+                child: Text(category.name),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() => _selectedCategoryId = value);
+            },
           ),
-          icon: const Icon(Icons.keyboard_arrow_down),
-          items: _categories.map((category) {
-            return DropdownMenuItem<String>(
-              value: category.id,
-              child: Text(category.name),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() => _selectedCategoryId = value);
-          },
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildDatePicker(BuildContext context) {
     return InkWell(
@@ -443,11 +445,7 @@ Widget _buildCategoryDropdown() {
         ),
         if (_isUploading && index >= _imageUrls.length)
           _buildUploadingOverlay(),
-        Positioned(
-          top: 4,
-          right: 4,
-          child: _buildRemoveButton(index),
-        ),
+        Positioned(top: 4, right: 4, child: _buildRemoveButton(index)),
       ],
     );
   }
@@ -476,11 +474,7 @@ Widget _buildCategoryDropdown() {
           color: AppColors.error,
           shape: BoxShape.circle,
         ),
-        child: const Icon(
-          Icons.close,
-          color: AppColors.white,
-          size: 16,
-        ),
+        child: const Icon(Icons.close, color: AppColors.white, size: 16),
       ),
     );
   }
