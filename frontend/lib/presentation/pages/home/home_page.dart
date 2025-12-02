@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../config/routes/app_routes.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
-import '../../../core/di/injection_container.dart';
 import '../../bloc/auction/auction_bloc.dart';
 import '../../bloc/auction/auction_event.dart';
 import '../../bloc/auction/auction_state.dart';
@@ -25,14 +24,25 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage>
+    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   String? _selectedCategoryId;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
+  // Smart refresh mechanism
+  DateTime? _lastRefreshTime;
+  static const _refreshThreshold = Duration(minutes: 5);
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _lastRefreshTime = DateTime.now();
+    
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -42,35 +52,47 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     super.dispose();
   }
 
+  /// Monitor app lifecycle to refresh data when needed
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshIfNeeded();
+    }
+  }
+
+  /// Smart refresh: only refresh if more than 5 minutes have passed
+  void _refreshIfNeeded() {
+    final now = DateTime.now();
+    if (_lastRefreshTime == null ||
+        now.difference(_lastRefreshTime!) > _refreshThreshold) {
+      // Refresh data silently in background
+      context.read<AuctionBloc>().add(RefreshAuctions());
+      context.read<CategoryBloc>().add(GetCategories());
+      _lastRefreshTime = now;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (context) =>
-              InjectionContainer.getAuctionBloc()..add(GetAuctions()),
-        ),
-        BlocProvider(
-          create: (context) =>
-              InjectionContainer.getCategoryBloc()..add(GetCategories()),
-        ),
-      ],
-      child: Scaffold(
-        backgroundColor: AppColors.white,
-        appBar: _buildAppBar(),
-        body: RefreshIndicator(
-          onRefresh: () async {
-            context.read<AuctionBloc>().add(RefreshAuctions());
-            context.read<CategoryBloc>().add(GetCategories());
-          },
-          color: AppColors.black,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      appBar: _buildAppBar(),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<AuctionBloc>().add(RefreshAuctions());
+          context.read<CategoryBloc>().add(GetCategories());
+          _lastRefreshTime = DateTime.now(); // Update refresh time
+        },
+        color: AppColors.black,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
               // Search Bar Section
               SliverToBoxAdapter(
                 child: Padding(
@@ -342,8 +364,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   PreferredSizeWidget _buildAppBar() {

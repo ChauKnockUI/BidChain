@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../config/routes/app_routes.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
-import '../../../core/di/injection_container.dart';
 import '../../bloc/auction/auction_bloc.dart';
 import '../../bloc/auction/auction_event.dart';
 import '../../bloc/auction/auction_state.dart';
@@ -44,29 +43,18 @@ class _AuctionListPageState extends State<AuctionListPage> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (context) =>
-              InjectionContainer.getAuctionBloc()..add(GetAuctions()),
-        ),
-        BlocProvider(
-          create: (context) =>
-              InjectionContainer.getCategoryBloc()..add(GetCategories()),
-        ),
-      ],
-      child: Scaffold(
-        backgroundColor: AppColors.white,
-        appBar: _buildAppBar(),
-        body: RefreshIndicator(
-          onRefresh: () async {
-            context.read<AuctionBloc>().add(RefreshAuctions());
-            context.read<CategoryBloc>().add(GetCategories());
-          },
-          color: AppColors.black,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      appBar: _buildAppBar(),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<AuctionBloc>().add(RefreshAuctions());
+          context.read<CategoryBloc>().add(GetCategories());
+        },
+        color: AppColors.black,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
               // Search Bar Section
               SliverToBoxAdapter(
                 child: Padding(
@@ -231,8 +219,7 @@ class _AuctionListPageState extends State<AuctionListPage> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   PreferredSizeWidget _buildAppBar() {

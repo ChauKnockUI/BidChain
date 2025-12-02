@@ -20,7 +20,7 @@ class ApiConfig {
       baseUrl = 'http://localhost:3000';
     } else {
       // Android emulator -> 10.0.2.2 ; iOS simulator -> localhost
-      baseUrl = 'http://192.168.48.246:3000';
+      baseUrl = 'http://10.0.2.2:3000';
     }
   }
 }
