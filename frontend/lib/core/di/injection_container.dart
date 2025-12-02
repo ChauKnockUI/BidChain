@@ -36,6 +36,7 @@ import '../network/dio_client.dart';
 import '../network/network_info.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import '../../core/services/gemini_service.dart';
+import '../../core/services/location_service.dart';
 import '../../presentation/bloc/chat/chat_bloc.dart';
 
 class InjectionContainer {
@@ -80,6 +81,9 @@ class InjectionContainer {
   // Chat dependencies
   static late GeminiService _geminiService;
   static late ChatBloc _chatBloc;
+
+  // Location dependencies
+  static late LocationService _locationService;
 
   static Future<void> init() async {
     _sharedPreferences = await SharedPreferences.getInstance();
@@ -139,6 +143,9 @@ class InjectionContainer {
     // Chat
     _geminiService = GeminiService();
     _chatBloc = ChatBloc(geminiService: _geminiService);
+
+    // Location
+    _locationService = LocationService(dioClient: _dioClient);
   }
 
   static MyActivityBloc getMyActivityBloc() =>
@@ -179,4 +186,6 @@ class InjectionContainer {
   static ChatBloc getChatBloc() => _chatBloc;
 
   static GeminiService getGeminiService() => _geminiService;
+
+  static LocationService getLocationService() => _locationService;
 }
