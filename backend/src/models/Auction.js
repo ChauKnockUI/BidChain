@@ -9,7 +9,7 @@ const AuctionSchema = new mongoose.Schema({
   category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   status: {
     type: String,
-    enum: ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'DEPLOYING', 'ACTIVE', 'ENDED', 'SETTLED'],
+    enum: ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'DEPLOYING', 'ACTIVE', 'ENDED', 'WAITING_CONFIRMATION', 'SETTLED'],
     required: true,
     default: 'PENDING_APPROVAL'
   },
