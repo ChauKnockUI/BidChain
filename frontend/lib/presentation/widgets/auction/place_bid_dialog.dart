@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
+import 'countdown_timer.dart';
 
 class PlaceBidDialog extends StatefulWidget {
   final double currentPrice;
   final double stepPrice;
   final String formattedCurrentPrice;
   final String formattedStepPrice;
+  final DateTime endTime;
   final Function(double) onPlaceBid;
 
   const PlaceBidDialog({
@@ -16,6 +18,7 @@ class PlaceBidDialog extends StatefulWidget {
     required this.stepPrice,
     required this.formattedCurrentPrice,
     required this.formattedStepPrice,
+    required this.endTime,
     required this.onPlaceBid,
   });
 
@@ -90,6 +93,15 @@ class _PlaceBidDialogState extends State<PlaceBidDialog> {
             Text(
               'Đặt giá',
               style: AppTextStyles.h3.copyWith(color: AppColors.accent),
+            ),
+            const SizedBox(height: 16),
+
+            // Large Timer Display
+            Center(
+              child: CountdownTimer(
+                endTime: widget.endTime,
+                showLarge: true,
+              ),
             ),
             const SizedBox(height: 20),
 

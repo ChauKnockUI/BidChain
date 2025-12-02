@@ -34,6 +34,10 @@ class AppColors {
   static const Color warning = Color(0xFF424242); // Dark grey instead of orange
   static const Color info = Color(0xFF616161); // Grey instead of blue
 
+  // Timer Urgency Colors
+  static const Color timerWarning = Color(0xFFFF9800); // Orange for <10 minutes
+  static const Color timerCritical = Color(0xFFEF4444); // Red rgb(239,68,68) for <3 minutes
+
   // Gradients - Black to grey gradients
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [white, secondary],

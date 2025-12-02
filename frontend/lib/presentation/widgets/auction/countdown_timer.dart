@@ -6,20 +6,36 @@ import '../../../config/theme/app_text_styles.dart';
 class CountdownTimer extends StatefulWidget {
   final DateTime endTime;
   final TextStyle? textStyle;
+  final bool showLarge;
 
-  const CountdownTimer({super.key, required this.endTime, this.textStyle});
+  const CountdownTimer({
+    super.key,
+    required this.endTime,
+    this.textStyle,
+    this.showLarge = false,
+  });
 
   @override
   State<CountdownTimer> createState() => _CountdownTimerState();
 }
 
-class _CountdownTimerState extends State<CountdownTimer> {
+class _CountdownTimerState extends State<CountdownTimer>
+    with SingleTickerProviderStateMixin {
   Timer? _timer;
   Duration _remaining = Duration.zero;
+  late AnimationController _pulseController;
+  late Animation<double> _opacityAnimation;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _opacityAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
     _updateRemaining();
     if (_remaining > Duration.zero) {
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -38,6 +54,15 @@ class _CountdownTimerState extends State<CountdownTimer> {
         _remaining = Duration.zero;
         _timer?.cancel();
         _timer = null;
+        _pulseController.stop();
+      } else if (_remaining.inMinutes < 3) {
+        // Start color pulsing for critical state
+        if (!_pulseController.isAnimating) {
+          _pulseController.repeat(reverse: true);
+        }
+      } else {
+        _pulseController.stop();
+        _pulseController.reset();
       }
     });
   }
@@ -45,7 +70,15 @@ class _CountdownTimerState extends State<CountdownTimer> {
   @override
   void dispose() {
     _timer?.cancel();
+    _pulseController.dispose();
     super.dispose();
+  }
+
+  Color _getTimerColor() {
+    if (_remaining == Duration.zero) return AppColors.grey;
+    if (_remaining.inMinutes < 3) return AppColors.timerCritical;
+    if (_remaining.inMinutes < 10) return AppColors.timerWarning;
+    return AppColors.accent;
   }
 
   @override
@@ -53,12 +86,16 @@ class _CountdownTimerState extends State<CountdownTimer> {
     if (_remaining == Duration.zero) {
       return Text(
         'Đã kết thúc',
-        style:
-            widget.textStyle ??
-            AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.grey,
-              fontWeight: FontWeight.w600,
-            ),
+        style: widget.textStyle ??
+            (widget.showLarge
+                ? AppTextStyles.h3.copyWith(
+                    color: AppColors.grey,
+                    fontWeight: FontWeight.w600,
+                  )
+                : AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.grey,
+                    fontWeight: FontWeight.w600,
+                  )),
       );
     }
 
@@ -66,8 +103,6 @@ class _CountdownTimerState extends State<CountdownTimer> {
     final hours = _remaining.inHours % 24;
     final minutes = _remaining.inMinutes % 60;
     final seconds = _remaining.inSeconds % 60;
-
-    final isUrgent = _remaining.inHours < 24;
 
     String timeString;
     if (days > 0) {
@@ -80,25 +115,76 @@ class _CountdownTimerState extends State<CountdownTimer> {
       timeString = '${seconds}s';
     }
 
+    final timerColor = _getTimerColor();
+    final isCritical = _remaining.inMinutes < 3;
+
+    if (widget.showLarge) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: timerColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: timerColor.withOpacity(0.3),
+            width: 2,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.timer_outlined,
+              size: 32,
+              color: timerColor,
+            ),
+            const SizedBox(width: 12),
+            // Only the time text pulses when critical
+            AnimatedBuilder(
+              animation: _opacityAnimation,
+              builder: (context, child) {
+                final textOpacity = isCritical ? _opacityAnimation.value : 1.0;
+                return Text(
+                  timeString,
+                  style: AppTextStyles.h3.copyWith(
+                    color: timerColor.withOpacity(textOpacity),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 28,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Regular small display
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           Icons.timer_outlined,
           size: 18,
-          color: isUrgent ? AppColors.error : AppColors.accent,
+          color: timerColor,
         ),
         const SizedBox(width: 6),
-        Text(
-          timeString,
-          style:
-              widget.textStyle ??
-              AppTextStyles.bodyMedium.copyWith(
-                color: isUrgent ? AppColors.error : AppColors.accent,
-                fontWeight: FontWeight.w600,
-              ),
+        // Only the time text pulses when critical
+        AnimatedBuilder(
+          animation: _opacityAnimation,
+          builder: (context, child) {
+            final textOpacity = isCritical ? _opacityAnimation.value : 1.0;
+            return Text(
+              timeString,
+              style: widget.textStyle ??
+                  AppTextStyles.bodyMedium.copyWith(
+                    color: timerColor.withOpacity(textOpacity),
+                    fontWeight: FontWeight.w600,
+                  ),
+            );
+          },
         ),
       ],
     );
   }
 }
+

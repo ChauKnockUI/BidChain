@@ -487,6 +487,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
         stepPrice: auction.stepPriceVnd,
         formattedCurrentPrice: auction.formattedCurrentPrice,
         formattedStepPrice: auction.formattedStepPrice,
+        endTime: auction.endTime,
         onPlaceBid: (amount) {
           context.read<AuctionDetailBloc>().add(
             PlaceBid(auctionId: widget.auctionId, amountVnd: amount),
