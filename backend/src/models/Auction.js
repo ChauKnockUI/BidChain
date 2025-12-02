@@ -1,4 +1,3 @@
-// models/Auction.js - ĐÃ SỬA HOÀN CHỈNH & CHUẨN NHẤT
 const mongoose = require('mongoose');
 
 const AuctionSchema = new mongoose.Schema({

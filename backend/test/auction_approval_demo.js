@@ -158,7 +158,7 @@ class AuctionApprovalTester {
       this.log(`TX Hash: ${approvalResult.data.tx_hash}`, 'INFO');
     }
 
-    await this.delay(3000); // Wait for blockchain confirmation
+    await this.delay(3000); 
 
     return approvalResult;
   }
