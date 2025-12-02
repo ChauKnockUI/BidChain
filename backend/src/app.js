@@ -8,10 +8,14 @@ const authRoutes = require("./routes/auth");
 const auctionRoutes = require("./routes/auction");
 const userRoutes = require("./routes/user");
 const paymentRoutes = require("./routes/payment");
+const adminRoutes = require("./routes/admin/adminUser");
 const Auction = require("./models/Auction");
 const Bid = require("./models/Bid");
 const Notification = require("./models/Notification");
 const { weiToVnd, formatVnd } = require("./utils/conversion");
+const adminAuctionRouter = require('./routes/admin/adminAuction');
+const adminDashboardRouter = require('./routes/admin/adminDashboard');
+
 
 const app = express();
 app.use(cors());
@@ -21,6 +25,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/auction", auctionRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/admin", adminRoutes);
+
+app.use('/api/admin/auctions', adminAuctionRouter);
+app.use('/api/admin/dashboard', adminDashboardRouter);
+
 const uploadRouter = require("./routes/upload");
 const { AUCTION_STATUS } = require("./config/constants");
 app.use("/api/upload", uploadRouter);
