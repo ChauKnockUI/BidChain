@@ -11,6 +11,7 @@ class AuctionDetailBloc extends Bloc<AuctionDetailEvent, AuctionDetailState> {
     on<LoadAuctionDetail>(_onLoadAuctionDetail);
     on<RefreshAuctionDetail>(_onRefreshAuctionDetail);
     on<PlaceBid>(_onPlaceBid);
+    on<ConfirmReceiptEvent>(_onConfirmReceipt);
   }
 
   Future<void> _onLoadAuctionDetail(
@@ -78,6 +79,68 @@ class AuctionDetailBloc extends Bloc<AuctionDetailEvent, AuctionDetailState> {
               ),
             );
             // Return to loaded state after showing success
+            Future.delayed(const Duration(seconds: 2), () {
+              if (!emit.isDone) {
+                emit(AuctionDetailLoaded(auction: updatedAuction));
+              }
+            });
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _onConfirmReceipt(
+    ConfirmReceiptEvent event,
+    Emitter<AuctionDetailState> emit,
+  ) async {
+    print(
+      '🔴 BLOC: _onConfirmReceipt called with auctionId=${event.auctionId}',
+    );
+    print('🔴 BLOC: Current state = $state');
+
+    if (state is! AuctionDetailLoaded) {
+      print('🔴 BLOC: State is not AuctionDetailLoaded, returning');
+      return;
+    }
+
+    final currentAuction = (state as AuctionDetailLoaded).auction;
+    print('🔴 BLOC: Current auction status = ${currentAuction.status}');
+
+    emit(ReceiptConfirming(auction: currentAuction));
+    print('🔴 BLOC: Emitted ReceiptConfirming state');
+
+    print('🔴 BLOC: Calling repository.confirmReceipt...');
+    final result = await repository.confirmReceipt(event.auctionId);
+
+    await result.fold(
+      (failure) async {
+        print('🔴 BLOC: confirmReceipt failed: ${failure.message}');
+        emit(ReceiptError(auction: currentAuction, message: failure.message));
+        await Future.delayed(const Duration(milliseconds: 100));
+        emit(AuctionDetailLoaded(auction: currentAuction));
+      },
+      (_) async {
+        print('🔴 BLOC: confirmReceipt success, refreshing auction data...');
+        // Refresh auction data
+        final refreshResult = await repository.getAuctionDetail(
+          event.auctionId,
+        );
+        refreshResult.fold(
+          (failure) {
+            print('🔴 BLOC: Refresh failed: ${failure.message}');
+            emit(AuctionDetailError(message: failure.message));
+          },
+          (updatedAuction) {
+            print(
+              '🔴 BLOC: Refresh success, new status = ${updatedAuction.status}',
+            );
+            emit(
+              ReceiptConfirmed(
+                auction: updatedAuction,
+                message: 'Xác nhận nhận hàng thành công!',
+              ),
+            );
             Future.delayed(const Duration(seconds: 2), () {
               if (!emit.isDone) {
                 emit(AuctionDetailLoaded(auction: updatedAuction));

@@ -41,4 +41,16 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
       return Left(ServerFailure(message: 'Unexpected error: ${e.toString()}'));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> confirmReceipt(String auctionId) async {
+    try {
+      await remoteDataSource.confirmReceipt(auctionId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    } catch (e) {
+      return Left(ServerFailure(message: 'Unexpected error: ${e.toString()}'));
+    }
+  }
 }

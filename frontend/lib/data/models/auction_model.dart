@@ -19,6 +19,7 @@ class AuctionModel extends AuctionEntity {
     required super.sellerName,
     required super.bidCount,
     super.categoryId,
+    required super.status,
   });
 
   factory AuctionModel.fromJson(Map<String, dynamic> json) {
@@ -51,6 +52,7 @@ class AuctionModel extends AuctionEntity {
           : 'Unknown',
       bidCount: json['bid_count'] ?? 0,
       categoryId: json['category_id']?.toString(),
+      status: json['status'] ?? 'ACTIVE',
     );
   }
 
@@ -63,7 +65,7 @@ class AuctionModel extends AuctionEntity {
       'highest_bidder_id': highestBidder,
       'end_time': endTime.toIso8601String(),
       'metadata_url': metadataUrl,
-      'status': ended ? 'ENDED' : 'ACTIVE',
+      'status': status,
       'winner': winner,
       'created_at': createdAt.toIso8601String(),
       'title': title,

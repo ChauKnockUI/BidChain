@@ -10,4 +10,5 @@ abstract class AuctionDetailRepository {
     required String auctionId,
     required double amountVnd,
   });
+  Future<Either<Failure, void>> confirmReceipt(String auctionId);
 }

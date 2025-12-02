@@ -60,6 +60,23 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
               behavior: SnackBarBehavior.floating,
             ),
           );
+        } else if (state is ReceiptConfirmed) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          context.read<AuthBloc>().add(const AuthCheckStatusEvent());
+        } else if (state is ReceiptError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       },
       builder: (context, state) {
@@ -82,22 +99,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
             ],
           ),
           body: _buildBody(context, state),
-          floatingActionButton:
-              state is AuctionDetailLoaded &&
-                  state.auction.isActive &&
-                  !_isAuctionCreator(context, state.auction.sellerId)
-              ? FloatingActionButton.extended(
-                  onPressed: () => _showPlaceBidDialog(context, state.auction),
-                  backgroundColor: AppColors.accent,
-                  icon: const Icon(Icons.gavel, color: AppColors.white),
-                  label: Text(
-                    'Đặt giá',
-                    style: AppTextStyles.labelLarge.copyWith(
-                      color: AppColors.white,
-                    ),
-                  ),
-                )
-              : null,
+          floatingActionButton: _buildFloatingActionButton(context, state),
         );
       },
     );
@@ -109,6 +111,57 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
       return authState.user.id == sellerId;
     }
     return false;
+  }
+
+  bool _isWinner(BuildContext context, auction) {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthSuccessState) {
+      // Assuming auction has highestBidderId field
+      return authState.user.id == auction.highestBidderId;
+    }
+    return false;
+  }
+
+  void _showConfirmDialog(BuildContext context, auction) {
+    print('🟡 DIALOG: Showing confirm dialog');
+    // Capture the Bloc reference BEFORE showing the dialog
+    // This ensures we use the same Bloc instance that the page is using (which is Loaded)
+    final bloc = context.read<AuctionDetailBloc>();
+    print('🟡 DIALOG: Bloc state before dialog = ${bloc.state}');
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Xác nhận nhận hàng'),
+        content: const Text(
+          'Bạn có chắc chắn đã nhận được hàng và muốn giải phóng tiền cho người bán không?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              print('🟡 DIALOG: Cancel pressed');
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              print(
+                '🟡 DIALOG: Confirm pressed - dispatching ConfirmReceiptEvent',
+              );
+              Navigator.pop(dialogContext);
+              // Use the captured Bloc reference instead of context.read
+              bloc.add(ConfirmReceiptEvent(widget.auctionId));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildBody(BuildContext context, AuctionDetailState state) {
@@ -153,12 +206,21 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     if (state is AuctionDetailLoaded ||
         state is BidPlacing ||
         state is BidPlaced ||
-        state is BidError) {
+        state is BidError ||
+        state is ReceiptConfirming ||
+        state is ReceiptConfirmed ||
+        state is ReceiptError) {
       final auction = state is AuctionDetailLoaded
           ? state.auction
           : state is BidPlacing
           ? state.auction
           : state is BidPlaced
+          ? state.auction
+          : state is ReceiptConfirming
+          ? state.auction
+          : state is ReceiptConfirmed
+          ? state.auction
+          : state is ReceiptError
           ? state.auction
           : (state as BidError).auction;
 
@@ -432,6 +494,62 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
         },
       ),
     );
+  }
+
+  Widget? _buildFloatingActionButton(
+    BuildContext context,
+    AuctionDetailState state,
+  ) {
+    if (state is! AuctionDetailLoaded) return null;
+
+    final auction = state.auction;
+
+    // 1. Active auction + Not creator -> Place Bid
+    if (auction.isActive && !_isAuctionCreator(context, auction.sellerId)) {
+      return FloatingActionButton.extended(
+        onPressed: () => _showPlaceBidDialog(context, auction),
+        backgroundColor: AppColors.accent,
+        icon: const Icon(Icons.gavel, color: AppColors.white),
+        label: Text(
+          'Đặt giá',
+          style: AppTextStyles.labelLarge.copyWith(color: AppColors.white),
+        ),
+      );
+    }
+
+    // 2. Waiting Confirmation + Winner -> Confirm Receipt
+    if (auction.status == 'WAITING_CONFIRMATION' &&
+        _isWinner(context, auction)) {
+      print('🟡 BUTTON: Showing "Xác nhận đã nhận hàng" button');
+      return FloatingActionButton.extended(
+        onPressed: () {
+          print('🟡 BUTTON: "Xác nhận đã nhận hàng" pressed!');
+          _showConfirmDialog(context, auction);
+        },
+        backgroundColor: AppColors.success,
+        icon: const Icon(Icons.check_circle, color: AppColors.white),
+        label: Text(
+          'Xác nhận đã nhận hàng',
+          style: AppTextStyles.labelLarge.copyWith(color: AppColors.white),
+        ),
+      );
+    }
+
+    // 3. Settled/Confirmed + Winner -> Order Received (Disabled)
+    if ((auction.status == 'SETTLED' || auction.status == 'CONFIRMED') &&
+        _isWinner(context, auction)) {
+      return FloatingActionButton.extended(
+        onPressed: null, // Disabled
+        backgroundColor: AppColors.grey,
+        icon: const Icon(Icons.check_circle_outline, color: AppColors.white),
+        label: Text(
+          'Đơn hàng đã được nhận',
+          style: AppTextStyles.labelLarge.copyWith(color: AppColors.white),
+        ),
+      );
+    }
+
+    return null;
   }
 }
 

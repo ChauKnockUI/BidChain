@@ -62,3 +62,32 @@ class BidError extends AuctionDetailState {
   @override
   List<Object?> get props => [auction, message];
 }
+
+class ReceiptConfirming extends AuctionDetailState {
+  final AuctionDetailEntity auction;
+
+  const ReceiptConfirming({required this.auction});
+
+  @override
+  List<Object?> get props => [auction];
+}
+
+class ReceiptConfirmed extends AuctionDetailState {
+  final AuctionDetailEntity auction;
+  final String message;
+
+  const ReceiptConfirmed({required this.auction, required this.message});
+
+  @override
+  List<Object?> get props => [auction, message];
+}
+
+class ReceiptError extends AuctionDetailState {
+  final AuctionDetailEntity auction;
+  final String message;
+
+  const ReceiptError({required this.auction, required this.message});
+
+  @override
+  List<Object?> get props => [auction, message];
+}

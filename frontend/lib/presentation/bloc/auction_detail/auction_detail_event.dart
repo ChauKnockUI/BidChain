@@ -34,3 +34,12 @@ class PlaceBid extends AuctionDetailEvent {
   @override
   List<Object?> get props => [auctionId, amountVnd];
 }
+
+class ConfirmReceiptEvent extends AuctionDetailEvent {
+  final String auctionId;
+
+  const ConfirmReceiptEvent(this.auctionId);
+
+  @override
+  List<Object?> get props => [auctionId];
+}

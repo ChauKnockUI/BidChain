@@ -63,22 +63,22 @@ async function settleAuctionOnChain(auction) {
                 const receipt = await tx.wait();
                 console.log(`Settlement confirmed in block ${receipt.blockNumber}`);
 
-                // Update auction with settlement info
+                // Update auction with settlement info (Always update status)
                 await Auction.findByIdAndUpdate(auction._id, {
-                    status: AUCTION_STATUS.SETTLED,
+                    status: AUCTION_STATUS.WAITING_CONFIRMATION,
                     settled_on_chain: true,
-                    settlement_tx: tx.hash
+                    // settlement_tx: tx.hash // This is only available if blockchain_id exists
                 });
 
-                // Update bid with settlement tx
-                await Bid.findByIdAndUpdate(winningBid._id, {
-                    tx_settle_hash: tx.hash
-                });
-
-            } catch (contractError) {
-                console.error('Smart contract settlement failed:', contractError);
-                // Continue with off-chain settlement
+            } catch (error) {
+                console.error(`❌ Failed to settle auction ${auction._id}:`, error);
             }
+        } else {
+            // Nếu không có blockchain_id vẫn update status
+            await Auction.findByIdAndUpdate(auction._id, {
+                status: AUCTION_STATUS.WAITING_CONFIRMATION,
+                settled_on_chain: true
+            });
         }
 
         // === Finalize balances (off-chain) ===
@@ -88,8 +88,16 @@ async function settleAuctionOnChain(auction) {
         const bidAmountBigInt = BigInt(winningBid.amount_wei);
         const winnerBalanceBigInt = BigInt(winningBid.user_id.balance_eth || "0");
 
+        console.log(`DEBUG: User ${winningBid.user_id._id}`);
+        console.log(`DEBUG: Pre-settlement Locked: ${winnerLockedBigInt.toString()}`);
+        console.log(`DEBUG: Pre-settlement Balance: ${winnerBalanceBigInt.toString()}`);
+        console.log(`DEBUG: Bid Amount: ${bidAmountBigInt.toString()}`);
+
         const newWinnerLocked = (winnerLockedBigInt - bidAmountBigInt).toString();
         const newWinnerBalance = (winnerBalanceBigInt - bidAmountBigInt).toString();
+
+        console.log(`DEBUG: New Locked: ${newWinnerLocked}`);
+        console.log(`DEBUG: New Balance: ${newWinnerBalance}`);
 
         await User.findByIdAndUpdate(winningBid.user_id._id, {
             $set: {
@@ -100,19 +108,10 @@ async function settleAuctionOnChain(auction) {
 
         console.log(`Winner balance updated: -${formatVnd(winningBid.amount_vnd)}`);
 
-        // 2. Add funds to seller's balance
-        const sellerBalanceBigInt = BigInt(seller.balance_eth || "0");
-        const newSellerBalance = (sellerBalanceBigInt + bidAmountBigInt).toString();
-
-        await User.findByIdAndUpdate(seller._id, {
-            $set: { balance_eth: newSellerBalance }
-        });
-
-        console.log(`Seller balance updated: +${formatVnd(winningBid.amount_vnd)}`);
+        // 2. Add funds to seller's balance -> REMOVED for Escrow
+        console.log(`Funds held in escrow for seller: ${formatVnd(winningBid.amount_vnd)}`);
 
         // 3. Create notifications
-
-        // Notify winner
         await Notification.create({
             user_id: winningBid.user_id._id,
             type: 'WON_AUCTION',
@@ -121,12 +120,11 @@ async function settleAuctionOnChain(auction) {
             related_id: auction._id
         });
 
-        // Notify seller
         await Notification.create({
             user_id: seller._id,
             type: 'AUCTION_SOLD',
             title: 'Phiên đấu giá đã kết thúc',
-            message: `Phiên đấu giá "${auction.title}" đã được bán với giá ${formatVnd(winningBid.amount_vnd)}`,
+            message: `Phiên đấu giá "${auction.title}" đã kết thúc. Vui lòng giao hàng để nhận tiền.`,
             related_id: auction._id
         });
 
@@ -151,36 +149,31 @@ async function settleAuctionOnChain(auction) {
         console.log(`✅ Auction ${auction._id} settled successfully\n`);
 
     } catch (error) {
-        console.error(`❌ Failed to settle auction ${auction._id}:`, error);
+        console.error(`❌ Error settling auction ${auction._id}:`, error);
     }
 }
 
-/**
- * Main settlement cron job - runs every minute
- */
 async function runSettlementCron() {
     try {
         const now = new Date();
-
         // Find auctions that ended but not yet settled
         const endedAuctions = await Auction.find({
-            status: AUCTION_STATUS.ACTIVE,
+            status: { $in: [AUCTION_STATUS.ACTIVE, AUCTION_STATUS.ENDED] },
             end_time: { $lt: now },
             settled_on_chain: false
         }).populate('seller_id highest_bidder_id');
 
         if (endedAuctions.length > 0) {
             console.log(`\n📦 Found ${endedAuctions.length} auction(s) to settle`);
-
             for (const auction of endedAuctions) {
                 await settleAuctionOnChain(auction);
             }
         }
-
     } catch (error) {
         console.error('Settlement cron error:', error);
     }
 }
+
 
 // Export for use in app.js
 module.exports = { runSettlementCron, settleAuctionOnChain };

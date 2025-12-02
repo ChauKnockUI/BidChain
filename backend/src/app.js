@@ -16,7 +16,7 @@ const Notification = require("./models/Notification");
 const { weiToVnd, formatVnd } = require("./utils/conversion");
 const adminAuctionRouter = require('./routes/admin/adminAuction');
 const adminDashboardRouter = require('./routes/admin/adminDashboard');
-
+const confirmRoutes = require("./routes/confirm");
 
 const app = express();
 app.use(cors());
@@ -28,6 +28,8 @@ app.use("/api/auction", auctionRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/users", userRoutes); // Alias for plural usage
 app.use("/api/payment", paymentRoutes);
+
+app.use("/api/confirm", confirmRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.use('/api/admin/auctions', adminAuctionRouter);
@@ -49,7 +51,7 @@ global.io = io;
 
 // Import and start settlement cron
 const { runSettlementCron } = require('./cron/settlement');
-setInterval(runSettlementCron, 60000); // Run every minute
+setInterval(runSettlementCron, 20000); // Run every minute
 console.log('Settlement cron job started (runs every 60s)');
 
 // socket
@@ -135,7 +137,8 @@ const manageAuctions = async () => {
       }
     }
 
-    // 2. Settle expired auctions
+    /* 
+    // 2. Settle expired auctions -> MOVED TO src/cron/settlement.js to avoid conflicts
     const expiredAuctions = await Auction.find({
       status: AUCTION_STATUS.ACTIVE,
       end_time: { $lt: now }
@@ -183,6 +186,7 @@ const manageAuctions = async () => {
 
       console.log(`Auction ${auction._id} settled. Winner: ${auction.highest_bidder_id || 'None'}`);
     }
+    */
   } catch (error) {
     console.error('Error managing auctions:', error);
   }

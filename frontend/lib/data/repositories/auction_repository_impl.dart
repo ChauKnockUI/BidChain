@@ -127,4 +127,18 @@ class AuctionRepositoryImpl implements AuctionRepository {
       return Left(NetworkFailure(message: "No internet connection"));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> confirmReceipt(String auctionId) async {
+    if (await networkInfo.isConnected) {
+      try {
+        await remoteDataSource.confirmReceipt(auctionId);
+        return const Right(null);
+      } on ServerException catch (e) {
+        return Left(ServerFailure(message: e.message));
+      }
+    } else {
+      return Left(NetworkFailure(message: "No internet connection"));
+    }
+  }
 }

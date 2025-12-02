@@ -24,6 +24,7 @@ contract Auction {
         bool settled;
         address winner;
         uint256 finalPriceWei;
+        bool confirmed;             // Buyer confirmed receipt
         string contractAddress;     // For future cross-contract calls
     }
 
@@ -56,6 +57,13 @@ contract Auction {
         address indexed winner,
         address indexed seller,
         uint256 finalPriceWei
+    );
+
+    event AuctionConfirmed(
+        uint256 indexed auctionId,
+        address indexed winner,
+        address indexed seller,
+        uint256 amountWei
     );
 
     event AuctionCancelled(
@@ -123,6 +131,7 @@ contract Auction {
             settled: false,
             winner: address(0),
             finalPriceWei: 0,
+            confirmed: false,
             contractAddress: ""
         });
 
@@ -163,15 +172,33 @@ contract Auction {
         auction.winner = _winner;
         auction.finalPriceWei = _finalPriceWei;
 
-        // Transfer ETH from winner to seller
-        if (_winner != address(0) && _finalPriceWei > 0) {
-            require(address(this).balance >= _finalPriceWei, "Insufficient contract balance");
+        // Transfer ETH from winner to seller -> REMOVED for Escrow
+        // Funds remain in contract until confirmReceived is called
+        
+        emit AuctionSettled(_auctionId, _winner, auction.seller, _finalPriceWei);
+    }
 
-            (bool success, ) = auction.seller.call{value: _finalPriceWei}("");
-            require(success, "Settlement transfer failed");
+    /**
+     * @notice Buyer confirms receipt of goods, releasing funds to seller
+     * @param _auctionId Auction ID
+     */
+    function confirmReceived(uint256 _auctionId) external auctionExists(_auctionId) {
+        AuctionMetadata storage auction = auctions[_auctionId];
+
+        require(auction.settled, "Auction not settled");
+        require(!auction.confirmed, "Already confirmed");
+        require(msg.sender == auction.winner, "Only winner can confirm");
+
+        auction.confirmed = true;
+
+        uint256 amount = auction.finalPriceWei;
+        if (amount > 0) {
+            require(address(this).balance >= amount, "Insufficient contract balance");
+            (bool success, ) = auction.seller.call{value: amount}("");
+            require(success, "Transfer to seller failed");
         }
 
-        emit AuctionSettled(_auctionId, _winner, auction.seller, _finalPriceWei);
+        emit AuctionConfirmed(_auctionId, msg.sender, auction.seller, amount);
     }
 
     /**

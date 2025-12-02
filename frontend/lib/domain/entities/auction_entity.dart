@@ -18,6 +18,7 @@ class AuctionEntity extends Equatable {
   final String sellerName;
   final int bidCount;
   final String? categoryId;
+  final String status;
 
   const AuctionEntity({
     required this.auctionId,
@@ -37,6 +38,7 @@ class AuctionEntity extends Equatable {
     required this.sellerName,
     required this.bidCount,
     this.categoryId,
+    required this.status,
   });
 
   @override
@@ -58,5 +60,8 @@ class AuctionEntity extends Equatable {
     sellerName,
     bidCount,
     categoryId,
+    status,
   ];
+
+  bool get isActive => status == 'ACTIVE' || status == 'APPROVED';
 }

@@ -18,6 +18,7 @@ abstract class AuctionRemoteDataSource {
     required double amountVnd,
   });
   Future<String> endAuction(String auctionId);
+  Future<void> confirmReceipt(String auctionId);
 }
 
 class AuctionRemoteDataSourceImpl implements AuctionRemoteDataSource {
@@ -169,6 +170,23 @@ class AuctionRemoteDataSourceImpl implements AuctionRemoteDataSource {
       } else {
         throw ServerException(
           message: response.data['error'] ?? 'Failed to end auction',
+        );
+      }
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<void> confirmReceipt(String auctionId) async {
+    try {
+      final response = await dioClient.post(
+        '${ApiConstants.confirmReceipt}/$auctionId',
+      );
+
+      if (response.statusCode != 200) {
+        throw ServerException(
+          message: response.data['error'] ?? 'Failed to confirm receipt',
         );
       }
     } catch (e) {

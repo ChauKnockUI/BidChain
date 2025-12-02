@@ -22,4 +22,5 @@ abstract class AuctionRepository {
   });
 
   Future<Either<Failure, String>> endAuction(String auctionId);
+  Future<Either<Failure, void>> confirmReceipt(String auctionId);
 }
