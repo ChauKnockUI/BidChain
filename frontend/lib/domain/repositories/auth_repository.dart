@@ -21,4 +21,21 @@ abstract class AuthRepository {
   Future<Either<Failure, String?>> getToken();
 
   Future<Either<Failure, void>> saveToken(String token);
+
+  Future<Either<Failure, UserEntity>> updateProfile({
+    String? fullName,
+    String? username,
+    String? email,
+    String? country,
+    String? city,
+    String? district,
+    String? ward,
+    String? address,
+    String? bio,
+  });
+
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }

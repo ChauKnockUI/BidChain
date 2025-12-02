@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 
 class StatusBadge extends StatelessWidget {
@@ -43,28 +42,36 @@ class StatusBadge extends StatelessWidget {
       case 'PENDING_APPROVAL':
         return _StatusConfig(
           label: 'Chờ duyệt',
-          backgroundColor: const Color(0xFFFFA726).withOpacity(0.95), // Warm Orange
+          backgroundColor: const Color(
+            0xFFFFA726,
+          ).withOpacity(0.95), // Warm Orange
           borderColor: const Color(0xFFFF9800),
           textColor: Colors.white,
         );
       case 'APPROVED':
         return _StatusConfig(
           label: 'Đã duyệt',
-          backgroundColor: const Color(0xFF42A5F5).withOpacity(0.95), // Bright Blue
+          backgroundColor: const Color(
+            0xFF42A5F5,
+          ).withOpacity(0.95), // Bright Blue
           borderColor: const Color(0xFF2196F3),
           textColor: Colors.white,
         );
       case 'ACTIVE':
         return _StatusConfig(
           label: 'Đang diễn ra',
-          backgroundColor: const Color(0xFF66BB6A).withOpacity(0.95), // Bright Green
+          backgroundColor: const Color(
+            0xFF66BB6A,
+          ).withOpacity(0.95), // Bright Green
           borderColor: const Color(0xFF4CAF50),
           textColor: Colors.white,
         );
       case 'ENDED':
         return _StatusConfig(
           label: 'Đã kết thúc',
-          backgroundColor: const Color(0xFF78909C).withOpacity(0.95), // Blue Grey
+          backgroundColor: const Color(
+            0xFF78909C,
+          ).withOpacity(0.95), // Blue Grey
           borderColor: const Color(0xFF607D8B),
           textColor: Colors.white,
         );
@@ -78,28 +85,36 @@ class StatusBadge extends StatelessWidget {
       case 'REJECTED':
         return _StatusConfig(
           label: 'Bị từ chối',
-          backgroundColor: const Color(0xFFEF5350).withOpacity(0.95), // Bright Red
+          backgroundColor: const Color(
+            0xFFEF5350,
+          ).withOpacity(0.95), // Bright Red
           borderColor: const Color(0xFFF44336),
           textColor: Colors.white,
         );
       case 'WINNING':
         return _StatusConfig(
           label: 'Đang thắng',
-          backgroundColor: const Color(0xFF66BB6A).withOpacity(0.95), // Bright Green
+          backgroundColor: const Color(
+            0xFF66BB6A,
+          ).withOpacity(0.95), // Bright Green
           borderColor: const Color(0xFF4CAF50),
           textColor: Colors.white,
         );
       case 'OUTBID':
         return _StatusConfig(
           label: 'Bị vượt giá',
-          backgroundColor: const Color(0xFFFF7043).withOpacity(0.95), // Deep Orange
+          backgroundColor: const Color(
+            0xFFFF7043,
+          ).withOpacity(0.95), // Deep Orange
           borderColor: const Color(0xFFFF5722),
           textColor: Colors.white,
         );
       case 'VALID':
         return _StatusConfig(
           label: 'Hợp lệ',
-          backgroundColor: const Color(0xFF42A5F5).withOpacity(0.95), // Bright Blue
+          backgroundColor: const Color(
+            0xFF42A5F5,
+          ).withOpacity(0.95), // Bright Blue
           borderColor: const Color(0xFF2196F3),
           textColor: Colors.white,
         );

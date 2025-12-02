@@ -43,7 +43,11 @@ class _MyActivityPageState extends State<MyActivityPage>
       backgroundColor: AppColors.white,
       appBar: CustomAppBar(
         title: 'My Activity',
-        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          color: AppColors.accent,
+          onPressed: () => context.go(AppRoutes.home),
+        ),
       ),
       body: Column(
         children: [

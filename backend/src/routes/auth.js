@@ -79,13 +79,20 @@ router.post("/register", validateRegister, async (req, res) => {
       message: "Đăng ký thành công",
       token,
       user: {
-        username: user.username || username, // nếu bạn thêm field username sau
+        username: user.username || username,
         email: user.email,
         full_name: user.full_name,
         role: user.role,
         wallet_address: user.wallet_address,
         balance_eth: weiToEth(user.balance_eth || "0"),
-        locked_eth: weiToEth(user.locked_eth || "0")
+        locked_eth: weiToEth(user.locked_eth || "0"),
+        avatar: user.avatar,
+        country: user.country,
+        city: user.city,
+        district: user.district,
+        ward: user.ward,
+        address: user.address,
+        bio: user.bio
       }
     });
 
@@ -138,19 +145,71 @@ router.post("/login", async (req, res) => {
       wallet_address: user.wallet_address,
       balance_eth: weiToEth(user.balance_eth || "0"),
       locked_eth: weiToEth(user.locked_eth || "0"),
-      last_nonce: user.last_nonce || 0,
-      role: user.role,
-      created_at: user.created_at
+      avatar: user.avatar,
+      country: user.country,
+      city: user.city,
+      district: user.district,
+      ward: user.ward,
+      address: user.address,
+      bio: user.bio
     });
-  } catch (e) {
-    console.error("Login error:", e.message);
-    res.status(500).json({ error: "Internal server error" });
+
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Lỗi server" });
   }
 });
 
 /**
- * ADMIN: FUND USER WALLET (For Demo Purposes)
- * Transfer ETH from admin wallet to user wallet
+ * CHANGE PASSWORD
+ */
+router.put("/change-password", authMiddleware, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới" });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: "Mật khẩu mới phải có ít nhất 8 ký tự" });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Mật khẩu hiện tại không chính xác" });
+    }
+
+    // Check if new password is same as current
+    const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+    if (isSamePassword) {
+      return res.status(400).json({ error: "Mật khẩu mới phải khác mật khẩu hiện tại" });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update password
+    user.password_hash = newPasswordHash;
+    await user.save();
+
+    res.json({ message: "Password changed successfully" });
+
+  } catch (err) {
+    console.error("Change password error:", err);
+    res.status(500).json({ error: "Lỗi server" });
+  }
+});
+
+/**
+ * ADMIN FUND WALLET
  */
 router.post("/admin/fund-wallet", authMiddleware, async (req, res) => {
   try {

@@ -5,10 +5,12 @@ import '../../data/datasources/remote/my_activity_remote_datasource.dart';
 import '../../data/datasources/remote/auction_detail_remote_datasource.dart';
 import '../../data/datasources/remote/auction_remote_datasource.dart';
 import '../../data/datasources/remote/category_remote_datasource.dart';
+import '../../data/datasources/remote/user_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/my_activity_repository_impl.dart';
 import '../../data/repositories/auction_detail_repository_impl.dart';
 import '../../data/repositories/auction_repository_impl.dart';
+import '../../data/repositories/user_repository.dart';
 import '../../domain/repositories/auction_repository.dart';
 import '../../domain/usecases/create_auction_usecase.dart';
 import '../../data/repositories/category_repository_impl.dart';
@@ -17,6 +19,9 @@ import '../../domain/repositories/my_activity_repository.dart';
 import '../../domain/repositories/auction_detail_repository.dart';
 import '../../domain/usecases/auth/login_usecase.dart';
 import '../../domain/usecases/auth/register_usecase.dart';
+import '../../domain/usecases/auth/update_profile_usecase.dart';
+import '../../domain/usecases/auth/change_password_usecase.dart';
+import '../../domain/usecases/auth/logout_usecase.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/my_activity/my_activity_bloc.dart';
 import '../../presentation/bloc/auction_detail/auction_detail_bloc.dart';
@@ -30,10 +35,8 @@ import '../../presentation/bloc/payment/payment_bloc.dart';
 import '../network/dio_client.dart';
 import '../network/network_info.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
-import '../../domain/repositories/notification_repository.dart';
-import '../../data/repositories/notification_repository_impl.dart';
-import '../../presentation/bloc/notification/notification_bloc.dart';
-import '../../core/services/socket_service.dart';
+import '../../core/services/gemini_service.dart';
+import '../../presentation/bloc/chat/chat_bloc.dart';
 
 class InjectionContainer {
   static late SharedPreferences _sharedPreferences;
@@ -43,6 +46,13 @@ class InjectionContainer {
   static late AuthRepository _authRepository;
   static late LoginUseCase _loginUseCase;
   static late RegisterUseCase _registerUseCase;
+  static late UpdateProfileUseCase _updateProfileUseCase;
+  static late ChangePasswordUseCase _changePasswordUseCase;
+  static late LogoutUseCase _logoutUseCase;
+
+  // User dependencies
+  static late UserRemoteDataSource _userRemoteDataSource;
+  static late UserRepository _userRepository;
 
   // MyActivity dependencies
   static late MyActivityRemoteDataSource _myActivityRemoteDataSource;
@@ -67,13 +77,15 @@ class InjectionContainer {
   // Payment dependencies
   static late PaymentRepository _paymentRepository;
 
-  // Notification dependencies
-  static late NotificationRepository _notificationRepository;
+  // Chat dependencies
+  static late GeminiService _geminiService;
+  static late ChatBloc _chatBloc;
 
-  /// Initialize all dependencies - call this in main() before running the app
   static Future<void> init() async {
     _sharedPreferences = await SharedPreferences.getInstance();
     _dioClient = DioClient();
+
+    // Auth
     _authRemoteDataSource = AuthRemoteDataSourceImpl(_dioClient);
     _authLocalDataSource = AuthLocalDataSourceImpl(_sharedPreferences);
     _authRepository = AuthRepositoryImpl(
@@ -82,14 +94,21 @@ class InjectionContainer {
     );
     _loginUseCase = LoginUseCase(_authRepository);
     _registerUseCase = RegisterUseCase(_authRepository);
+    _updateProfileUseCase = UpdateProfileUseCase(_authRepository);
+    _changePasswordUseCase = ChangePasswordUseCase(_authRepository);
+    _logoutUseCase = LogoutUseCase(_authRepository);
 
-    // Initialize MyActivity dependencies
+    // User
+    _userRemoteDataSource = UserRemoteDataSourceImpl(_dioClient);
+    _userRepository = UserRepository(_userRemoteDataSource);
+
+    // MyActivity
     _myActivityRemoteDataSource = MyActivityRemoteDataSourceImpl(_dioClient);
     _myActivityRepository = MyActivityRepositoryImpl(
       _myActivityRemoteDataSource,
     );
 
-    // Initialize AuctionDetail dependencies
+    // AuctionDetail
     _auctionDetailRemoteDataSource = AuctionDetailRemoteDataSourceImpl(
       _dioClient,
     );
@@ -105,13 +124,10 @@ class InjectionContainer {
     );
     _createAuctionUseCase = CreateAuctionUseCase(_auctionRepository);
 
-    // Initialize Payment dependencies
+    // Payment
     _paymentRepository = PaymentRepository(_dioClient);
 
-    // Initialize Notification dependencies
-    _notificationRepository = NotificationRepositoryImpl();
-
-    // Initialize Category dependencies
+    // Category
     _categoryRemoteDataSource = CategoryRemoteDataSourceImpl(
       dioClient: _dioClient,
     );
@@ -119,23 +135,18 @@ class InjectionContainer {
       remoteDataSource: _categoryRemoteDataSource,
     );
     _getCategoriesUseCase = GetCategoriesUseCase(_categoryRepository);
+
+    // Chat
+    _geminiService = GeminiService();
+    _chatBloc = ChatBloc(geminiService: _geminiService);
   }
 
-  // Getters
-  static AuthBloc getAuthBloc() =>
-      AuthBloc(loginUseCase: _loginUseCase, registerUseCase: _registerUseCase);
-
-  static AuthRepository getAuthRepository() => _authRepository;
-  static LoginUseCase getLoginUseCase() => _loginUseCase;
-  static RegisterUseCase getRegisterUseCase() => _registerUseCase;
-  // MyActivity getters
   static MyActivityBloc getMyActivityBloc() =>
       MyActivityBloc(repository: _myActivityRepository);
 
   static MyActivityRepository getMyActivityRepository() =>
       _myActivityRepository;
 
-  // AuctionDetail getters
   static AuctionDetailBloc getAuctionDetailBloc() =>
       AuctionDetailBloc(repository: _auctionDetailRepository);
 
@@ -144,6 +155,7 @@ class InjectionContainer {
 
   static AuctionListBloc getAuctionListBloc() =>
       AuctionListBloc(repository: _auctionRepository);
+
   static CreateAuctionBloc getCreateAuctionBloc() =>
       CreateAuctionBloc(createAuctionUseCase: _createAuctionUseCase);
 
@@ -155,8 +167,16 @@ class InjectionContainer {
   static CategoryBloc getCategoryBloc() =>
       CategoryBloc(getCategoriesUseCase: _getCategoriesUseCase);
 
-  static NotificationBloc getNotificationBloc() => NotificationBloc(
-    repository: _notificationRepository,
-    socketService: SocketService(),
+  static AuthBloc getAuthBloc() => AuthBloc(
+    loginUseCase: _loginUseCase,
+    registerUseCase: _registerUseCase,
+    updateProfileUseCase: _updateProfileUseCase,
+    changePasswordUseCase: _changePasswordUseCase,
+    logoutUseCase: _logoutUseCase,
+    userRepository: _userRepository,
   );
+
+  static ChatBloc getChatBloc() => _chatBloc;
+
+  static GeminiService getGeminiService() => _geminiService;
 }

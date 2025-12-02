@@ -32,8 +32,24 @@ class AuctionRemoteDataSourceImpl implements AuctionRemoteDataSource {
       final response = await dioClient.get(ApiConstants.getAuctions);
 
       if (response.statusCode == 200) {
-        final list = response.data as List;
-        return list.map((e) => AuctionModel.fromJson(e)).toList();
+        if (response.data is List) {
+          final list = response.data as List;
+          final auctions = <AuctionModel>[];
+          for (var i = 0; i < list.length; i++) {
+            try {
+              final auction = AuctionModel.fromJson(list[i]);
+              auctions.add(auction);
+            } catch (e) {
+              // Skip invalid auctions
+            }
+          }
+          return auctions;
+        } else if (response.data is Map && response.data['data'] is List) {
+           final list = response.data['data'] as List;
+           return list.map((e) => AuctionModel.fromJson(e)).toList();
+        } else {
+           throw ServerException(message: 'Invalid response format: Expected List but got ${response.data.runtimeType}');
+        }
       } else {
         throw ServerException(
           message: 'Failed to fetch auctions',
@@ -103,7 +119,6 @@ class AuctionRemoteDataSourceImpl implements AuctionRemoteDataSource {
       if (response.statusCode == 200) {
         final List<dynamic> urls = response.data['images'];
         print('✅ Upload successful: ${urls.length} URLs');
-
         return urls.map((e) => e.toString()).toList();
       } else {
         throw ServerException(
@@ -119,8 +134,6 @@ class AuctionRemoteDataSourceImpl implements AuctionRemoteDataSource {
   Future<List<CategoryModel>> getCategories() async {
     try {
       final response = await dioClient.get(ApiConstants.getCategories);
-      print('📦 Raw response: ${response.data}'); // Thêm dòng này
-      print('📦 Response type: ${response.data.runtimeType}'); // Thêm dòng này
       if (response.statusCode == 200) {
         final list = response.data['data'] as List;
         return list.map((e) => CategoryModel.fromJson(e)).toList();

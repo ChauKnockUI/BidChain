@@ -7,6 +7,7 @@ class AppRoutes {
   static const String createAuction = '/create-auction';
   static const String wallet = '/wallet';
   static const String profile = '/profile';
+  static const String editProfile = '/edit-profile';
   static const String componentShowcase = '/component-showcase';
   static const String myActivity = '/my-activity';
   static const String notifications = '/notifications';

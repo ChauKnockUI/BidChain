@@ -41,11 +41,11 @@ class _WalletPageState extends State<WalletPage>
     super.dispose();
   }
 
-  static const double ethToVnd = 50000000; // 1 ETH = 50,000,000 VND
+  static const double ethToVndRate = 50000000; // 1 ETH = 50,000,000 VND
 
   // Convert ETH → VND
-  static double convertEthToVnd(double eth) {
-    return eth * ethToVnd;
+  static double ethToVnd(double eth) {
+    return eth * ethToVndRate;
   }
 
   // Format VND: 1000000 → "1.000.000 VND"
@@ -93,6 +93,7 @@ class _WalletPageState extends State<WalletPage>
                 backgroundColor: AppColors.white,
                 elevation: 0,
                 centerTitle: true,
+                automaticallyImplyLeading: false,
                 iconTheme: const IconThemeData(color: AppColors.black),
               ),
               body: RefreshIndicator(
@@ -102,7 +103,7 @@ class _WalletPageState extends State<WalletPage>
                 },
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -165,12 +166,9 @@ class _WalletPageState extends State<WalletPage>
             ),
           ),
           const SizedBox(height: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              formatVnd(convertEthToVnd(total)),
-              style: AppTextStyles.h1.copyWith(color: AppColors.black),
-            ),
+          Text(
+            formatVnd(ethToVnd(total)),
+            style: AppTextStyles.h1.copyWith(color: AppColors.black),
           ),
           const SizedBox(height: 24),
           Row(
@@ -186,15 +184,9 @@ class _WalletPageState extends State<WalletPage>
                       ),
                     ),
                     const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        formatVnd(convertEthToVnd(available)),
-                        style: AppTextStyles.h4.copyWith(
-                          color: AppColors.black,
-                        ),
-                      ),
+                    Text(
+                      formatVnd(ethToVnd(available)),
+                      style: AppTextStyles.h4.copyWith(color: AppColors.black),
                     ),
                   ],
                 ),
@@ -216,15 +208,9 @@ class _WalletPageState extends State<WalletPage>
                       ),
                     ),
                     const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        formatVnd(convertEthToVnd(locked)),
-                        style: AppTextStyles.h4.copyWith(
-                          color: AppColors.black,
-                        ),
-                      ),
+                    Text(
+                      formatVnd(ethToVnd(locked)),
+                      style: AppTextStyles.h4.copyWith(color: AppColors.black),
                     ),
                   ],
                 ),
@@ -354,14 +340,15 @@ class _WalletPageState extends State<WalletPage>
 
     DateTime? date;
     try {
-      if (dateStr is String && dateStr.isNotEmpty)
+      if (dateStr is String && dateStr.isNotEmpty) {
         date = DateTime.parse(dateStr);
+      }
     } catch (_) {}
 
     Color statusColor = AppColors.grey;
-    if (status == 'SUCCESS' || status == 'COMPLETED' || status == 'PAID_DONE')
+    if (status == 'SUCCESS' || status == 'COMPLETED' || status == 'PAID_DONE') {
       statusColor = AppColors.success;
-    else if (status == 'PENDING' ||
+    } else if (status == 'PENDING' ||
         status == 'PENDING_PAYMENT' ||
         status == 'PAID')
       statusColor = AppColors.warning;

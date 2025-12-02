@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/presentation/pages/my_activity/my_activity_page.dart';
 import '../../config/theme/app_colors.dart';
 import '../pages/home/home_page.dart';
@@ -6,6 +7,9 @@ import '../pages/home/home_page.dart';
 import '../pages/wallet/wallet_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/create_auction/create_auction_screen.dart';
+import '../widgets/chat/floating_chat_bubble.dart';
+import '../pages/chat/chat_screen.dart';
+import '../bloc/chat/chat_bloc.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -42,7 +46,36 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: Stack(
+        children: [
+          // Use Positioned.fill to allow scroll properly
+          Positioned.fill(
+            child: IndexedStack(index: _currentIndex, children: _pages),
+          ),
+          // Floating Chat Bubble - positioned by Stack
+          Positioned(
+            bottom: 100,
+            right: 16,
+            child: FloatingChatBubble(
+              onTap: () {
+                // Show chat screen as dialog overlay
+                showDialog(
+                  context: context,
+                  barrierDismissible: true,
+                  barrierColor: Colors.black.withOpacity(0.3),
+                  builder: (context) => Dialog(
+                    insetPadding: const EdgeInsets.all(16),
+                    child: BlocProvider.value(
+                      value: context.read<ChatBloc>(),
+                      child: const ChatScreen(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: _buildBottomNavigationBar(),
       floatingActionButton: _buildFloatingActionButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,

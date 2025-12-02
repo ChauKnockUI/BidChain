@@ -7,10 +7,18 @@ class UserEntity extends Equatable {
   final String fullName;
   final String role;
   final String walletAddress;
+  final String? avatar;
+  final String? momoPhone;
   final double balanceEth;
   final double lockedEth;
   final int lastNonce;
   final DateTime createdAt;
+  final String? country;
+  final String? city;
+  final String? district;
+  final String? ward;
+  final String? address;
+  final String? bio;
 
   const UserEntity({
     required this.id,
@@ -19,10 +27,18 @@ class UserEntity extends Equatable {
     required this.fullName,
     required this.role,
     required this.walletAddress,
+    this.avatar,
+    this.momoPhone,
     this.balanceEth = 0.0,
     this.lockedEth = 0.0,
     this.lastNonce = 0,
     required this.createdAt,
+    this.country,
+    this.city,
+    this.district,
+    this.ward,
+    this.address,
+    this.bio,
   });
 
   @override
@@ -33,9 +49,17 @@ class UserEntity extends Equatable {
     fullName,
     role,
     walletAddress,
+    avatar,
+    momoPhone,
     balanceEth,
     lockedEth,
     lastNonce,
     createdAt,
+    country,
+    city,
+    district,
+    ward,
+    address,
+    bio,
   ];
 }

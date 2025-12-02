@@ -12,6 +12,7 @@ import '../../presentation/pages/auction/create_auction_page.dart';
 import '../../presentation/pages/auction/auction_detail_page.dart';
 import '../../presentation/pages/wallet/wallet_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
+import '../../presentation/pages/profile/edit_profile_page.dart';
 import '../../presentation/pages/notification/notification_page.dart';
 import 'app_routes.dart';
 
@@ -27,7 +28,7 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.register,
       builder: (context, state) => const RegisterPage(),
     ),
-    
+
     // ShellRoute: Provides Bloc to all nested routes
     ShellRoute(
       builder: (context, state, child) {
@@ -67,6 +68,10 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: AppRoutes.profile,
           builder: (context, state) => const ProfilePage(),
+        ),
+        GoRoute(
+          path: AppRoutes.editProfile,
+          builder: (context, state) => const EditProfilePage(),
         ),
         GoRoute(
           path: AppRoutes.notifications,

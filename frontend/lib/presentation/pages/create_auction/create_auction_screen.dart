@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:frontend/config/routes/app_routes.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -41,8 +40,8 @@ class _CreateAuctionViewState extends State<_CreateAuctionView> {
   final _stepPriceController = TextEditingController();
   DateTime? _endTime;
   String? _selectedCategoryId;
-  List<File> _selectedImages = [];
-  List<String> _imageUrls = [];
+  final List<File> _selectedImages = [];
+  final List<String> _imageUrls = [];
   List<CategoryModel> _categories = [];
   bool _isUploading = false;
   final ImagePicker _picker = ImagePicker();
