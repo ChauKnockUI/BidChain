@@ -396,6 +396,7 @@ class _HomePageState extends State<HomePage>
           builder: (context, state) {
             return IconButton(
               icon: Badge(
+                 backgroundColor: Colors.red,
                 isLabelVisible: state.unreadCount > 0,
                 label: Text('${state.unreadCount}'),
                 child: const Icon(
