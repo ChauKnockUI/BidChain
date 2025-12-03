@@ -5,6 +5,7 @@ const { body, param, validationResult } = require("express-validator");
 const Auction = require("../models/Auction");
 const Bid = require("../models/Bid");
 const Transaction = require("../models/Transaction");
+const { emitBidEvents } = require("../middleware/socketEmitter");
 const { authMiddleware } = require("../middleware/auth");
 const { weiToVnd, formatVnd, weiToEth, formatEth, vndToWei } = require("../utils/conversion");
 const { AUCTION_STATUS, EXCHANGE_RATE, TRANSACTION_TYPES } = require("../config/constants");
@@ -53,7 +54,7 @@ router.get("/wallet/balance", authMiddleware, async (req, res) => {
 });
 
 // ========== API ĐẶT GIÁ (BID) ==========
-router.post("/bid", authMiddleware, validateBidRequest, processBid, handleBidLocking, async (req, res) => {
+router.post("/bid", authMiddleware, validateBidRequest, processBid, handleBidLocking, emitBidEvents, async (req, res) => {
   res.json({
     success: true,
     message: "Bid placed successfully",

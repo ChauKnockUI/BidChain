@@ -62,13 +62,14 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<ReceiveNotificationEvent>(_onReceiveNotification);
 
     // Listen to socket notifications
-    _socketService.onNotificationReceived = (data) {
+    // Listen to socket notifications
+    _socketService.notificationStream.listen((data) {
       // Map socket data to NotificationModel
       // Note: Socket data might not have all fields like 'created_at' or '_id' if it's a fresh emission
       // But usually we want to fetch fresh list or construct a temp model
       // For simplicity, let's re-fetch the list to ensure consistency
       add(FetchNotificationsEvent());
-    };
+    });
   }
 
   Future<void> _onFetchNotifications(

@@ -1,4 +1,5 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'dart:async';
 import '../network/dio_client.dart';
 import '../../config/constants/api_constants.dart';
 import '../../data/models/user_model.dart';
@@ -11,7 +12,8 @@ class SocketService {
   IO.Socket? _socket;
   String? _userId;
   Function(UserModel)? onBalanceUpdated;
-  Function(dynamic)? onNotificationReceived;
+  final _notificationController = StreamController<dynamic>.broadcast();
+  Stream<dynamic> get notificationStream => _notificationController.stream;
 
   bool get isConnected => _socket?.connected ?? false;
 
@@ -48,7 +50,7 @@ class SocketService {
 
     _socket!.on('notification', (data) {
       print('🔔 Notification received: $data');
-      onNotificationReceived?.call(data);
+      _notificationController.add(data);
     });
 
     _socket!.onDisconnect((_) {

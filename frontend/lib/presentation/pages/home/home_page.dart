@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/services/notification_popup_service.dart';
+import 'package:frontend/core/services/socket_service.dart';
 import 'package:go_router/go_router.dart';
 import '../../../config/routes/app_routes.dart';
 import '../../../config/theme/app_colors.dart';
@@ -10,6 +12,8 @@ import '../../bloc/auction/auction_state.dart';
 import '../../bloc/category/category_bloc.dart';
 import '../../bloc/category/category_event.dart';
 import '../../bloc/category/category_state.dart';
+import '../../bloc/notification/notification_bloc.dart';
+import 'dart:async';
 
 import '../../widgets/auction/auction_card.dart';
 
@@ -32,6 +36,7 @@ class _HomePageState extends State<HomePage>
   // Smart refresh mechanism
   DateTime? _lastRefreshTime;
   static const _refreshThreshold = Duration(minutes: 5);
+  StreamSubscription? _notificationSubscription;
 
   @override
   bool get wantKeepAlive => true;
@@ -47,12 +52,28 @@ class _HomePageState extends State<HomePage>
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+
+    final socketService = SocketService();
+    _notificationSubscription = socketService.notificationStream.listen((data) {
+      if (mounted) {
+        NotificationPopupService.show(
+          context: context,
+          title: data['title'] ?? 'Thông báo mới',
+          message: data['message'] ?? '',
+          onTap: () {
+            // Navigate to notifications page
+            Navigator.pushNamed(context, '/notifications');
+          },
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
+    _notificationSubscription?.cancel();
     super.dispose();
   }
 
@@ -370,14 +391,23 @@ class _HomePageState extends State<HomePage>
       centerTitle: true,
       automaticallyImplyLeading: false,
       actions: [
-        // TODO: Re-enable NotificationBloc when implemented
-        IconButton(
-          icon: const Icon(
-            Icons.notifications_outlined,
-            color: AppColors.black,
-          ),
-          onPressed: () {
-            context.push('/notifications');
+        // Notification Icon with Badge
+        BlocBuilder<NotificationBloc, NotificationState>(
+          builder: (context, state) {
+            return IconButton(
+              icon: Badge(
+                 backgroundColor: Colors.red,
+                isLabelVisible: state.unreadCount > 0,
+                label: Text('${state.unreadCount}'),
+                child: const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.black,
+                ),
+              ),
+              onPressed: () {
+                context.push('/notifications');
+              },
+            );
           },
         ),
       ],

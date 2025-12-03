@@ -11,6 +11,7 @@ const DepositRequest = require("../models/DepositRequest");
 const momoService = require("../services/momo.service");
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
+const { emitDepositSuccess } = require("../middleware/socketEmitter");
 
 // ======================================================
 // 1) USER TẠO YÊU CẦU NẠP TIỀN (VND → ETH) - Với auto-check 60s fallback
@@ -197,7 +198,8 @@ async function handlePaymentSuccess(orderId, depositId, source = "unknown") {
       amount_eth_wei: amountWeiStr  // Thêm field wei nếu cần
     });
 
-    console.log(`${source}: COMPLETED - Order ${orderId}, ETH sent to ${deposit.user_id.wallet_address}`);
+ console.log(`${source}: COMPLETED - Order ${orderId}, ETH sent to ${deposit.user_id.wallet_address}`);
+ await emitDepositSuccess(deposit.user_id._id, deposit.amount_vnd, global.io);
   } catch (err) {
     console.error(`${source}: Error processing ${orderId}:`, err);
     await DepositRequest.findByIdAndUpdate(depositId, {
