@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../../config/routes/app_routes.dart';
+import '../../../core/network/dio_client.dart';
 import '../../widgets/common/secondary_button.dart';
 import '../../widgets/text/expandable_text.dart';
 import '../../bloc/auth/auth_bloc.dart';
@@ -18,6 +19,32 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final DioClient _dioClient = DioClient();
+  Map<String, dynamic>? _stats;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    try {
+      print('Fetching stats from /user/me/stats...');
+      final response = await _dioClient.get('/user/me/stats');
+      print('Stats response status: ${response.statusCode}');
+      print('Stats response data: ${response.data}');
+      if (response.statusCode == 200 && mounted) {
+        setState(() {
+          _stats = response.data as Map<String, dynamic>;
+        });
+        print('Stats updated: $_stats');
+      }
+    } catch (e) {
+      print('Error fetching stats: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
@@ -181,22 +208,22 @@ class _ProfilePageState extends State<ProfilePage> {
                               children: [
                                 _buildStat(
                                   Icons.gavel_rounded,
-                                  '0',
+                                  '${_stats?['auctions'] ?? 0}',
                                   'Auctions',
                                 ),
                                 _buildStat(
                                   Icons.local_offer_rounded,
-                                  '0',
+                                  '${_stats?['bids'] ?? 0}',
                                   'Bids',
                                 ),
                                 _buildStat(
                                   Icons.emoji_events_rounded,
-                                  '0',
+                                  '${_stats?['wins'] ?? 0}',
                                   'Won',
                                 ),
                                 _buildStat(
                                   Icons.percent_rounded,
-                                  '0%',
+                                  '${_stats?['successRate'] ?? 0}%',
                                   'Success',
                                 ),
                               ],

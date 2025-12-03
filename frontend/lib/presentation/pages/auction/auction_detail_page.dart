@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/config/routes/app_routes.dart';
+import 'package:go_router/go_router.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../bloc/auth/auth_bloc.dart';
@@ -347,8 +349,12 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
 
                   // Seller Info
                   SellerInfoCard(
+                    sellerId: auction.sellerId,
                     sellerName: auction.sellerName,
                     sellerEmail: auction.sellerEmail,
+                    onTap: () => context.push(
+                      '${AppRoutes.publicProfile}/${auction.sellerId}',
+                    ),
                   ),
                   const SizedBox(height: 20),
 

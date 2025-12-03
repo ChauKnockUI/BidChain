@@ -12,6 +12,7 @@ import '../../presentation/pages/auction/create_auction_page.dart';
 import '../../presentation/pages/auction/auction_detail_page.dart';
 import '../../presentation/pages/wallet/wallet_page.dart';
 import '../../presentation/pages/profile/profile_page.dart';
+import '../../presentation/pages/profile/public_profile_page.dart';
 import '../../presentation/pages/profile/edit_profile_page.dart';
 import '../../presentation/pages/notification/notification_page.dart';
 import 'app_routes.dart';
@@ -75,6 +76,12 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: AppRoutes.editProfile,
           builder: (context, state) => const EditProfilePage(),
+        ),
+        GoRoute(
+          path: '${AppRoutes.publicProfile}/:userId',
+          builder: (context, state) => PublicProfilePage(
+            userId: state.pathParameters['userId']!,
+          ),
         ),
         GoRoute(
           path: AppRoutes.notifications,

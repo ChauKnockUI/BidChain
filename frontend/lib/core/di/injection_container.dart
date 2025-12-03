@@ -211,4 +211,6 @@ class InjectionContainer {
   static LocationService getLocationService() => _locationService;
 
   static NotificationBloc getNotificationBloc() => _notificationBloc;
+
+  static UserRepository getUserRepository() => _userRepository;
 }
