@@ -34,23 +34,48 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       final storedMessages = geminiService.getChatHistory();
 
       if (storedMessages.isNotEmpty) {
-        // Convert stored messages to ChatMessageModel
-        final messages = storedMessages.map((msg) {
-          final uuid = Uuid();
-          final parts = msg['parts'] as List<dynamic>? ?? [];
-          final text = parts.isNotEmpty
-              ? (parts[0] as Map<String, dynamic>)['text'] ?? ''
-              : '';
+        // Convert stored messages to ChatMessageModel, excluding system prompt and acknowledgment
+        final messages = storedMessages
+            .where((msg) {
+              final parts = msg['parts'] as List<dynamic>? ?? [];
+              final text = parts.isNotEmpty
+                  ? (parts[0] as Map<String, dynamic>)['text'] ?? ''
+                  : '';
+              // Filter out system prompt and AI acknowledgment
+              return !text.contains('You are an AI assistant for BidChain') &&
+                  text != 'I understand. I\'m ready to help!';
+            })
+            .map((msg) {
+              final uuid = Uuid();
+              final parts = msg['parts'] as List<dynamic>? ?? [];
+              final text = parts.isNotEmpty
+                  ? (parts[0] as Map<String, dynamic>)['text'] ?? ''
+                  : '';
 
-          return ChatMessageModel(
+              return ChatMessageModel(
+                id: uuid.v4(),
+                content: text,
+                timestamp: DateTime.now(),
+                isUserMessage: msg['role'] == 'user',
+              );
+            })
+            .toList();
+
+        if (messages.isNotEmpty) {
+          emit(ChatLoaded(messages: messages));
+        } else {
+          // All messages were system prompts, show welcome message
+          const uuid = Uuid();
+          final welcomeMessage = ChatMessageModel(
             id: uuid.v4(),
-            content: text,
+            content:
+                'Hello! I\'m here to help you with questions about products, prices, trends, and bidding strategies. What can I help you with today?',
             timestamp: DateTime.now(),
-            isUserMessage: msg['role'] == 'user',
+            isUserMessage: false,
           );
-        }).toList();
 
-        emit(ChatLoaded(messages: messages));
+          emit(ChatLoaded(messages: [welcomeMessage]));
+        }
       } else {
         // No stored history, create welcome message
         const uuid = Uuid();

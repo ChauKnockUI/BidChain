@@ -23,6 +23,7 @@ abstract class AuthRemoteDataSource {
     String? fullName,
     String? username,
     String? email,
+    String? phoneNumber,
     String? country,
     String? city,
     String? district,
@@ -108,6 +109,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? fullName,
     String? username,
     String? email,
+    String? phoneNumber,
     String? country,
     String? city,
     String? district,
@@ -120,6 +122,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (fullName != null) data['full_name'] = fullName;
       if (username != null) data['username'] = username;
       if (email != null) data['email'] = email;
+      if (phoneNumber != null) data['momo_phone'] = phoneNumber;
       if (country != null) data['country'] = country;
       if (city != null) data['city'] = city;
       if (district != null) data['district'] = district;

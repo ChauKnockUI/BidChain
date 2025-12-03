@@ -39,10 +39,27 @@ router.get('/countries', async (req, res) => {
             });
         }
 
-        // Fetch from REST Countries API
-        const response = await axios.get('https://restcountries.com/v3.1/all', {
-            timeout: 5000,
-        });
+        // Fetch from REST Countries API with retry
+        let response;
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (attempts < maxAttempts) {
+            try {
+                response = await axios.get('https://restcountries.com/v3.1/all', {
+                    timeout: 5000,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                break;
+            } catch (error) {
+                attempts++;
+                if (attempts >= maxAttempts) throw error;
+                // Wait before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
 
         // Extract country names and format
         const countries = response.data
@@ -59,9 +76,14 @@ router.get('/countries', async (req, res) => {
     } catch (error) {
         console.error('Error fetching countries:', error.message);
         // Return fallback data if API fails
+        const fallbackCountries = ['Vietnam', 'Thailand', 'Cambodia', 'Laos', 'Indonesia', 'Philippines', 'Malaysia', 'Singapore', 'Myanmar', 'United States', 'Canada', 'United Kingdom', 'Australia', 'Japan', 'China', 'India', 'South Korea', 'France', 'Germany', 'Italy'];
+
+        // Cache fallback data
+        countriesCache = fallbackCountries;
+
         res.json({
             success: true,
-            data: ['Vietnam', 'Thailand', 'Cambodia', 'Laos', 'Indonesia', 'Philippines', 'Malaysia', 'Singapore', 'Myanmar', 'United States', 'Canada', 'United Kingdom', 'Australia', 'Japan', 'China', 'India', 'South Korea', 'France', 'Germany', 'Italy'],
+            data: fallbackCountries,
         });
     }
 });

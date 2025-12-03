@@ -2,7 +2,16 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GeminiConfig {
   // Read API key from .env file
-  static String get apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+  static String get apiKey {
+    final key = dotenv.env['GEMINI_API_KEY'] ?? '';
+    if (key.isEmpty) {
+      throw Exception(
+        'GEMINI_API_KEY not found in .env file. '
+        'Please create a .env file in the frontend directory with GEMINI_API_KEY=your_key_here',
+      );
+    }
+    return key;
+  }
 
   // Model configuration
   static const String modelName = 'gemini-2.0-flash';

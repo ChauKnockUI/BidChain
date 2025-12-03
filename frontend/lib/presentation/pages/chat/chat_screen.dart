@@ -69,16 +69,13 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Align(
         alignment: Alignment.bottomRight,
         child: Padding(
-          padding: EdgeInsets.only(
-            right: 24,
-            bottom: 170, // Position above the floating bubble
-          ),
+          padding: const EdgeInsets.only(right: 16, bottom: 2),
           child: SizedBox(
-            width: 350, // Fixed width for compact chat
-            height: 500, // Fixed height
+            width: 360,
+            height: 480,
             child: Container(
               decoration: BoxDecoration(
-                color: AppColors.white,
+                color: AppColors.white.withOpacity(0.95),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -117,7 +114,10 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            Navigator.pop(context);
+                            widget.onClose?.call();
+                            if (Navigator.canPop(context)) {
+                              Navigator.pop(context);
+                            }
                           },
                           child: Icon(
                             Icons.close,

@@ -56,6 +56,7 @@ class AuthUpdateProfileEvent extends AuthEvent {
   final String? fullName;
   final String? username;
   final String? email;
+  final String? phoneNumber;
   final String? country;
   final String? city;
   final String? district;
@@ -67,6 +68,7 @@ class AuthUpdateProfileEvent extends AuthEvent {
     this.fullName,
     this.username,
     this.email,
+    this.phoneNumber,
     this.country,
     this.city,
     this.district,
@@ -80,6 +82,7 @@ class AuthUpdateProfileEvent extends AuthEvent {
     fullName,
     username,
     email,
+    phoneNumber,
     country,
     city,
     district,

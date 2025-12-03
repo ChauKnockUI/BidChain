@@ -20,6 +20,7 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
+  bool _isChatOpen = false; // Track chat visibility
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -52,28 +53,52 @@ class _MainLayoutState extends State<MainLayout> {
           Positioned.fill(
             child: IndexedStack(index: _currentIndex, children: _pages),
           ),
-          // Floating Chat Bubble - positioned by Stack
-          Positioned(
-            bottom: 100,
-            right: 16,
-            child: FloatingChatBubble(
-              onTap: () {
-                // Show chat screen as dialog overlay
-                showDialog(
-                  context: context,
-                  barrierDismissible: true,
-                  barrierColor: Colors.black.withOpacity(0.3),
-                  builder: (context) => Dialog(
-                    insetPadding: const EdgeInsets.all(16),
-                    child: BlocProvider.value(
-                      value: context.read<ChatBloc>(),
-                      child: const ChatScreen(),
+          // Floating Chat Bubble - only show on Home page and when chat is closed
+          if (_currentIndex == 0 && !_isChatOpen)
+            Positioned(
+              bottom: 90,
+              right: 16,
+              child: FloatingChatBubble(
+                onTap: () {
+                  setState(() {
+                    _isChatOpen = true;
+                  });
+                  // Show chat screen as dialog overlay
+                  showDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    barrierColor: Colors.transparent,
+                    builder: (context) => Dialog(
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      insetPadding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        bottom: 90,
+                        top: 60,
+                      ),
+                      child: BlocProvider.value(
+                        value: context.read<ChatBloc>(),
+                        child: ChatScreen(
+                          onClose: () {
+                            setState(() {
+                              _isChatOpen = false;
+                            });
+                          },
+                        ),
+                      ),
                     ),
-                  ),
-                );
-              },
+                  ).then((_) {
+                    // Ensure bubble shows when dialog closes
+                    if (mounted) {
+                      setState(() {
+                        _isChatOpen = false;
+                      });
+                    }
+                  });
+                },
+              ),
             ),
-          ),
         ],
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),

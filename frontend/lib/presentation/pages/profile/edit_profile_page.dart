@@ -90,6 +90,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           fullName: _fullNameCtrl.text,
           username: _usernameCtrl.text,
           email: _emailCtrl.text,
+          phoneNumber: _phoneCtrl.text.isEmpty ? null : _phoneCtrl.text,
           country: _selectedCountry,
           city: _selectedCity,
           district: _selectedDistrict,

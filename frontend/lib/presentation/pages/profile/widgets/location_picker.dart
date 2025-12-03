@@ -179,7 +179,7 @@ class _LocationPickerState extends State<LocationPicker> {
                       ),
                     )
                   : DropdownButtonFormField<String>(
-                      value: selectedCountry,
+                      initialValue: selectedCountry,
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -257,7 +257,7 @@ class _LocationPickerState extends State<LocationPicker> {
                         ),
                       )
                     : DropdownButtonFormField<String>(
-                        value: selectedCity,
+                        initialValue: selectedCity,
                         decoration: InputDecoration(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -342,7 +342,7 @@ class _LocationPickerState extends State<LocationPicker> {
                         ),
                       )
                     : DropdownButtonFormField<String>(
-                        value: selectedDistrict,
+                        initialValue: selectedDistrict,
                         decoration: InputDecoration(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -427,7 +427,7 @@ class _LocationPickerState extends State<LocationPicker> {
                         ),
                       )
                     : DropdownButtonFormField<String>(
-                        value: selectedWard,
+                        initialValue: selectedWard,
                         decoration: InputDecoration(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12,

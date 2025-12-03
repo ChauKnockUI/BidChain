@@ -60,23 +60,6 @@ class GeminiService {
   /// Send message to Gemini via REST API and get response
   Future<String> sendMessage(String userMessage) async {
     try {
-      // Add system prompt as first message if chat is empty
-      if (_chatHistory.isEmpty) {
-        _chatHistory.add({
-          'role': 'user',
-          'parts': [
-            {'text': GeminiConfig.systemPrompt},
-          ],
-        });
-        _chatHistory.add({
-          'role': 'model',
-          'parts': [
-            {'text': 'I understand. I\'m ready to help!'},
-          ],
-        });
-        await _saveChatHistory();
-      }
-
       // Add user message to history
       _chatHistory.add({
         'role': 'user',
@@ -86,12 +69,29 @@ class GeminiService {
       });
       await _saveChatHistory();
 
+      // Build request with system prompt included
+      final List<Map<String, dynamic>> requestContents = [
+        {
+          'role': 'user',
+          'parts': [
+            {'text': GeminiConfig.systemPrompt},
+          ],
+        },
+        {
+          'role': 'model',
+          'parts': [
+            {'text': 'I understand. I\'m ready to help!'},
+          ],
+        },
+        ..._chatHistory, // Add all chat history messages
+      ];
+
       final url = Uri.parse(
         'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$apiKey',
       );
 
       final requestBody = {
-        'contents': _chatHistory,
+        'contents': requestContents,
         'generationConfig': {
           'temperature': GeminiConfig.temperature,
           'maxOutputTokens': GeminiConfig.maxOutputTokens,
@@ -125,6 +125,9 @@ class GeminiService {
         } else {
           return 'No response from AI';
         }
+      } else if (response.statusCode == 400) {
+        print('API Error 400: ${response.body}');
+        return 'API Key is invalid or Gemini API is not enabled. Please check GEMINI_API_KEY in .env file and ensure Gemini API is enabled on Google Cloud.';
       } else if (response.statusCode == 429) {
         return 'Rate limit exceeded. Please try again later.';
       } else if (response.statusCode == 401) {
