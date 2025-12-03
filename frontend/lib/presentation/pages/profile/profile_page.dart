@@ -5,6 +5,7 @@ import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../../config/routes/app_routes.dart';
 import '../../widgets/common/secondary_button.dart';
+import '../../widgets/text/expandable_text.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_state.dart';
 import '../../bloc/auth/auth_event.dart';
@@ -32,17 +33,19 @@ class _ProfilePageState extends State<ProfilePage> {
             final user = state.user;
             return Scaffold(
               backgroundColor: AppColors.white,
-              body: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 100),
-                  child: Column(
-                    children: [
+              body: SafeArea(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 100),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
                       Padding(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Stack(
                           children: [
                             CircleAvatar(
-                              radius: 45,
+                              radius: 50,
                               backgroundColor: AppColors.greyLight,
                               backgroundImage:
                                   user.avatar != null && user.avatar!.isNotEmpty
@@ -51,7 +54,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               child: user.avatar == null || user.avatar!.isEmpty
                                   ? Icon(
                                       Icons.person_rounded,
-                                      size: 45,
+                                      size: 50,
                                       color: AppColors.accent,
                                     )
                                   : null,
@@ -63,13 +66,20 @@ class _ProfilePageState extends State<ProfilePage> {
                                 onTap: () =>
                                     context.push(AppRoutes.editProfile),
                                 child: Container(
-                                  width: 32,
-                                  height: 32,
+                                  width: 34,
+                                  height: 34,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: AppColors.accent,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.accent.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.edit,
                                     color: Colors.white,
                                     size: 16,
@@ -80,6 +90,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 12),
                       Text(
                         user.username,
                         style: AppTextStyles.h3.copyWith(
@@ -89,7 +100,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       // Location display
                       if (user.city != null || user.country != null)
                         Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.only(top: 6),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -113,11 +124,11 @@ class _ProfilePageState extends State<ProfilePage> {
                             ],
                           ),
                         ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'About',
@@ -125,76 +136,46 @@ class _ProfilePageState extends State<ProfilePage> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 8),
-                            Text(
-                              user.bio?.isNotEmpty == true
+                            const SizedBox(height: 12),
+                            ExpandableInlineText(
+                              text: user.bio?.isNotEmpty == true
                                   ? user.bio!
                                   : user.fullName.isNotEmpty
                                   ? user.fullName
-                                  : 'No bio',
-                              style: AppTextStyles.bodyMedium,
+                                  : 'No bio available',
+                              maxLines: 3,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                height: 1.5,
+                                color: AppColors.grey,
+                              ),
+                              readMoreStyle: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.accent,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(height: 24),
+                      const SizedBox(height: 24),
                       // Address section
-                      if (user.address != null && user.address!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Address',
-                                style: AppTextStyles.h4.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.greyLight,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.home_outlined,
-                                      color: AppColors.accent,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        user.address!,
-                                        style: AppTextStyles.bodySmall,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(height: 24),
-                            ],
-                          ),
-                        ),
+                      
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Statistic',
+                              'Statistics',
                               style: AppTextStyles.h4.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 14),
+                            const SizedBox(height: 12),
                             GridView.count(
                               crossAxisCount: 2,
                               shrinkWrap: true,
-                              childAspectRatio: 1.3,
+                              physics: const NeverScrollableScrollPhysics(),
+                              childAspectRatio: 1.4,
                               mainAxisSpacing: 12,
                               crossAxisSpacing: 12,
                               children: [
@@ -223,19 +204,20 @@ class _ProfilePageState extends State<ProfilePage> {
                           ],
                         ),
                       ),
-                      SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: SecondaryButton(
                           title: 'Logout Account',
                           icon: Icons.logout,
                           onPress: () => _showLogoutConfirmDialog(context),
                         ),
                       ),
-                      SizedBox(height: 30),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
+              ),
               ),
             );
           }
@@ -287,15 +269,23 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildStat(IconData icon, String value, String label) {
     return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.greyLight,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 32, color: AppColors.grey),
-          SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 28, color: AppColors.accent),
+          ),
+          const SizedBox(height: 12),
           Text(
             value,
             style: AppTextStyles.h3.copyWith(
@@ -303,10 +293,13 @@ class _ProfilePageState extends State<ProfilePage> {
               color: AppColors.accent,
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             label,
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.grey),
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.grey,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
