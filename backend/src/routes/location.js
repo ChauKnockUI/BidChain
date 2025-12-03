@@ -31,13 +31,18 @@ const vietnamData = {
 // GET all countries from REST Countries API with caching
 router.get('/countries', async (req, res) => {
     try {
+        console.log('[Location API] Fetching countries...');
+
         // Return cached data if available
         if (countriesCache) {
+            console.log('[Location API] Returning cached countries:', countriesCache.length, 'items');
             return res.json({
                 success: true,
                 data: countriesCache,
             });
         }
+
+        console.log('[Location API] No cache, fetching from REST Countries API...');
 
         // Fetch from REST Countries API with retry
         let response;
@@ -46,15 +51,18 @@ router.get('/countries', async (req, res) => {
 
         while (attempts < maxAttempts) {
             try {
+                console.log(`[Location API] Attempt ${attempts + 1}/${maxAttempts}...`);
                 response = await axios.get('https://restcountries.com/v3.1/all', {
                     timeout: 5000,
                     headers: {
                         'Accept': 'application/json'
                     }
                 });
+                console.log('[Location API] Successfully fetched from REST Countries API');
                 break;
             } catch (error) {
                 attempts++;
+                console.error(`[Location API] Attempt ${attempts} failed:`, error.message);
                 if (attempts >= maxAttempts) throw error;
                 // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -66,22 +74,26 @@ router.get('/countries', async (req, res) => {
             .map(country => country.name.common)
             .sort();
 
+        console.log('[Location API] Extracted', countries.length, 'countries');
+
         // Cache the result
         countriesCache = countries;
 
-        res.json({
+        return res.json({
             success: true,
             data: countries,
         });
     } catch (error) {
-        console.error('Error fetching countries:', error.message);
+        console.error('[Location API] Error fetching countries:', error.message);
         // Return fallback data if API fails
         const fallbackCountries = ['Vietnam', 'Thailand', 'Cambodia', 'Laos', 'Indonesia', 'Philippines', 'Malaysia', 'Singapore', 'Myanmar', 'United States', 'Canada', 'United Kingdom', 'Australia', 'Japan', 'China', 'India', 'South Korea', 'France', 'Germany', 'Italy'];
+
+        console.log('[Location API] Using fallback countries:', fallbackCountries.length, 'items');
 
         // Cache fallback data
         countriesCache = fallbackCountries;
 
-        res.json({
+        return res.json({
             success: true,
             data: fallbackCountries,
         });

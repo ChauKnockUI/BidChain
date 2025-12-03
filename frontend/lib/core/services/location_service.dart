@@ -16,10 +16,22 @@ class LocationService {
     try {
       // Return cached data if available
       if (_countriesCache != null) {
+        print(
+          '[LocationService] Returning cached countries: ${_countriesCache!.length} items',
+        );
         return _countriesCache!;
       }
 
+      print('[LocationService] Fetching countries from backend...');
       final response = await dioClient.get('/location/countries');
+
+      print(
+        '[LocationService] Countries response status: ${response.statusCode}',
+      );
+      print(
+        '[LocationService] Countries response data type: ${response.data.runtimeType}',
+      );
+      print('[LocationService] Countries response data: ${response.data}');
 
       if (response.statusCode == 200) {
         List<String> countries = [];
@@ -27,18 +39,29 @@ class LocationService {
         if (response.data is List) {
           // If response is already a list of country names
           countries = List<String>.from(response.data);
+          print(
+            '[LocationService] Parsed as direct list: ${countries.length} countries',
+          );
         } else if (response.data is Map && response.data['data'] is List) {
           // If response has data wrapper
           countries = List<String>.from(response.data['data']);
+          print(
+            '[LocationService] Parsed as wrapped list: ${countries.length} countries',
+          );
+        } else {
+          print('[LocationService] Unexpected response format');
+          return [];
         }
 
         _countriesCache = countries;
+        print('[LocationService] Countries cached successfully');
         return countries;
       }
 
+      print('[LocationService] Unexpected status code: ${response.statusCode}');
       return [];
     } catch (e) {
-      print('Error fetching countries: $e');
+      print('[LocationService] Error fetching countries: $e');
       return [];
     }
   }
