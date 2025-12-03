@@ -94,7 +94,6 @@ class InjectionContainer {
 
   // Notification dependencies
   static late NotificationRepository _notificationRepository;
-  static late NotificationBloc _notificationBloc;
 
   static Future<void> init() async {
     _sharedPreferences = await SharedPreferences.getInstance();
@@ -163,10 +162,6 @@ class InjectionContainer {
 
     // Notification
     _notificationRepository = NotificationRepositoryImpl();
-    _notificationBloc = NotificationBloc(
-      repository: _notificationRepository,
-      socketService: _socketService,
-    );
   }
 
   static MyActivityBloc getMyActivityBloc() =>
@@ -210,7 +205,10 @@ class InjectionContainer {
 
   static LocationService getLocationService() => _locationService;
 
-  static NotificationBloc getNotificationBloc() => _notificationBloc;
+  static NotificationBloc getNotificationBloc() => NotificationBloc(
+    repository: _notificationRepository,
+    socketService: _socketService,
+  );
 
   static UserRepository getUserRepository() => _userRepository;
 }

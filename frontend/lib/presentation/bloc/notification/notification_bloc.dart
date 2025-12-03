@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:async';
 import 'package:frontend/core/services/socket_service.dart';
 import 'package:frontend/data/models/notification_model.dart';
 import 'package:frontend/domain/repositories/notification_repository.dart';
@@ -50,6 +51,7 @@ class NotificationState {
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   final NotificationRepository _repository;
   final SocketService _socketService;
+  StreamSubscription? _notificationSubscription;
 
   NotificationBloc({
     required NotificationRepository repository,
@@ -62,14 +64,19 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<ReceiveNotificationEvent>(_onReceiveNotification);
 
     // Listen to socket notifications
-    // Listen to socket notifications
-    _socketService.notificationStream.listen((data) {
-      // Map socket data to NotificationModel
-      // Note: Socket data might not have all fields like 'created_at' or '_id' if it's a fresh emission
-      // But usually we want to fetch fresh list or construct a temp model
-      // For simplicity, let's re-fetch the list to ensure consistency
-      add(FetchNotificationsEvent());
+    _notificationSubscription = _socketService.notificationStream.listen((
+      data,
+    ) {
+      if (!isClosed) {
+        add(FetchNotificationsEvent());
+      }
     });
+  }
+
+  @override
+  Future<void> close() {
+    _notificationSubscription?.cancel();
+    return super.close();
   }
 
   Future<void> _onFetchNotifications(
