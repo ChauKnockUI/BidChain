@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:frontend/config/routes/app_routes.dart';
-import 'package:go_router/go_router.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_text_styles.dart';
 import '../../bloc/auth/auth_bloc.dart';
@@ -16,6 +14,7 @@ import '../../widgets/auction/image_gallery.dart';
 import '../../widgets/auction/place_bid_dialog.dart';
 import '../../widgets/auction/seller_info_card.dart';
 import '../../widgets/common/custom_app_bar.dart';
+import '../../widgets/common/custom_back_button.dart';
 import '../../widgets/common/status_badge.dart';
 import '../../widgets/text/expandable_text.dart';
 
@@ -83,11 +82,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
         return Scaffold(
           appBar: CustomAppBar(
             title: 'Chi tiết đấu giá',
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-              color: AppColors.accent,
-              onPressed: () => context.go(AppRoutes.home),
-            ),
+            leading: const CustomBackButton(color: AppColors.accent),
             actions: [
               IconButton(
                 icon: const Icon(Icons.share_outlined),

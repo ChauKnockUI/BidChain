@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:frontend/data/models/user_model.dart';
+import '../../../domain/entities/user_entity.dart';
 
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
@@ -43,10 +43,70 @@ class AuthCheckStatusEvent extends AuthEvent {
   const AuthCheckStatusEvent();
 }
 
-class AuthUpdateUserEvent extends AuthEvent {
-  final UserModel user;
-  const AuthUpdateUserEvent(this.user);
+class UpdateUserEvent extends AuthEvent {
+  final UserEntity user;
+
+  const UpdateUserEvent(this.user);
 
   @override
   List<Object?> get props => [user];
+}
+
+class AuthUpdateProfileEvent extends AuthEvent {
+  final String? fullName;
+  final String? username;
+  final String? email;
+  final String? phoneNumber;
+  final String? country;
+  final String? city;
+  final String? district;
+  final String? address;
+  final String? bio;
+
+  const AuthUpdateProfileEvent({
+    this.fullName,
+    this.username,
+    this.email,
+    this.phoneNumber,
+    this.country,
+    this.city,
+    this.district,
+    this.address,
+    this.bio,
+  });
+
+  @override
+  List<Object?> get props => [
+    fullName,
+    username,
+    email,
+    phoneNumber,
+    country,
+    city,
+    district,
+    address,
+    bio,
+  ];
+}
+
+class AuthChangePasswordEvent extends AuthEvent {
+  final String currentPassword;
+  final String newPassword;
+
+  const AuthChangePasswordEvent({
+    required this.currentPassword,
+    required this.newPassword,
+  });
+
+  @override
+  List<Object> get props => [currentPassword, newPassword];
+}
+
+class AuthUploadAvatarEvent extends AuthEvent {
+  final String filePath;
+
+  const AuthUploadAvatarEvent({required this.filePath});
+
+  @override
+  List<Object> get props => [filePath];
 }

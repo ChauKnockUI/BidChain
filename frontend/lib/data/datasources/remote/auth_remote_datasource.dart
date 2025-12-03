@@ -1,7 +1,9 @@
+import 'dart:io';
 import '../../../config/constants/api_constants.dart';
 import '../../../core/error/exceptions.dart';
 import '../../../core/network/dio_client.dart';
 import '../../models/user_model.dart';
+import 'package:dio/dio.dart';
 
 abstract class AuthRemoteDataSource {
   Future<AuthResponse> register({
@@ -17,7 +19,22 @@ abstract class AuthRemoteDataSource {
     required String password,
   });
 
-  Future<UserModel> getCurrentUser();
+  Future<AuthResponse> updateProfile({
+    String? fullName,
+    String? username,
+    String? email,
+    String? phoneNumber,
+    String? country,
+    String? city,
+    String? district,
+    String? address,
+    String? bio,
+  });
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -87,37 +104,95 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<UserModel> getCurrentUser() async {
+  Future<AuthResponse> updateProfile({
+    String? fullName,
+    String? username,
+    String? email,
+    String? phoneNumber,
+    String? country,
+    String? city,
+    String? district,
+    String? address,
+    String? bio,
+  }) async {
     try {
-      final response = await dioClient.get(ApiConstants.getUserProfile);
+      final data = <String, dynamic>{};
+      if (fullName != null) data['full_name'] = fullName;
+      if (username != null) data['username'] = username;
+      if (email != null) data['email'] = email;
+      if (phoneNumber != null) data['momo_phone'] = phoneNumber;
+      if (country != null) data['country'] = country;
+      if (city != null) data['city'] = city;
+      if (district != null) data['district'] = district;
+      if (address != null) data['address'] = address;
+      if (bio != null) data['bio'] = bio;
+
+      final response = await dioClient.put(
+        ApiConstants.updateUserProfile,
+        data: data,
+      );
 
       if (response.statusCode == 200) {
-        final userData = response.data;
-        return UserModel(
-          id: userData['_id'] ?? userData['id'] ?? '',
-          username: userData['username'] ?? '',
-          email: userData['email'] ?? '',
-          fullName: userData['full_name'] ?? '',
-          role: userData['role'] ?? 'USER',
-          walletAddress: userData['wallet_address'] ?? '',
-          balanceEth: (userData['balance_eth'] is num)
-              ? (userData['balance_eth'] as num).toDouble()
-              : 0.0,
-          lockedEth: (userData['locked_eth'] is num)
-              ? (userData['locked_eth'] as num).toDouble()
-              : 0.0,
-          createdAt: userData['createdAt'] != null
-              ? DateTime.parse(userData['createdAt'])
-              : DateTime.now(),
-        );
+        return AuthResponse.fromJson(response.data);
       } else {
         throw ServerException(
-          message: response.data['error'] ?? 'Failed to get user',
+          message: response.data['error'] ?? 'Update failed',
           statusCode: response.statusCode,
         );
       }
     } on ServerException {
       rethrow;
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  Future<AuthResponse> uploadAvatar(String filePath) async {
+    try {
+      // Read file as bytes - works on both web and mobile
+      final file = File(filePath);
+      final bytes = await file.readAsBytes();
+      final filename = file.path.split('/').last;
+
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: filename),
+      });
+
+      final response = await dioClient.postMultipart(
+        ApiConstants.uploadAvatar,
+        data: formData,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return AuthResponse.fromJson(response.data);
+      } else {
+        throw ServerException(
+          message: response.data['error'] ?? 'Upload failed',
+          statusCode: response.statusCode,
+        );
+      }
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await dioClient.put(
+        ApiConstants.changePassword,
+        data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      );
+    } on DioException catch (error) {
+      throw ServerException(
+        message: error.response?.data['error'] ?? 'Failed to change password',
+        statusCode: error.response?.statusCode ?? 500,
+      );
     } catch (e) {
       throw ServerException(message: e.toString());
     }
@@ -131,7 +206,6 @@ class AuthResponse {
   AuthResponse({required this.token, required this.user});
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    // Backend trả về user object hoặc trực tiếp các field
     final user = json['user'] ?? json;
     return AuthResponse(
       token: json['token'] ?? json['access_token'] ?? '',
@@ -142,6 +216,8 @@ class AuthResponse {
         fullName: user['full_name'] ?? '',
         role: user['role'] ?? 'USER',
         walletAddress: user['wallet_address'] ?? '',
+        avatar: user['avatar'],
+        momoPhone: user['momo_phone'],
         balanceEth: (user['balance_eth'] is num)
             ? (user['balance_eth'] as num).toDouble()
             : 0.0,
@@ -151,6 +227,12 @@ class AuthResponse {
         createdAt: user['createdAt'] != null
             ? DateTime.parse(user['createdAt'])
             : DateTime.now(),
+        country: user['country'],
+        city: user['city'],
+        district: user['district'],
+        ward: user['ward'],
+        address: user['address'],
+        bio: user['bio'],
       ),
     );
   }

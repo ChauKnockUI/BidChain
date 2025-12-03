@@ -5,7 +5,7 @@ import '../../bloc/notification/notification_bloc.dart';
 import '../../../data/models/notification_model.dart';
 
 class NotificationPage extends StatefulWidget {
-  const NotificationPage({Key? key}) : super(key: key);
+  const NotificationPage({super.key});
 
   @override
   State<NotificationPage> createState() => _NotificationPageState();

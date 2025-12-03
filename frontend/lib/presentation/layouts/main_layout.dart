@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/presentation/pages/my_activity/my_activity_page.dart';
 import '../../config/theme/app_colors.dart';
 import '../pages/home/home_page.dart';
@@ -6,6 +7,9 @@ import '../pages/home/home_page.dart';
 import '../pages/wallet/wallet_page.dart';
 import '../pages/profile/profile_page.dart';
 import '../pages/create_auction/create_auction_screen.dart';
+import '../widgets/chat/floating_chat_bubble.dart';
+import '../pages/chat/chat_screen.dart';
+import '../bloc/chat/chat_bloc.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -16,6 +20,7 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _currentIndex = 0;
+  bool _isChatOpen = false; // Track chat visibility
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -42,7 +47,60 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: Stack(
+        children: [
+          // Use Positioned.fill to allow scroll properly
+          Positioned.fill(
+            child: IndexedStack(index: _currentIndex, children: _pages),
+          ),
+          // Floating Chat Bubble - only show on Home page and when chat is closed
+          if (_currentIndex == 0 && !_isChatOpen)
+            Positioned(
+              bottom: 90,
+              right: 16,
+              child: FloatingChatBubble(
+                onTap: () {
+                  setState(() {
+                    _isChatOpen = true;
+                  });
+                  // Show chat screen as dialog overlay
+                  showDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    barrierColor: Colors.transparent,
+                    builder: (context) => Dialog(
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      insetPadding: const EdgeInsets.only(
+                        left: 16,
+                        right: 16,
+                        bottom: 90,
+                        top: 60,
+                      ),
+                      child: BlocProvider.value(
+                        value: context.read<ChatBloc>(),
+                        child: ChatScreen(
+                          onClose: () {
+                            setState(() {
+                              _isChatOpen = false;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ).then((_) {
+                    // Ensure bubble shows when dialog closes
+                    if (mounted) {
+                      setState(() {
+                        _isChatOpen = false;
+                      });
+                    }
+                  });
+                },
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: _buildBottomNavigationBar(),
       floatingActionButton: _buildFloatingActionButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -101,26 +159,34 @@ class _MainLayoutState extends State<MainLayout> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildNavItem(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  index: 0,
+                Flexible(
+                  child: _buildNavItem(
+                    icon: Icons.home_rounded,
+                    label: 'Home',
+                    index: 0,
+                  ),
                 ),
-                _buildNavItem(
-                  icon: Icons.gavel_rounded,
-                  label: 'Auctions',
-                  index: 1,
+                Flexible(
+                  child: _buildNavItem(
+                    icon: Icons.gavel_rounded,
+                    label: 'Auctions',
+                    index: 1,
+                  ),
                 ),
                 const SizedBox(width: 64), // Space for floating button
-                _buildNavItem(
-                  icon: Icons.account_balance_wallet_rounded,
-                  label: 'Wallet',
-                  index: 3,
+                Flexible(
+                  child: _buildNavItem(
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: 'Wallet',
+                    index: 3,
+                  ),
                 ),
-                _buildNavItem(
-                  icon: Icons.person_rounded,
-                  label: 'Profile',
-                  index: 4,
+                Flexible(
+                  child: _buildNavItem(
+                    icon: Icons.person_rounded,
+                    label: 'Profile',
+                    index: 4,
+                  ),
                 ),
               ],
             ),

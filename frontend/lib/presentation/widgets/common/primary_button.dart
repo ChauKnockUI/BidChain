@@ -10,6 +10,7 @@ class PrimaryButton extends StatelessWidget {
   final double? width;
   final double height;
   final IconData? icon;
+  final Color? backgroundColor;
 
   const PrimaryButton({
     super.key,
@@ -20,6 +21,7 @@ class PrimaryButton extends StatelessWidget {
     this.width,
     this.height = 52,
     this.icon,
+    this.backgroundColor,
   });
 
   @override
@@ -46,7 +48,7 @@ class PrimaryButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: isDisabled
               ? AppColors.grey.withOpacity(0.3)
-              : AppColors.accent,
+              : (backgroundColor ?? AppColors.accent),
           foregroundColor: AppColors.white,
           disabledBackgroundColor: AppColors.grey.withOpacity(0.3),
           disabledForegroundColor: AppColors.grey,

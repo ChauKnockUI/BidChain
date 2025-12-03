@@ -3,7 +3,6 @@ import 'package:frontend/core/services/socket_service.dart';
 import 'package:frontend/data/models/notification_model.dart';
 import 'package:frontend/domain/repositories/notification_repository.dart';
 
-
 // Events
 abstract class NotificationEvent {}
 

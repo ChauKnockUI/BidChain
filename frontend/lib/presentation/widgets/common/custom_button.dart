@@ -28,7 +28,7 @@ class CustomButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         
         style: ElevatedButton.styleFrom(
-          backgroundColor: color != null ? color : AppColors.primary,
+          backgroundColor: color ?? AppColors.primary,
           foregroundColor: AppColors.white,
           elevation: 3, 
           shape: RoundedRectangleBorder(
@@ -36,7 +36,7 @@ class CustomButton extends StatelessWidget {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
         ).copyWith(
-          overlayColor: MaterialStateProperty.all(
+          overlayColor: WidgetStateProperty.all(
             AppColors.primary.withOpacity(0.1), 
           ),
         ),

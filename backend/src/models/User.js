@@ -22,6 +22,16 @@ const UserSchema = new mongoose.Schema({
   encrypted_private_key: { type: String, required: true },
   avatar: { type: String }, // Cloudinary URL from /upload/avatar
 
+  // Address & Location fields
+  country: { type: String },
+  city: { type: String },
+  district: { type: String },
+  ward: { type: String },
+  address: { type: String }, // Full address detail
+
+  // Bio/Description
+  bio: { type: String },
+
   // ĐÃ SỬA: DÙNG STRING + WEI (chuẩn blockchain)
   balance_eth: {
     type: String,

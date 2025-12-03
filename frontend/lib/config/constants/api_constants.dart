@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  static const String baseUrl = 'http://localhost:3000/api';
 
   // Auth endpoints
   static const String register = '/auth/register';
@@ -19,8 +19,13 @@ class ApiConstants {
 
   // User endpoints
   static const String getUserProfile = '/user/me';
+  static const String updateUserProfile = '/user/me';
   static const String getUserAuctions = '/user/me/auctions';
   static const String getUserBids = '/user/me/bids';
+  static const String uploadAvatar = '/upload/avatar/update';
+
+  // Auth endpoints (continued)
+  static const String changePassword = '/auth/change-password';
 
   // Category endpoints
   static const String getCategories = '/category/all';

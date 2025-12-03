@@ -94,4 +94,58 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(CacheFailure(message: e.message));
     }
   }
+
+  @override
+  Future<Either<Failure, UserEntity>> updateProfile({
+    String? fullName,
+    String? username,
+    String? email,
+    String? phoneNumber,
+    String? country,
+    String? city,
+    String? district,
+    String? address,
+    String? bio,
+  }) async {
+    try {
+      final response = await remoteDataSource.updateProfile(
+        fullName: fullName,
+        username: username,
+        email: email,
+        phoneNumber: phoneNumber,
+        country: country,
+        city: city,
+        district: district,
+        address: address,
+        bio: bio,
+      );
+
+      // Update local storage with new user info
+      await localDataSource.saveUser(response.user);
+
+      return Right(response.user);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await remoteDataSource.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } catch (e) {
+      return Left(ServerFailure(message: e.toString()));
+    }
+  }
 }

@@ -10,7 +10,6 @@ import '../../bloc/auction/auction_state.dart';
 import '../../bloc/category/category_bloc.dart';
 import '../../bloc/category/category_event.dart';
 import '../../bloc/category/category_state.dart';
-import '../../bloc/notification/notification_bloc.dart';
 
 import '../../widgets/auction/auction_card.dart';
 
@@ -42,7 +41,7 @@ class _HomePageState extends State<HomePage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _lastRefreshTime = DateTime.now();
-    
+
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -93,278 +92,268 @@ class _HomePageState extends State<HomePage>
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-              // Search Bar Section
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: _buildSearchBar(),
-                ),
+            // Search Bar Section
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _buildSearchBar(),
               ),
+            ),
 
-              // Category Section
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        'Categories',
-                        style: AppTextStyles.h3.copyWith(
-                          color: AppColors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
+            // Category Section
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      'Categories',
+                      style: AppTextStyles.h3.copyWith(
+                        color: AppColors.black,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    _buildCategoryList(),
-                    const SizedBox(height: 24),
-                  ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildCategoryList(),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+
+            // Popular Auctions Section
+            BlocBuilder<AuctionBloc, AuctionState>(
+              builder: (context, state) {
+                if (state is AuctionLoaded && state.auctions.isNotEmpty) {
+                  // Filter auctions by selected category and search query
+                  var filteredAuctions = state.auctions;
+
+                  // Filter by category
+                  if (_selectedCategoryId != null) {
+                    filteredAuctions = filteredAuctions
+                        .where(
+                          (auction) =>
+                              auction.categoryId == _selectedCategoryId,
+                        )
+                        .toList();
+                  }
+
+                  // Filter by search query
+                  if (_searchQuery.isNotEmpty) {
+                    filteredAuctions = filteredAuctions.where((auction) {
+                      final titleLower = auction.title.toLowerCase();
+                      final descLower = auction.description.toLowerCase();
+                      return titleLower.contains(_searchQuery) ||
+                          descLower.contains(_searchQuery);
+                    }).toList();
+                  }
+
+                  final popularAuctions = [...filteredAuctions]
+                    ..sort((a, b) => b.bidCount.compareTo(a.bidCount));
+                  final topAuctions = popularAuctions.take(10).toList();
+
+                  if (topAuctions.isEmpty) {
+                    return const SliverToBoxAdapter(child: SizedBox.shrink());
+                  }
+
+                  return SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: SectionHeader(
+                            title: 'Popular Auctions',
+                            onSeeAllTap: () =>
+                                context.go(AppRoutes.auctionList),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 310,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: topAuctions.length,
+                            itemBuilder: (context, index) {
+                              final auction = topAuctions[index];
+                              return Container(
+                                width: 180,
+                                margin: EdgeInsets.only(
+                                  right: index < topAuctions.length - 1
+                                      ? 12
+                                      : 0,
+                                ),
+                                child: AuctionCard(
+                                  auctionId: auction.auctionId,
+                                  title: auction.title,
+                                  imageUrl: auction.images.isNotEmpty
+                                      ? auction.images.first
+                                      : null,
+                                  currentBid: auction.formattedCurrentPrice,
+                                  timeLeft: _calculateTimeLeft(auction.endTime),
+                                  bidCount: auction.bidCount,
+                                  sellerName: auction.sellerName,
+                                  onTap: () {
+                                    context.go(
+                                      '${AppRoutes.auctionDetail}/${auction.auctionId}',
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  );
+                }
+                return const SliverToBoxAdapter(child: SizedBox.shrink());
+              },
+            ),
+
+            // Active Auctions Section
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SectionHeader(
+                  title: 'Active Auctions',
+                  onSeeAllTap: () => context.go(AppRoutes.auctionList),
                 ),
               ),
+            ),
 
-              // Popular Auctions Section
-              BlocBuilder<AuctionBloc, AuctionState>(
-                builder: (context, state) {
-                  if (state is AuctionLoaded && state.auctions.isNotEmpty) {
-                    // Filter auctions by selected category and search query
-                    var filteredAuctions = state.auctions;
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-                    // Filter by category
-                    if (_selectedCategoryId != null) {
-                      filteredAuctions = filteredAuctions
-                          .where(
-                            (auction) =>
-                                auction.categoryId == _selectedCategoryId,
-                          )
-                          .toList();
-                    }
-
-                    // Filter by search query
-                    if (_searchQuery.isNotEmpty) {
-                      filteredAuctions = filteredAuctions.where((auction) {
-                        final titleLower = auction.title.toLowerCase();
-                        final descLower = auction.description.toLowerCase();
-                        return titleLower.contains(_searchQuery) ||
-                            descLower.contains(_searchQuery);
-                      }).toList();
-                    }
-
-                    final popularAuctions = [...filteredAuctions]
-                      ..sort((a, b) => b.bidCount.compareTo(a.bidCount));
-                    final topAuctions = popularAuctions.take(10).toList();
-
-                    if (topAuctions.isEmpty) {
-                      return const SliverToBoxAdapter(child: SizedBox.shrink());
-                    }
-
-                    return SliverToBoxAdapter(
+            // Auction Grid
+            BlocBuilder<AuctionBloc, AuctionState>(
+              builder: (context, state) {
+                if (state is AuctionLoading) {
+                  return const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                } else if (state is AuctionError) {
+                  return SliverFillRemaining(
+                    child: Center(
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: SectionHeader(
-                              title: 'Popular Auctions',
-                              onSeeAllTap: () =>
-                                  context.go(AppRoutes.auctionList),
-                            ),
+                          const Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: AppColors.black,
                           ),
                           const SizedBox(height: 16),
-                          SizedBox(
-                            height: 310,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                              ),
-                              itemCount: topAuctions.length,
-                              itemBuilder: (context, index) {
-                                final auction = topAuctions[index];
-                                return Container(
-                                  width: 180,
-                                  margin: EdgeInsets.only(
-                                    right: index < topAuctions.length - 1
-                                        ? 12
-                                        : 0,
-                                  ),
-                                  child: AuctionCard(
-                                    auctionId: auction.auctionId,
-                                    title: auction.title,
-                                    imageUrl: auction.images.isNotEmpty
-                                        ? auction.images.first
-                                        : null,
-                                    currentBid: auction.formattedCurrentPrice,
-                                    timeLeft: _calculateTimeLeft(
-                                      auction.endTime,
-                                    ),
-                                    bidCount: auction.bidCount,
-                                    sellerName: auction.sellerName,
-                                    onTap: () {
-                                      context.go(
-                                        '${AppRoutes.auctionDetail}/${auction.auctionId}',
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
+                          Text(state.message, style: AppTextStyles.bodyMedium),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              context.read<AuctionBloc>().add(
+                                RefreshAuctions(),
+                              );
+                            },
+                            child: const Text('Retry'),
                           ),
-                          const SizedBox(height: 32),
                         ],
                       ),
-                    );
+                    ),
+                  );
+                } else if (state is AuctionLoaded) {
+                  // Filter auctions by selected category and search query
+                  var filteredAuctions = state.auctions;
+
+                  // Filter by category
+                  if (_selectedCategoryId != null) {
+                    filteredAuctions = filteredAuctions
+                        .where(
+                          (auction) =>
+                              auction.categoryId == _selectedCategoryId,
+                        )
+                        .toList();
                   }
-                  return const SliverToBoxAdapter(child: SizedBox.shrink());
-                },
-              ),
 
-              // Active Auctions Section
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SectionHeader(
-                    title: 'Active Auctions',
-                    onSeeAllTap: () => context.go(AppRoutes.auctionList),
-                  ),
-                ),
-              ),
+                  // Filter by search query
+                  if (_searchQuery.isNotEmpty) {
+                    filteredAuctions = filteredAuctions.where((auction) {
+                      final titleLower = auction.title.toLowerCase();
+                      final descLower = auction.description.toLowerCase();
+                      return titleLower.contains(_searchQuery) ||
+                          descLower.contains(_searchQuery);
+                    }).toList();
+                  }
 
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-              // Auction Grid
-              BlocBuilder<AuctionBloc, AuctionState>(
-                builder: (context, state) {
-                  if (state is AuctionLoading) {
-                    return const SliverFillRemaining(
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  } else if (state is AuctionError) {
+                  if (filteredAuctions.isEmpty) {
                     return SliverFillRemaining(
                       child: Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.error_outline,
-                              size: 48,
-                              color: AppColors.black,
+                            Icon(
+                              Icons.inbox_outlined,
+                              size: 64,
+                              color: AppColors.grey.withOpacity(0.5),
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              state.message,
-                              style: AppTextStyles.bodyMedium,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                context.read<AuctionBloc>().add(
-                                  RefreshAuctions(),
-                                );
-                              },
-                              child: const Text('Retry'),
+                              _selectedCategoryId != null
+                                  ? 'No auctions found in this category'
+                                  : 'No active auctions found',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.grey,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     );
-                  } else if (state is AuctionLoaded) {
-                    // Filter auctions by selected category and search query
-                    var filteredAuctions = state.auctions;
-
-                    // Filter by category
-                    if (_selectedCategoryId != null) {
-                      filteredAuctions = filteredAuctions
-                          .where(
-                            (auction) =>
-                                auction.categoryId == _selectedCategoryId,
-                          )
-                          .toList();
-                    }
-
-                    // Filter by search query
-                    if (_searchQuery.isNotEmpty) {
-                      filteredAuctions = filteredAuctions.where((auction) {
-                        final titleLower = auction.title.toLowerCase();
-                        final descLower = auction.description.toLowerCase();
-                        return titleLower.contains(_searchQuery) ||
-                            descLower.contains(_searchQuery);
-                      }).toList();
-                    }
-
-                    if (filteredAuctions.isEmpty) {
-                      return SliverFillRemaining(
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.inbox_outlined,
-                                size: 64,
-                                color: AppColors.grey.withOpacity(0.5),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                _selectedCategoryId != null
-                                    ? 'No auctions found in this category'
-                                    : 'No active auctions found',
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: AppColors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    } else {
-                      return SliverPadding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 0,
-                        ),
-                        sliver: SliverGrid(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.57,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                              ),
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final auction = filteredAuctions[index];
-                            return AuctionCard(
-                              auctionId: auction.auctionId,
-                              title: auction.title,
-                              imageUrl: auction.images.isNotEmpty
-                                  ? auction.images.first
-                                  : null,
-                              currentBid: auction.formattedCurrentPrice,
-                              timeLeft: _calculateTimeLeft(auction.endTime),
-                              bidCount: auction.bidCount,
-                              sellerName: auction.sellerName,
-                              onTap: () {
-                                context.go(
-                                  '${AppRoutes.auctionDetail}/${auction.auctionId}',
-                                );
-                              },
-                            );
-                          }, childCount: filteredAuctions.length),
-                        ),
-                      );
-                    }
+                  } else {
+                    return SliverPadding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 0,
+                      ),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.57,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                            ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final auction = filteredAuctions[index];
+                          return AuctionCard(
+                            auctionId: auction.auctionId,
+                            title: auction.title,
+                            imageUrl: auction.images.isNotEmpty
+                                ? auction.images.first
+                                : null,
+                            currentBid: auction.formattedCurrentPrice,
+                            timeLeft: _calculateTimeLeft(auction.endTime),
+                            bidCount: auction.bidCount,
+                            sellerName: auction.sellerName,
+                            onTap: () {
+                              context.go(
+                                '${AppRoutes.auctionDetail}/${auction.auctionId}',
+                              );
+                            },
+                          );
+                        }, childCount: filteredAuctions.length),
+                      ),
+                    );
                   }
-                  return const SliverToBoxAdapter(child: SizedBox.shrink());
-                },
-              ),
+                }
+                return const SliverToBoxAdapter(child: SizedBox.shrink());
+              },
+            ),
 
-              // Bottom Padding
-              const SliverToBoxAdapter(child: SizedBox(height: 40)),
-            ],
-          ),
+            // Bottom Padding
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   PreferredSizeWidget _buildAppBar() {
@@ -378,47 +367,17 @@ class _HomePageState extends State<HomePage>
       ),
       backgroundColor: AppColors.white,
       elevation: 0,
+      centerTitle: true,
       automaticallyImplyLeading: false,
       actions: [
-        BlocBuilder<NotificationBloc, NotificationState>(
-          builder: (context, state) {
-            return Stack(
-              children: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.notifications_outlined,
-                    color: AppColors.black,
-                  ),
-                  onPressed: () {
-                    context.push('/notifications');
-                  },
-                ),
-                if (state.unreadCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 14,
-                        minHeight: 14,
-                      ),
-                      child: Text(
-                        '${state.unreadCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            );
+        // TODO: Re-enable NotificationBloc when implemented
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: AppColors.black,
+          ),
+          onPressed: () {
+            context.push('/notifications');
           },
         ),
       ],

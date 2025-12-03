@@ -34,8 +34,14 @@ router.post("/avatar", authMiddleware, upload.single("file"), async (req, res) =
 // Frontend can just call this API with file -> Done!
 router.post("/avatar/update", authMiddleware, upload.single("file"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: "File required" });
+    // Validate file exists
+    if (!req.file) {
+      console.error("No file in request");
+      return res.status(400).json({ error: "File required" });
+    }
+
     const filePath = req.file.path;
+    console.log("Uploading file to Cloudinary:", filePath);
 
     // Upload to Cloudinary
     const result = await cloudinary.uploader.upload(filePath, {
@@ -43,8 +49,14 @@ router.post("/avatar/update", authMiddleware, upload.single("file"), async (req,
       transformation: [{ width: 300, height: 300, crop: "fill" }]
     });
 
+    console.log("Cloudinary upload successful:", result.secure_url);
+
     // Remove local file
-    fs.unlinkSync(filePath);
+    try {
+      fs.unlinkSync(filePath);
+    } catch (unlinkErr) {
+      console.error("Error removing temp file:", unlinkErr);
+    }
 
     // Auto-update user profile with new avatar URL
     const User = require("../models/User");
@@ -58,6 +70,8 @@ router.post("/avatar/update", authMiddleware, upload.single("file"), async (req,
       return res.status(404).json({ error: "User not found" });
     }
 
+    console.log("User avatar updated successfully");
+
     // Return complete user object with new avatar
     return res.json({
       success: true,
@@ -67,7 +81,10 @@ router.post("/avatar/update", authMiddleware, upload.single("file"), async (req,
     });
   } catch (err) {
     console.error("Avatar update error:", err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      error: "Avatar upload failed",
+      details: err.message
+    });
   }
 });
 

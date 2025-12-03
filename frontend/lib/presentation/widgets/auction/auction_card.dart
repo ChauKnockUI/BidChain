@@ -176,7 +176,7 @@ class AuctionCard extends StatelessWidget {
                       const Divider(
                         color: AppColors.tertiary,
                         thickness: 1,
-                        height: 16,
+                        height: 8,
                       ),
 
                       // Time Left & Seller

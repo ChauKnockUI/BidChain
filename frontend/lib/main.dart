@@ -1,16 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend/presentation/bloc/auction_detail/auction_detail_bloc.dart';
 import 'package:frontend/presentation/bloc/auction_list/auction_list_bloc.dart';
 import 'package:frontend/presentation/bloc/my_activity/my_activity_bloc.dart';
+import 'package:frontend/presentation/bloc/chat/chat_bloc.dart';
 import 'config/routes/route_generator.dart';
 import 'config/theme/app_theme.dart';
 import 'core/di/injection_container.dart';
 import 'presentation/bloc/auth/auth_bloc.dart';
 import 'presentation/bloc/auth/auth_event.dart';
 import 'presentation/bloc/payment/payment_bloc.dart';
-import 'presentation/bloc/notification/notification_bloc.dart';
 
 class ApiConfig {
   static late final String baseUrl;
@@ -27,6 +28,10 @@ class ApiConfig {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables from .env file
+  await dotenv.load(fileName: ".env");
+
   ApiConfig.init();
 
   await InjectionContainer.init();
@@ -58,10 +63,8 @@ class MyApp extends StatelessWidget {
         BlocProvider<PaymentBloc>(
           create: (context) => InjectionContainer.getPaymentBloc(),
         ),
-        BlocProvider<NotificationBloc>(
-          create: (context) =>
-              InjectionContainer.getNotificationBloc()
-                ..add(FetchNotificationsEvent()),
+        BlocProvider<ChatBloc>(
+          create: (context) => InjectionContainer.getChatBloc(),
         ),
       ],
 
