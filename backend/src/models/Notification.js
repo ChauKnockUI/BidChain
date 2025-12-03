@@ -4,7 +4,7 @@ const NotificationSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   type: {
     type: String,
-    enum: ['AUCTION_APPROVED', 'AUCTION_PENDING_APPROVAL', 'AUCTION_REJECTED', 'OUTBID', 'WON_AUCTION', 'NEW_BID', 'AUCTION_SOLD', 'AUCTION_STARTED'],
+    enum: ['AUCTION_APPROVED', 'AUCTION_PENDING_APPROVAL', 'AUCTION_REJECTED', 'OUTBID', 'WON_AUCTION', 'NEW_BID', 'AUCTION_SOLD', 'AUCTION_STARTED', 'DEPOSIT_SUCCESS', 'WITHDRAW_SUCCESS'],
     required: true
   },
   title: { type: String, required: true },

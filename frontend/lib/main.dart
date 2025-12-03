@@ -12,6 +12,9 @@ import 'core/di/injection_container.dart';
 import 'presentation/bloc/auth/auth_bloc.dart';
 import 'presentation/bloc/auth/auth_event.dart';
 import 'presentation/bloc/payment/payment_bloc.dart';
+import 'presentation/bloc/notification/notification_bloc.dart';
+import 'package:overlay_support/overlay_support.dart';
+import 'core/services/notification_popup_service.dart';
 
 class ApiConfig {
   static late final String baseUrl;
@@ -20,7 +23,6 @@ class ApiConfig {
     if (kIsWeb) {
       baseUrl = 'http://localhost:3000';
     } else {
-      // Android emulator -> 10.0.2.2 ; iOS simulator -> localhost
       baseUrl = 'http://10.0.2.2:3000';
     }
   }
@@ -29,11 +31,8 @@ class ApiConfig {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables from .env file
   await dotenv.load(fileName: ".env");
-
   ApiConfig.init();
-
   await InjectionContainer.init();
 
   runApp(const MyApp());
@@ -66,13 +65,21 @@ class MyApp extends StatelessWidget {
         BlocProvider<ChatBloc>(
           create: (context) => InjectionContainer.getChatBloc(),
         ),
+        BlocProvider<NotificationBloc>(
+          create: (context) =>
+              InjectionContainer.getNotificationBloc()
+                ..add(FetchNotificationsEvent()),
+        ),
       ],
 
-      child: MaterialApp.router(
-        title: 'BidChain',
-        debugShowCheckedModeBanner: false,
-        routerConfig: appRouter,
-        theme: AppTheme.lightTheme,
+      // 🔥 SỬA THEO YÊU CẦU
+      child: OverlaySupport.global(
+        child: MaterialApp.router(
+          title: 'BidChain',
+          debugShowCheckedModeBanner: false,
+          routerConfig: appRouter,
+          theme: AppTheme.lightTheme,
+        ),
       ),
     );
   }
