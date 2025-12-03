@@ -33,65 +33,68 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       // Check if we have existing chat history
       final storedMessages = geminiService.getChatHistory();
 
-      if (storedMessages.isNotEmpty) {
-        // Convert stored messages to ChatMessageModel, excluding system prompt and acknowledgment
-        final messages = storedMessages
-            .where((msg) {
-              final parts = msg['parts'] as List<dynamic>? ?? [];
-              final text = parts.isNotEmpty
-                  ? (parts[0] as Map<String, dynamic>)['text'] ?? ''
-                  : '';
-              // Filter out system prompt and AI acknowledgment
-              return !text.contains('You are an AI assistant for BidChain') &&
-                  text != 'I understand. I\'m ready to help!';
-            })
-            .map((msg) {
-              final uuid = Uuid();
-              final parts = msg['parts'] as List<dynamic>? ?? [];
-              final text = parts.isNotEmpty
-                  ? (parts[0] as Map<String, dynamic>)['text'] ?? ''
-                  : '';
+      // Filter out system prompt (first user message with system instruction)
+      final filteredMessages = <Map<String, dynamic>>[];
+      bool systemPromptFound = false;
 
-              return ChatMessageModel(
-                id: uuid.v4(),
-                content: text,
-                timestamp: DateTime.now(),
-                isUserMessage: msg['role'] == 'user',
-              );
-            })
-            .toList();
+      for (final msg in storedMessages) {
+        final parts = msg['parts'] as List<dynamic>? ?? [];
+        final text = parts.isNotEmpty
+            ? (parts[0] as Map<String, dynamic>)['text'] ?? ''
+            : '';
 
-        if (messages.isNotEmpty) {
-          emit(ChatLoaded(messages: messages));
-        } else {
-          // All messages were system prompts, show welcome message
-          const uuid = Uuid();
-          final welcomeMessage = ChatMessageModel(
-            id: uuid.v4(),
-            content:
-                'Hello! I\'m here to help you with questions about products, prices, trends, and bidding strategies. What can I help you with today?',
-            timestamp: DateTime.now(),
-            isUserMessage: false,
-          );
-
-          emit(ChatLoaded(messages: [welcomeMessage]));
+        // Skip first user message that contains system instruction keywords
+        if (msg['role'] == 'user' &&
+            !systemPromptFound &&
+            (text.contains('You are an AI assistant') ||
+                text.contains('auction') ||
+                text.contains('bidding'))) {
+          systemPromptFound = true;
+          continue;
         }
-      } else {
-        // No stored history, create welcome message
-        const uuid = Uuid();
-        final welcomeMessage = ChatMessageModel(
-          id: uuid.v4(),
-          content:
-              'Hello! I\'m here to help you with questions about products, prices, trends, and bidding strategies. What can I help you with today?',
-          timestamp: DateTime.now(),
-          isUserMessage: false,
-        );
 
-        emit(ChatLoaded(messages: [welcomeMessage]));
+        filteredMessages.add(msg);
+      }
+
+      if (filteredMessages.isNotEmpty) {
+        // Convert to ChatMessageModel
+        final messages = filteredMessages.map((msg) {
+          final uuid = Uuid();
+          final parts = msg['parts'] as List<dynamic>? ?? [];
+          final text = parts.isNotEmpty
+              ? (parts[0] as Map<String, dynamic>)['text'] ?? ''
+              : '';
+
+          return ChatMessageModel(
+            id: uuid.v4(),
+            content: text,
+            timestamp: DateTime.now(),
+            isUserMessage: msg['role'] == 'user',
+          );
+        }).toList();
+
+        emit(ChatLoaded(messages: messages));
+      } else {
+        // No user messages found, show welcome message
+        _emitWelcomeMessage(emit);
       }
     } catch (e) {
       emit(ChatError('Failed to initialize chat: $e'));
     }
+  }
+
+  /// Emit welcome message
+  void _emitWelcomeMessage(Emitter<ChatState> emit) {
+    const uuid = Uuid();
+    final welcomeMessage = ChatMessageModel(
+      id: uuid.v4(),
+      content:
+          'Hello! I\'m here to help you with questions about products, prices, trends, and bidding strategies. What can I help you with today?',
+      timestamp: DateTime.now(),
+      isUserMessage: false,
+    );
+
+    emit(ChatLoaded(messages: [welcomeMessage]));
   }
 
   /// Handle sending user message

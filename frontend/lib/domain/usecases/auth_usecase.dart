@@ -61,11 +61,22 @@ class AuthUseCase {
     String? username,
     String? email,
     String? phoneNumber,
+    String? country,
+    String? city,
+    String? district,
+    String? address,
+    String? bio,
   }) async {
     return await authRepository.updateProfile(
       fullName: fullName,
       username: username,
       email: email,
+      phoneNumber: phoneNumber,
+      country: country,
+      city: city,
+      district: district,
+      address: address,
+      bio: bio,
     );
   }
 

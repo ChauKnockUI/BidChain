@@ -11,9 +11,9 @@ import '../../bloc/auth/auth_state.dart';
 import '../../bloc/auth/auth_event.dart';
 import '../../../core/utils/validators.dart';
 import 'widgets/avatar_picker.dart';
-import 'widgets/password_change_form.dart';
 import 'widgets/location_picker.dart';
 import 'widgets/bio_input.dart';
+import 'widgets/password_change_form.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -37,7 +37,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String? _selectedCountry;
   String? _selectedCity;
   String? _selectedDistrict;
-  String? _selectedWard;
   String? _selectedAddress;
   String? _selectedBio;
 
@@ -56,7 +55,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       _selectedCountry = user.country;
       _selectedCity = user.city;
       _selectedDistrict = user.district;
-      _selectedWard = user.ward;
       _selectedAddress = user.address;
       _selectedBio = user.bio;
     } else {
@@ -94,12 +92,73 @@ class _EditProfilePageState extends State<EditProfilePage> {
           country: _selectedCountry,
           city: _selectedCity,
           district: _selectedDistrict,
-          ward: _selectedWard,
           address: _selectedAddress,
           bio: _selectedBio,
         ),
       );
     }
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.8,
+          maxChildSize: 0.9,
+          minChildSize: 0.5,
+          builder: (context, scrollController) => SingleChildScrollView(
+            controller: scrollController,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Change Password',
+                        style: AppTextStyles.h3.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => context.pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Update your password to keep your account secure',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Password form inside dialog
+                  PasswordChangeForm(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -202,14 +261,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
               initialCountry: _selectedCountry,
               initialCity: _selectedCity,
               initialDistrict: _selectedDistrict,
-              initialWard: _selectedWard,
               initialAddress: _selectedAddress,
-              onLocationChanged: (country, city, district, ward, address) {
+              onLocationChanged: (country, city, district, address) {
                 setState(() {
                   _selectedCountry = country;
                   _selectedCity = city;
                   _selectedDistrict = district;
-                  _selectedWard = ward;
                   _selectedAddress = address;
                 });
               },
@@ -224,12 +281,31 @@ class _EditProfilePageState extends State<EditProfilePage> {
               },
             ),
             SizedBox(height: 32),
-            Text(
-              'Security',
-              style: AppTextStyles.h4.copyWith(fontWeight: FontWeight.bold),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () {
+                  _showChangePasswordDialog(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  side: const BorderSide(color: Colors.grey, width: 1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Change Password',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
             ),
-            SizedBox(height: 16),
-            PasswordChangeForm(),
             SizedBox(height: 32),
             PrimaryButton(title: 'Save Changes', onPress: _save),
             SizedBox(height: 40),

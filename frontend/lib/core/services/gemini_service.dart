@@ -2,11 +2,13 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/constants/gemini_config.dart';
+import '../../data/datasources/remote/auction_data_source.dart';
 
 class GeminiService {
   final String apiKey;
   late List<Map<String, dynamic>> _chatHistory;
   static const String _storageKey = 'chat_history';
+  final AuctionDataSource _auctionDataSource = AuctionDataSource();
 
   GeminiService() : apiKey = GeminiConfig.apiKey {
     _chatHistory = [];
@@ -60,6 +62,51 @@ class GeminiService {
   /// Send message to Gemini via REST API and get response
   Future<String> sendMessage(String userMessage) async {
     try {
+      // Check if user is asking about top/expensive items
+      String contextualMessage = userMessage;
+      final lowerMessage = userMessage.toLowerCase();
+
+      if (lowerMessage.contains('đắt nhất') ||
+          lowerMessage.contains('expensive') ||
+          lowerMessage.contains('cao nhất') ||
+          lowerMessage.contains('highest') ||
+          lowerMessage.contains('most valuable') ||
+          (lowerMessage.contains('đắt') &&
+              lowerMessage.contains('trên hệ thống')) ||
+          lowerMessage.contains('top') && lowerMessage.contains('price')) {
+        try {
+          print('[CHATBOT] Detected auction query, fetching data...');
+          // Fetch top expensive auctions
+          final topAuctions = await _auctionDataSource.getTopExpensiveAuctions(
+            limit: 5,
+          );
+          if (topAuctions.isNotEmpty) {
+            print('[CHATBOT] Got ${topAuctions.length} auctions:');
+            for (var a in topAuctions) {
+              print(
+                '[CHATBOT] - ${a['title']}: ${a['current_price']} (${a['status']})',
+              );
+            }
+            final formattedAuctions = _auctionDataSource.formatAuctionsForChat(
+              topAuctions,
+            );
+            contextualMessage =
+                '''$userMessage
+
+Current high-value items on BidChain:
+$formattedAuctions
+
+Please reference ONLY these real items when answering. Do not make up or assume any items not in this list.''';
+            print('[CHATBOT] Successfully prepared auction context for Gemini');
+          } else {
+            print('[CHATBOT] No approved/active auctions found');
+          }
+        } catch (e) {
+          print('[CHATBOT] Error fetching auction data: $e');
+          // Continue with regular message if auction fetch fails
+        }
+      }
+
       // Add user message to history
       _chatHistory.add({
         'role': 'user',
@@ -69,29 +116,23 @@ class GeminiService {
       });
       await _saveChatHistory();
 
-      // Build request with system prompt included
-      final List<Map<String, dynamic>> requestContents = [
-        {
-          'role': 'user',
-          'parts': [
-            {'text': GeminiConfig.systemPrompt},
-          ],
-        },
-        {
-          'role': 'model',
-          'parts': [
-            {'text': 'I understand. I\'m ready to help!'},
-          ],
-        },
-        ..._chatHistory, // Add all chat history messages
-      ];
-
       final url = Uri.parse(
         'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$apiKey',
       );
 
+      // Prepare the message with system context
+      final messageWithContext =
+          '${GeminiConfig.systemPrompt}\n\nUser: $contextualMessage';
+
       final requestBody = {
-        'contents': requestContents,
+        'contents': [
+          {
+            'role': 'user',
+            'parts': [
+              {'text': messageWithContext},
+            ],
+          },
+        ],
         'generationConfig': {
           'temperature': GeminiConfig.temperature,
           'maxOutputTokens': GeminiConfig.maxOutputTokens,
@@ -127,11 +168,20 @@ class GeminiService {
         }
       } else if (response.statusCode == 400) {
         print('API Error 400: ${response.body}');
-        return 'API Key is invalid or Gemini API is not enabled. Please check GEMINI_API_KEY in .env file and ensure Gemini API is enabled on Google Cloud.';
+        final errorBody = jsonDecode(response.body);
+        final errorMessage = errorBody['error']?['message'] ?? '';
+
+        if (errorMessage.contains('expired') ||
+            errorMessage.contains('invalid')) {
+          return '❌ API Key has expired or is invalid. Please update GEMINI_API_KEY in the .env file with a valid key from Google Cloud Console.';
+        } else if (errorMessage.contains('not enabled')) {
+          return '❌ Gemini API is not enabled in your Google Cloud project. Please enable it in the Google Cloud Console.';
+        }
+        return 'API configuration error: $errorMessage';
       } else if (response.statusCode == 429) {
-        return 'Rate limit exceeded. Please try again later.';
+        return '⏱️ Rate limit exceeded. Please try again later.';
       } else if (response.statusCode == 401) {
-        return 'Invalid API key. Please check your configuration.';
+        return '❌ Unauthorized: Invalid API key. Please check your GEMINI_API_KEY configuration.';
       } else {
         print('API Error: ${response.statusCode} - ${response.body}');
         return 'Error: ${response.statusCode} - ${response.reasonPhrase}';

@@ -6,6 +6,7 @@ import '../../data/datasources/remote/auction_detail_remote_datasource.dart';
 import '../../data/datasources/remote/auction_remote_datasource.dart';
 import '../../data/datasources/remote/category_remote_datasource.dart';
 import '../../data/datasources/remote/user_remote_datasource.dart';
+import '../../data/repositories/notification_repository_impl.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/my_activity_repository_impl.dart';
 import '../../data/repositories/auction_detail_repository_impl.dart';
@@ -17,6 +18,7 @@ import '../../data/repositories/category_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/my_activity_repository.dart';
 import '../../domain/repositories/auction_detail_repository.dart';
+import '../../domain/repositories/notification_repository.dart';
 import '../../domain/usecases/auth/login_usecase.dart';
 import '../../domain/usecases/auth/register_usecase.dart';
 import '../../domain/usecases/auth/update_profile_usecase.dart';
@@ -30,6 +32,7 @@ import '../../domain/usecases/get_categories_usecase.dart';
 import '../../presentation/bloc/create_auction/create_auction_bloc.dart';
 import '../../presentation/bloc/auction/auction_bloc.dart';
 import '../../presentation/bloc/category/category_bloc.dart';
+import '../../presentation/bloc/notification/notification_bloc.dart';
 import '../../data/repositories/payment_repository.dart';
 import '../../presentation/bloc/payment/payment_bloc.dart';
 import '../network/dio_client.dart';
@@ -37,6 +40,7 @@ import '../network/network_info.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import '../../core/services/gemini_service.dart';
 import '../../core/services/location_service.dart';
+import '../../core/services/socket_service.dart';
 import '../../presentation/bloc/chat/chat_bloc.dart';
 
 class InjectionContainer {
@@ -82,8 +86,15 @@ class InjectionContainer {
   static late GeminiService _geminiService;
   static late ChatBloc _chatBloc;
 
+  // Socket dependencies
+  static late SocketService _socketService;
+
   // Location dependencies
   static late LocationService _locationService;
+
+  // Notification dependencies
+  static late NotificationRepository _notificationRepository;
+  static late NotificationBloc _notificationBloc;
 
   static Future<void> init() async {
     _sharedPreferences = await SharedPreferences.getInstance();
@@ -144,8 +155,18 @@ class InjectionContainer {
     _geminiService = GeminiService();
     _chatBloc = ChatBloc(geminiService: _geminiService);
 
+    // Socket
+    _socketService = SocketService();
+
     // Location
     _locationService = LocationService(dioClient: _dioClient);
+
+    // Notification
+    _notificationRepository = NotificationRepositoryImpl();
+    _notificationBloc = NotificationBloc(
+      repository: _notificationRepository,
+      socketService: _socketService,
+    );
   }
 
   static MyActivityBloc getMyActivityBloc() =>
@@ -188,4 +209,6 @@ class InjectionContainer {
   static GeminiService getGeminiService() => _geminiService;
 
   static LocationService getLocationService() => _locationService;
+
+  static NotificationBloc getNotificationBloc() => _notificationBloc;
 }

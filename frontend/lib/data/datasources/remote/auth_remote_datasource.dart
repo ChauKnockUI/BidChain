@@ -27,7 +27,6 @@ abstract class AuthRemoteDataSource {
     String? country,
     String? city,
     String? district,
-    String? ward,
     String? address,
     String? bio,
   });
@@ -113,7 +112,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? country,
     String? city,
     String? district,
-    String? ward,
     String? address,
     String? bio,
   }) async {
@@ -126,7 +124,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (country != null) data['country'] = country;
       if (city != null) data['city'] = city;
       if (district != null) data['district'] = district;
-      if (ward != null) data['ward'] = ward;
       if (address != null) data['address'] = address;
       if (bio != null) data['bio'] = bio;
 

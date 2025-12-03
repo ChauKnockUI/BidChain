@@ -30,7 +30,6 @@ abstract class AuthRepository {
     String? country,
     String? city,
     String? district,
-    String? ward,
     String? address,
     String? bio,
   });

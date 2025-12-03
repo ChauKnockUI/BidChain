@@ -104,7 +104,6 @@ class AuthRepositoryImpl implements AuthRepository {
     String? country,
     String? city,
     String? district,
-    String? ward,
     String? address,
     String? bio,
   }) async {
@@ -117,7 +116,6 @@ class AuthRepositoryImpl implements AuthRepository {
         country: country,
         city: city,
         district: district,
-        ward: ward,
         address: address,
         bio: bio,
       );

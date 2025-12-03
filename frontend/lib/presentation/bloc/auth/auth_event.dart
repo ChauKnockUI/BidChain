@@ -60,7 +60,6 @@ class AuthUpdateProfileEvent extends AuthEvent {
   final String? country;
   final String? city;
   final String? district;
-  final String? ward;
   final String? address;
   final String? bio;
 
@@ -72,7 +71,6 @@ class AuthUpdateProfileEvent extends AuthEvent {
     this.country,
     this.city,
     this.district,
-    this.ward,
     this.address,
     this.bio,
   });
@@ -86,7 +84,6 @@ class AuthUpdateProfileEvent extends AuthEvent {
     country,
     city,
     district,
-    ward,
     address,
     bio,
   ];

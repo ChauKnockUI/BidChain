@@ -16,7 +16,6 @@ class UpdateProfileUseCase {
     String? country,
     String? city,
     String? district,
-    String? ward,
     String? address,
     String? bio,
   }) async {
@@ -28,7 +27,6 @@ class UpdateProfileUseCase {
       country: country,
       city: city,
       district: district,
-      ward: ward,
       address: address,
       bio: bio,
     );

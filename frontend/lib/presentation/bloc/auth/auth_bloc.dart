@@ -124,7 +124,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       country: event.country,
       city: event.city,
       district: event.district,
-      ward: event.ward,
       address: event.address,
       bio: event.bio,
     );

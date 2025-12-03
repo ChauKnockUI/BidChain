@@ -159,26 +159,34 @@ class _MainLayoutState extends State<MainLayout> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildNavItem(
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                  index: 0,
+                Flexible(
+                  child: _buildNavItem(
+                    icon: Icons.home_rounded,
+                    label: 'Home',
+                    index: 0,
+                  ),
                 ),
-                _buildNavItem(
-                  icon: Icons.gavel_rounded,
-                  label: 'Auctions',
-                  index: 1,
+                Flexible(
+                  child: _buildNavItem(
+                    icon: Icons.gavel_rounded,
+                    label: 'Auctions',
+                    index: 1,
+                  ),
                 ),
                 const SizedBox(width: 64), // Space for floating button
-                _buildNavItem(
-                  icon: Icons.account_balance_wallet_rounded,
-                  label: 'Wallet',
-                  index: 3,
+                Flexible(
+                  child: _buildNavItem(
+                    icon: Icons.account_balance_wallet_rounded,
+                    label: 'Wallet',
+                    index: 3,
+                  ),
                 ),
-                _buildNavItem(
-                  icon: Icons.person_rounded,
-                  label: 'Profile',
-                  index: 4,
+                Flexible(
+                  child: _buildNavItem(
+                    icon: Icons.person_rounded,
+                    label: 'Profile',
+                    index: 4,
+                  ),
                 ),
               ],
             ),

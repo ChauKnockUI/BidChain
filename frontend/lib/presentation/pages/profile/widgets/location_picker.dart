@@ -8,16 +8,14 @@ class LocationPicker extends StatefulWidget {
   final String? initialCountry;
   final String? initialCity;
   final String? initialDistrict;
-  final String? initialWard;
   final String? initialAddress;
-  final Function(String?, String?, String?, String?, String?) onLocationChanged;
+  final Function(String?, String?, String?, String?) onLocationChanged;
 
   const LocationPicker({
     super.key,
     this.initialCountry,
     this.initialCity,
     this.initialDistrict,
-    this.initialWard,
     this.initialAddress,
     required this.onLocationChanged,
   });
@@ -30,7 +28,6 @@ class _LocationPickerState extends State<LocationPicker> {
   late String? selectedCountry;
   late String? selectedCity;
   late String? selectedDistrict;
-  late String? selectedWard;
   late TextEditingController addressCtrl;
 
   late LocationService _locationService;
@@ -38,12 +35,10 @@ class _LocationPickerState extends State<LocationPicker> {
   List<String> countries = [];
   List<String> cities = [];
   List<String> districts = [];
-  List<String> wards = [];
 
   bool isLoadingCountries = false;
   bool isLoadingCities = false;
   bool isLoadingDistricts = false;
-  bool isLoadingWards = false;
 
   @override
   void initState() {
@@ -53,7 +48,6 @@ class _LocationPickerState extends State<LocationPicker> {
     selectedCountry = widget.initialCountry;
     selectedCity = widget.initialCity;
     selectedDistrict = widget.initialDistrict;
-    selectedWard = widget.initialWard;
     addressCtrl = TextEditingController(text: widget.initialAddress ?? '');
 
     _loadCountries();
@@ -61,9 +55,6 @@ class _LocationPickerState extends State<LocationPicker> {
       _loadCities(selectedCountry!);
       if (selectedCity != null) {
         _loadDistricts(selectedCity!);
-        if (selectedDistrict != null) {
-          _loadWards(selectedDistrict!);
-        }
       }
     }
   }
@@ -122,29 +113,11 @@ class _LocationPickerState extends State<LocationPicker> {
     }
   }
 
-  Future<void> _loadWards(String district) async {
-    setState(() {
-      isLoadingWards = true;
-      wards = [];
-    });
-    try {
-      final result = await _locationService.getWards(district);
-      setState(() {
-        wards = result;
-        isLoadingWards = false;
-      });
-    } catch (e) {
-      print('Error loading wards: $e');
-      setState(() => isLoadingWards = false);
-    }
-  }
-
   void _notifyChange() {
     widget.onLocationChanged(
       selectedCountry,
       selectedCity,
       selectedDistrict,
-      selectedWard,
       addressCtrl.text.isEmpty ? null : addressCtrl.text,
     );
   }
@@ -216,10 +189,8 @@ class _LocationPickerState extends State<LocationPicker> {
                           selectedCountry = value;
                           selectedCity = null;
                           selectedDistrict = null;
-                          selectedWard = null;
                           cities = [];
                           districts = [];
-                          wards = [];
                         });
                         if (value != null) {
                           _loadCities(value);
@@ -302,9 +273,7 @@ class _LocationPickerState extends State<LocationPicker> {
                                 setState(() {
                                   selectedCity = value;
                                   selectedDistrict = null;
-                                  selectedWard = null;
                                   districts = [];
-                                  wards = [];
                                 });
                                 if (value != null) {
                                   _loadDistricts(value);
@@ -388,89 +357,6 @@ class _LocationPickerState extends State<LocationPicker> {
                             : (value) {
                                 setState(() {
                                   selectedDistrict = value;
-                                  selectedWard = null;
-                                  wards = [];
-                                });
-                                if (value != null) {
-                                  _loadWards(value);
-                                }
-                                _notifyChange();
-                              },
-                      ),
-              ],
-            ),
-          ),
-
-        // Ward
-        if (selectedDistrict != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Ward',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                isLoadingWards
-                    ? const SizedBox(
-                        height: 48,
-                        child: Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      )
-                    : DropdownButtonFormField<String>(
-                        initialValue: selectedWard,
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: AppColors.greyLight,
-                              width: 1,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: AppColors.accent,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          disabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
-                              color: AppColors.greyLight,
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                        items: wards.map<DropdownMenuItem<String>>((ward) {
-                          return DropdownMenuItem<String>(
-                            value: ward,
-                            child: Text(ward),
-                          );
-                        }).toList(),
-                        onChanged: wards.isEmpty
-                            ? null
-                            : (value) {
-                                setState(() {
-                                  selectedWard = value;
                                 });
                                 _notifyChange();
                               },

@@ -43,6 +43,9 @@ final GoRouter appRouter = GoRouter(
               create: (context) =>
                   InjectionContainer.getCategoryBloc()..add(GetCategories()),
             ),
+            BlocProvider(
+              create: (context) => InjectionContainer.getNotificationBloc(),
+            ),
           ],
           child: child, // child = currently active nested route
         );
