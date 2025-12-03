@@ -7,6 +7,7 @@ import '../../models/user_model.dart';
 
 abstract class UserRemoteDataSource {
   Future<UserModel> getUserProfile();
+  Future<UserModel> getUserById(String userId);
   Future<UserModel> updateUserProfile({
     String? fullName,
     String? avatar,
@@ -37,6 +38,26 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
       } else {
         throw ServerException(
           message: response.data['error'] ?? 'Failed to get user profile',
+          statusCode: response.statusCode,
+        );
+      }
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<UserModel> getUserById(String userId) async {
+    try {
+      final response = await dioClient.get('/user/$userId');
+
+      if (response.statusCode == 200) {
+        return UserModel.fromJson(response.data);
+      } else {
+        throw ServerException(
+          message: response.data['error'] ?? 'Failed to get user',
           statusCode: response.statusCode,
         );
       }

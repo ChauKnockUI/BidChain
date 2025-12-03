@@ -10,6 +10,10 @@ class UserRepository {
     return await remoteDataSource.getUserProfile();
   }
 
+  Future<UserModel> getUserById(String userId) async {
+    return await remoteDataSource.getUserById(userId);
+  }
+
   Future<UserModel> updateUserProfile({
     String? fullName,
     String? avatar,
