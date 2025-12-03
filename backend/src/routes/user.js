@@ -29,7 +29,110 @@ router.get("/me", authMiddleware, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+})
+
+  ;
+// Lấy thống kê của bản thân
+router.get("/me/stats", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Count auctions created by this user
+    const auctionsCount = await Auction.countDocuments({ seller_id: userId });
+
+    // Count bids made by this user
+    const bidsCount = await Bid.countDocuments({ user_id: userId });
+
+    // Count wins (auctions where user is highest bidder and status is SETTLED or CONFIRMED)
+    const winsCount = await Auction.countDocuments({
+      highest_bidder_id: userId,
+      status: { $in: ['SETTLED', 'CONFIRMED'] }
+    });
+
+    // Calculate success rate (wins / total participated auctions)
+    const participatedAuctions = await Bid.aggregate([
+      { $match: { user_id: user._id } },
+      { $group: { _id: "$auction_id" } }
+    ]);
+    const totalParticipated = participatedAuctions.length;
+    const successRate = totalParticipated > 0
+      ? Math.round((winsCount / totalParticipated) * 100)
+      : 0;
+
+    res.json({
+      auctions: auctionsCount,
+      bids: bidsCount,
+      wins: winsCount,
+      successRate: successRate
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
+// Lấy thông tin công khai của user theo ID
+router.get("/:id", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId).select("-password_hash -encrypted_private_key -momo_phone");
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Lấy thống kê của user theo ID
+router.get("/:id/stats", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Count auctions created by this user
+    const auctionsCount = await Auction.countDocuments({ seller_id: userId });
+
+    // Count bids made by this user
+    const bidsCount = await Bid.countDocuments({ user_id: userId });
+
+    // Count wins (auctions where user is highest bidder and status is SETTLED or CONFIRMED)
+    const winsCount = await Auction.countDocuments({
+      highest_bidder_id: userId,
+      status: { $in: ['SETTLED', 'CONFIRMED'] }
+    });
+
+    // Calculate success rate (wins / total participated auctions)
+    const participatedAuctions = await Bid.aggregate([
+      { $match: { user_id: user._id } },
+      { $group: { _id: "$auction_id" } }
+    ]);
+    const totalParticipated = participatedAuctions.length;
+    const successRate = totalParticipated > 0
+      ? Math.round((winsCount / totalParticipated) * 100)
+      : 0;
+
+    res.json({
+      auctions: auctionsCount,
+      bids: bidsCount,
+      wins: winsCount,
+      successRate: successRate
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // Cập nhật thông tin hồ sơ của tôi
 router.put("/me", authMiddleware, async (req, res) => {
