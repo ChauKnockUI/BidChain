@@ -19,6 +19,7 @@ const AUCTION_ARTIFACT = require("../../../blockchain/artifacts/contracts/Auctio
 const AUCTION_ABI = AUCTION_ARTIFACT.abi;
 const AUCTION_BYTECODE = AUCTION_ARTIFACT.bytecode;
 
+
 async function deployAuctionContract(auctionData) {
     try {
         console.log("Bắt đầu deploy contract Auction (ethers v5)...");
@@ -54,10 +55,21 @@ async function deployAuctionContract(auctionData) {
         );
 
         console.log("Chờ transaction confirm...");
-        await tx.wait();
+        const receipt = await tx.wait();
 
-        console.log("Tạo auction thành công!");
-        return contractAddress;
+        // Extract blockchain_id from AuctionCreated event
+        const auctionCreatedEvent = receipt.events?.find(e => e.event === 'AuctionCreated');
+        const blockchain_id = auctionCreatedEvent?.args?.auctionId?.toNumber() || 1;
+
+        console.log("✅ Tạo auction thành công!");
+        console.log(`   Contract Address: ${contractAddress}`);
+        console.log(`   Blockchain ID: ${blockchain_id}`);
+
+        // Return both contract address and blockchain_id
+        return {
+            contract_address: contractAddress,
+            blockchain_id: blockchain_id
+        };
 
     } catch (error) {
         console.error("Deploy thất bại:", error);

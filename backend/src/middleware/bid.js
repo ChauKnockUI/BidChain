@@ -225,6 +225,66 @@ const handleBidLocking = async (req, res, next) => {
 
     console.log(`✅ Bid placed successfully: ${amountVnd} VND on auction ${auction._id}`);
 
+    // ========== RECORD BID ON BLOCKCHAIN ==========
+    // This happens AFTER MongoDB transaction to ensure bid is valid
+    if (auction.blockchain_id && auction.contract_address) {
+      try {
+        const { walletFromPrivateKey, provider } = require('../blockchain/contract');
+        const fs = require('fs');
+        const path = require('path');
+
+        // Calculate signature hash for on-chain recording
+        const signatureHash = ethers.utils.keccak256(signature);
+
+        // Get deployer wallet to sign transaction
+        const deployer = walletFromPrivateKey(process.env.DEPLOYER_PRIVATE_KEY);
+
+        // Load ABI
+        const abiPath = process.env.CONTRACT_ABI_PATH || './abi/Auction.json';
+        const abiRaw = fs.readFileSync(path.resolve(abiPath), 'utf8');
+        const abiParsed = JSON.parse(abiRaw);
+        const abi = abiParsed.abi || abiParsed;
+
+        // Create contract instance using AUCTION'S contract_address (not global!)
+        const auctionContract = new ethers.Contract(auction.contract_address, abi, provider);
+
+        console.log(`📝 Recording bid on blockchain for auction ${auction.blockchain_id}...`);
+        console.log(`   Contract: ${auction.contract_address}`);
+
+        // Call smart contract recordBid function
+        const tx = await auctionContract.connect(deployer).recordBid(
+          auction.blockchain_id,           // Auction ID on blockchain
+          user.wallet_address,             // Bidder address
+          ethers.BigNumber.from(amountWei), // Amount in Wei
+          signatureHash                    // Hash of EIP-712 signature
+        );
+
+        console.log(`⏳ Waiting for transaction confirmation: ${tx.hash}`);
+        const receipt = await tx.wait();
+
+        console.log(`✅ Bid recorded on-chain!`);
+        console.log(`   TX Hash: ${tx.hash}`);
+        console.log(`   Block: ${receipt.blockNumber}`);
+
+        // Get the bid hash from the event
+        const bidRecordedEvent = receipt.events?.find(e => e.event === 'BidRecorded');
+        const onChainBidHash = bidRecordedEvent?.args?.bidHash;
+
+        // Update bid document with on-chain info
+        await Bid.findByIdAndUpdate(newBid._id, {
+          on_chain_tx_hash: tx.hash,
+          on_chain_block: receipt.blockNumber,
+          on_chain_bid_hash: onChainBidHash
+        });
+
+      } catch (onChainError) {
+        // Log error but don't fail the request - bid is still valid in MongoDB
+        console.error('⚠️ Failed to record bid on blockchain (bid still valid):', onChainError.message);
+      }
+    } else {
+      console.log('ℹ️ Auction has no blockchain_id, skipping on-chain recording');
+    }
+
     req.bidResult = {
       bid: newBid,
       previousBidder

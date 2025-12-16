@@ -52,7 +52,16 @@ const AuctionSchema = new mongoose.Schema({
   // Blockchain tracking
   blockchain_id: { type: Number }, // On-chain auction ID from smart contract
   settled_on_chain: { type: Boolean, default: false }, // Whether settlement happened on blockchain
-  settlement_tx: { type: String } // Settlement transaction hash
+  settlement_tx: { type: String }, // Settlement transaction hash
+
+  // Metadata protection (title, images, description)
+  original_metadata: {
+    title: { type: String },
+    description: { type: String },
+    images: [{ type: String }]
+  },
+  metadata_hash: { type: String },    // Hash stored on-chain
+  metadata_hash_tx: { type: String }  // TX hash when metadata hash was set
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
