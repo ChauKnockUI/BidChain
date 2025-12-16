@@ -46,14 +46,28 @@ async function settleAuctionOnChain(auction) {
             return;
         }
 
-        // Call smart contract settlement
-        if (auction.blockchain_id) {
+        // Call smart contract settlement using AUCTION'S contract_address
+        if (auction.blockchain_id && auction.contract_address) {
             console.log(`Calling smart contract settlement for blockchain ID ${auction.blockchain_id}`);
+            console.log(`   Contract: ${auction.contract_address}`);
 
             const deployer = walletFromPrivateKey(process.env.DEPLOYER_PRIVATE_KEY);
 
             try {
-                const tx = await contract.connect(deployer).settleAuction(
+                // Load ABI and create contract instance using AUCTION'S contract_address
+                const fs = require('fs');
+                const path = require('path');
+                const ethers = require('ethers');
+                const { provider } = require('../blockchain/contract');
+
+                const abiPath = process.env.CONTRACT_ABI_PATH || './abi/Auction.json';
+                const abiRaw = fs.readFileSync(path.resolve(abiPath), 'utf8');
+                const abiParsed = JSON.parse(abiRaw);
+                const abi = abiParsed.abi || abiParsed;
+
+                const auctionContract = new ethers.Contract(auction.contract_address, abi, provider);
+
+                const tx = await auctionContract.connect(deployer).settleAuction(
                     auction.blockchain_id,
                     winningBid.user_id.wallet_address,
                     winningBid.amount_wei
@@ -63,11 +77,11 @@ async function settleAuctionOnChain(auction) {
                 const receipt = await tx.wait();
                 console.log(`Settlement confirmed in block ${receipt.blockNumber}`);
 
-                // Update auction with settlement info (Always update status)
+                // Update auction with settlement info
                 await Auction.findByIdAndUpdate(auction._id, {
                     status: AUCTION_STATUS.WAITING_CONFIRMATION,
                     settled_on_chain: true,
-                    // settlement_tx: tx.hash // This is only available if blockchain_id exists
+                    settlement_tx: tx.hash
                 });
 
             } catch (error) {

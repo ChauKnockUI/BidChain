@@ -206,6 +206,31 @@ router.get("/all", async (req, res) => {
 // Lấy chi tiết 1 phiên đấu giá
 router.get("/:id", [param("id").isMongoId()], async (req, res) => {
   try {
+    // ========== REAL-TIME VERIFY & RESTORE ==========
+    // This ensures data integrity BEFORE returning to user
+    const { verifyAndRestoreAuctionBids, verifyAndRestoreMetadata } = require('../utils/blockchain');
+
+    // Run bid verification (will auto-restore if tampered)
+    const verifyResult = await verifyAndRestoreAuctionBids(req.params.id, {
+      autoRestore: true,
+      silent: true  // Don't clutter logs
+    });
+
+    // Run metadata verification (title, images, description)
+    const metadataResult = await verifyAndRestoreMetadata(req.params.id, {
+      autoRestore: true,
+      silent: true
+    });
+
+    // Log if any tampering was detected and fixed
+    if (verifyResult.tampered > 0) {
+      console.log(`🛡️ Real-time protection: Restored ${verifyResult.restored} tampered bid(s) for auction ${req.params.id}`);
+    }
+    if (metadataResult.restored) {
+      console.log(`🛡️ Real-time protection: Restored tampered metadata for auction ${req.params.id}`);
+    }
+    // ========== END REAL-TIME VERIFY ==========
+
     const auction = await Auction.findById(req.params.id)
       .populate('seller_id', 'full_name email')
       .populate('highest_bidder_id', 'full_name');
@@ -214,7 +239,7 @@ router.get("/:id", [param("id").isMongoId()], async (req, res) => {
       return res.status(404).json({ error: "Auction not found" });
     }
 
-    // Get bid history
+    // Get bid history (now with verified data)
     const bids = await Bid.find({ auction_id: req.params.id })
       .populate('user_id', 'full_name')
       .sort({ created_at: -1 });
@@ -227,6 +252,9 @@ router.get("/:id", [param("id").isMongoId()], async (req, res) => {
       formatted_start_price: formatVnd(weiToVnd(auction.start_price.toString())),
       formatted_current_price: formatVnd(weiToVnd(auction.current_price.toString())),
       formatted_step_price: formatVnd(weiToVnd(auction.step_price.toString())),
+      // Add verification status
+      integrity_verified: verifyResult.tampered === 0 && verifyResult.errors === 0,
+      integrity_restored: verifyResult.restored > 0,
       bids: bids.map(bid => ({
         ...bid.toObject(),
         amount_vnd: weiToVnd(bid.amount_wei.toString()),
@@ -238,6 +266,90 @@ router.get("/:id", [param("id").isMongoId()], async (req, res) => {
   } catch (err) {
     console.error('Error fetching auction details:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== API VERIFY BID (Blockchain Transparency) ==========
+router.get("/verify-bid/:bidId", [param("bidId").isMongoId()], async (req, res) => {
+  try {
+    const { provider } = require("../blockchain/contract");
+    const fs = require('fs');
+    const path = require('path');
+
+    // Get bid with populated auction and user
+    const bid = await Bid.findById(req.params.bidId)
+      .populate('auction_id')
+      .populate('user_id', 'wallet_address');
+
+    if (!bid) {
+      return res.status(404).json({ error: "Bid not found" });
+    }
+
+    const auction = bid.auction_id;
+
+    // Check if auction has blockchain_id and contract_address
+    if (!auction.blockchain_id || !auction.contract_address) {
+      return res.json({
+        bid_id: bid._id,
+        amount_vnd: bid.amount_vnd,
+        verified: null,
+        message: "⚠️ Auction không có blockchain_id hoặc contract_address - không thể verify on-chain"
+      });
+    }
+
+    // Check if bid was recorded on-chain
+    if (!bid.on_chain_tx_hash) {
+      return res.json({
+        bid_id: bid._id,
+        amount_vnd: bid.amount_vnd,
+        verified: null,
+        message: "⚠️ Bid chưa được ghi on-chain"
+      });
+    }
+
+    // Load ABI and create contract instance using AUCTION'S contract_address
+    const abiPath = process.env.CONTRACT_ABI_PATH || './abi/Auction.json';
+    const abiRaw = fs.readFileSync(path.resolve(abiPath), 'utf8');
+    const abiParsed = JSON.parse(abiRaw);
+    const abi = abiParsed.abi || abiParsed;
+
+    const auctionContract = new ethers.Contract(auction.contract_address, abi, provider);
+
+    // Get bid hashes from blockchain using auction's specific contract
+    const bidHashes = await auctionContract.getBidHashes(auction.blockchain_id);
+    const bidCount = await auctionContract.getBidCount(auction.blockchain_id);
+
+    // Check if stored on_chain_bid_hash exists in blockchain
+    let verified = false;
+    if (bid.on_chain_bid_hash) {
+      verified = bidHashes.some(hash => hash.toLowerCase() === bid.on_chain_bid_hash.toLowerCase());
+    }
+
+    res.json({
+      bid_id: bid._id,
+      amount_vnd: bid.amount_vnd,
+      formatted_amount: formatVnd(bid.amount_vnd),
+      timestamp: bid.timestamp,
+      bidder_address: bid.user_id?.wallet_address,
+
+      // On-chain info
+      on_chain_tx_hash: bid.on_chain_tx_hash,
+      on_chain_block: bid.on_chain_block,
+      on_chain_bid_hash: bid.on_chain_bid_hash,
+
+      // Blockchain state
+      total_bids_on_chain: bidCount.toString(),
+
+      // Verification result
+      verified: verified,
+      message: verified
+        ? "✅ Bid đã được xác minh - Dữ liệu KHỚP với blockchain"
+        : "❌ CẢNH BÁO: Dữ liệu bid có thể đã bị thay đổi!"
+    });
+
+  } catch (error) {
+    console.error('Verify bid error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -494,16 +606,19 @@ router.post("/admin/approve/:auctionId", authMiddleware, async (req, res) => {
 
     // Deploy smart contract
     try {
-      const contractAddress = await deployAuctionContract(auction);
+      const deployResult = await deployAuctionContract(auction);
 
-      // Update auction status
+      // Update auction status with blockchain_id
       await Auction.findByIdAndUpdate(auctionId, {
         status: AUCTION_STATUS.APPROVED,
         approved_by: adminId,
         approved_at: new Date(),
-        contract_address: contractAddress,
+        contract_address: deployResult.contract_address,
+        blockchain_id: deployResult.blockchain_id,  // ← THÊM DÒNG NÀY
         start_time: new Date() // Set start time when approved
       });
+
+      console.log(`✅ Auction ${auctionId} approved with blockchain_id: ${deployResult.blockchain_id}`);
 
       // Create notification for seller
       const Notification = require('../models/Notification');
@@ -520,14 +635,16 @@ router.post("/admin/approve/:auctionId", authMiddleware, async (req, res) => {
       io.to(`user_${auction.seller_id._id}`).emit('auction_approved', {
         auction_id: auctionId,
         title: auction.title,
-        contract_address: contractAddress
+        contract_address: deployResult.contract_address,
+        blockchain_id: deployResult.blockchain_id
       });
 
       res.json({
         success: true,
         message: `Auction "${auction.title}" has been approved`,
         auction_id: auctionId,
-        contract_address: contractAddress,
+        contract_address: deployResult.contract_address,
+        blockchain_id: deployResult.blockchain_id,
         approved_by: admin.username || admin.full_name
       });
 

@@ -108,18 +108,66 @@ router.post('/:id/approve', authMiddleware, requireRole, [param('id').isMongoId(
 
     // deploy contract
     try {
-      const contractAddress = await deployAuctionContract(auction);
+      const deployResult = await deployAuctionContract(auction);
+
+      // ========== METADATA HASH PROTECTION ==========
+      // 1. Calculate metadata hash
+      const ethers = require('ethers');
+      const metadataString = JSON.stringify({
+        title: auction.title,
+        description: auction.description,
+        images: auction.images || []
+      });
+      const metadataHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(metadataString));
+
+      console.log(`📝 Metadata hash calculated: ${metadataHash}`);
+
+      // 2. Store metadata hash on-chain
+      const fs = require('fs');
+      const path = require('path');
+      const abiPath = process.env.CONTRACT_ABI_PATH || './abi/Auction.json';
+      const abiRaw = fs.readFileSync(path.resolve(abiPath), 'utf8');
+      const abiParsed = JSON.parse(abiRaw);
+      const abi = abiParsed.abi || abiParsed;
+
+      const deployerWallet = walletFromPrivateKey(process.env.DEPLOYER_PRIVATE_KEY);
+      const auctionContract = new ethers.Contract(deployResult.contract_address, abi, deployerWallet);
+
+      console.log(`⛓️ Setting metadata hash on-chain for auction ${deployResult.blockchain_id}...`);
+      const metadataTx = await auctionContract.setMetadataHash(deployResult.blockchain_id, metadataHash);
+      const metadataReceipt = await metadataTx.wait();
+      console.log(`✅ Metadata hash set on-chain in block ${metadataReceipt.blockNumber}`);
+      // ========== END METADATA HASH PROTECTION ==========
+
+      // deployResult now contains { contract_address, blockchain_id }
       await Auction.findByIdAndUpdate(auction._id, {
         status: AUCTION_STATUS.APPROVED,
         approved_by: requester._id,
         approved_at: new Date(),
-        contract_address: contractAddress,
-        start_time: new Date()
+        contract_address: deployResult.contract_address,
+        blockchain_id: deployResult.blockchain_id,
+        start_time: new Date(),
+        // Metadata protection fields
+        original_metadata: {
+          title: auction.title,
+          description: auction.description,
+          images: auction.images || []
+        },
+        metadata_hash: metadataHash,
+        metadata_hash_tx: metadataTx.hash
       });
+
+      console.log(`✅ Auction ${auction._id} approved with blockchain_id: ${deployResult.blockchain_id}`);
 
       await Notification.create({ user_id: auction.seller_id._id, type: 'AUCTION_APPROVED', title: 'Your auction approved', message: `Auction ${auction.title} has been approved`, related_id: auction._id });
 
-      return res.json({ success: true, message: 'Auction approved and deployed', contract_address: contractAddress });
+      return res.json({
+        success: true,
+        message: 'Auction approved and deployed',
+        contract_address: deployResult.contract_address,
+        blockchain_id: deployResult.blockchain_id,
+        metadata_hash: metadataHash
+      });
     } catch (err) {
       console.error('deploy fail in admin approve', err);
       return res.status(500).json({ error: 'Deploy failed', details: err.message });
@@ -253,7 +301,7 @@ router.post('/:id/settle', authMiddleware, requireRole, [param('id').isMongoId()
 
     // Notify winner and seller
     if (auction.highest_bidder_id) {
-      await Notification.create({ user_id: auction.highest_bidder_id._id, type: 'WON_AUCTION', title: 'You won the auction', message: `You have won ${auction.title}` , related_id: auction._id });
+      await Notification.create({ user_id: auction.highest_bidder_id._id, type: 'WON_AUCTION', title: 'You won the auction', message: `You have won ${auction.title}`, related_id: auction._id });
     }
     await Notification.create({ user_id: auction.seller_id._id, type: 'AUCTION_SETTLED', title: 'Auction settled', message: `Your auction ${auction.title} has been settled.`, related_id: auction._id });
 
@@ -261,6 +309,243 @@ router.post('/:id/settle', authMiddleware, requireRole, [param('id').isMongoId()
   } catch (err) {
     console.error('admin settle error', err);
     return res.status(500).json({ error: 'Failed to settle auction' });
+  }
+});
+
+// ========== BLOCKCHAIN AUDIT API ==========
+// GET /api/admin/auctions/:id/audit - Audit bids, compare DB vs Blockchain
+router.get('/:id/audit', authMiddleware, requireRole, [param('id').isMongoId()], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  try {
+    const requester = req.requester;
+    if (!['ADMIN', 'MANAGER'].includes(requester.role)) {
+      return res.status(403).json({ error: 'Admin/Manager only' });
+    }
+
+    const auction = await Auction.findById(req.params.id);
+    if (!auction) return res.status(404).json({ error: 'Auction not found' });
+
+    // Check if auction has blockchain info
+    if (!auction.blockchain_id || !auction.contract_address) {
+      return res.json({
+        auction_id: auction._id,
+        title: auction.title,
+        blockchain_id: null,
+        message: '⚠️ Auction không có blockchain_id hoặc contract_address',
+        audit_available: false
+      });
+    }
+
+    // Load contract for this specific auction
+    const fs = require('fs');
+    const path = require('path');
+    const ethers = require('ethers');
+
+    const abiPath = process.env.CONTRACT_ABI_PATH || './abi/Auction.json';
+    const abiRaw = fs.readFileSync(path.resolve(abiPath), 'utf8');
+    const abiParsed = JSON.parse(abiRaw);
+    const abi = abiParsed.abi || abiParsed;
+
+    const auctionContract = new ethers.Contract(auction.contract_address, abi, provider);
+
+    // Query BidRecorded events from blockchain
+    const filter = auctionContract.filters.BidRecorded(auction.blockchain_id);
+    const events = await auctionContract.queryFilter(filter);
+
+    console.log(`📊 Audit: Found ${events.length} BidRecorded events on-chain for auction ${auction.blockchain_id}`);
+
+    // Get all bids from MongoDB
+    const dbBids = await Bid.find({ auction_id: auction._id })
+      .populate('user_id', 'wallet_address full_name username')
+      .sort({ timestamp: 1 });
+
+    // Build audit report
+    const auditResults = [];
+    let tamperedCount = 0;
+    let verifiedCount = 0;
+    let notRecordedCount = 0;
+
+    for (const dbBid of dbBids) {
+      const result = {
+        bid_id: dbBid._id,
+        bidder: dbBid.user_id?.full_name || dbBid.user_id?.username,
+        bidder_address: dbBid.user_id?.wallet_address,
+        db_amount_wei: dbBid.amount_wei,
+        db_amount_vnd: dbBid.amount_vnd,
+        timestamp: dbBid.timestamp,
+        on_chain_tx_hash: dbBid.on_chain_tx_hash,
+        on_chain_block: dbBid.on_chain_block,
+        on_chain_bid_hash: dbBid.on_chain_bid_hash,
+        status: 'UNKNOWN'
+      };
+
+      if (!dbBid.on_chain_bid_hash) {
+        result.status = 'NOT_RECORDED';
+        result.message = '⚠️ Bid không được ghi on-chain';
+        notRecordedCount++;
+      } else {
+        // Find matching event on blockchain
+        const matchingEvent = events.find(e =>
+          e.args.bidHash.toLowerCase() === dbBid.on_chain_bid_hash.toLowerCase()
+        );
+
+        if (matchingEvent) {
+          // Compare amounts
+          const chainAmount = matchingEvent.args.amount.toString();
+          if (chainAmount === dbBid.amount_wei) {
+            result.status = 'VERIFIED';
+            result.message = '✅ Dữ liệu KHỚP với blockchain';
+            result.chain_amount_wei = chainAmount;
+            verifiedCount++;
+          } else {
+            result.status = 'TAMPERED';
+            result.message = '🚨 DỮ LIỆU ĐÃ BỊ THAY ĐỔI!';
+            result.chain_amount_wei = chainAmount;
+            result.discrepancy = {
+              db_value: dbBid.amount_wei,
+              chain_value: chainAmount,
+              difference: (BigInt(dbBid.amount_wei) - BigInt(chainAmount)).toString()
+            };
+            tamperedCount++;
+          }
+        } else {
+          result.status = 'HASH_NOT_FOUND';
+          result.message = '❓ Hash không tìm thấy trên blockchain';
+          notRecordedCount++;
+        }
+      }
+
+      auditResults.push(result);
+    }
+
+    // Summary
+    const summary = {
+      total_bids_db: dbBids.length,
+      total_bids_chain: events.length,
+      verified: verifiedCount,
+      tampered: tamperedCount,
+      not_recorded: notRecordedCount,
+      integrity_score: dbBids.length > 0
+        ? Math.round((verifiedCount / dbBids.length) * 100)
+        : 100
+    };
+
+    res.json({
+      auction_id: auction._id,
+      title: auction.title,
+      blockchain_id: auction.blockchain_id,
+      contract_address: auction.contract_address,
+      audit_timestamp: new Date().toISOString(),
+      summary,
+      bids: auditResults,
+      overall_status: tamperedCount > 0
+        ? '🚨 PHÁT HIỆN GIAN LẬN'
+        : (notRecordedCount > 0
+          ? '⚠️ Một số bid chưa được ghi on-chain'
+          : '✅ TẤT CẢ DỮ LIỆU HỢP LỆ')
+    });
+
+  } catch (err) {
+    console.error('Audit error:', err);
+    return res.status(500).json({ error: 'Audit failed', details: err.message });
+  }
+});
+
+// ========== RESTORE BID FROM BLOCKCHAIN ==========
+// POST /api/admin/auctions/restore-bid/:bidId - Restore bid data from blockchain
+router.post('/restore-bid/:bidId', authMiddleware, requireRole, [param('bidId').isMongoId()], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  try {
+    const requester = req.requester;
+    if (requester.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Admin only - Restore requires highest privilege' });
+    }
+
+    const bid = await Bid.findById(req.params.bidId).populate('auction_id');
+    if (!bid) return res.status(404).json({ error: 'Bid not found' });
+
+    const auction = bid.auction_id;
+    if (!auction.blockchain_id || !auction.contract_address) {
+      return res.status(400).json({ error: 'Auction không có blockchain info' });
+    }
+
+    if (!bid.on_chain_bid_hash) {
+      return res.status(400).json({ error: 'Bid không có on_chain_bid_hash - cannot restore' });
+    }
+
+    // Load contract
+    const fs = require('fs');
+    const path = require('path');
+    const ethers = require('ethers');
+
+    const abiPath = process.env.CONTRACT_ABI_PATH || './abi/Auction.json';
+    const abiRaw = fs.readFileSync(path.resolve(abiPath), 'utf8');
+    const abiParsed = JSON.parse(abiRaw);
+    const abi = abiParsed.abi || abiParsed;
+
+    const auctionContract = new ethers.Contract(auction.contract_address, abi, provider);
+
+    // Query events
+    const filter = auctionContract.filters.BidRecorded(auction.blockchain_id);
+    const events = await auctionContract.queryFilter(filter);
+
+    // Find matching event
+    const matchingEvent = events.find(e =>
+      e.args.bidHash.toLowerCase() === bid.on_chain_bid_hash.toLowerCase()
+    );
+
+    if (!matchingEvent) {
+      return res.status(404).json({ error: 'Không tìm thấy dữ liệu on-chain cho bid này' });
+    }
+
+    // Get original data from blockchain
+    const originalAmountWei = matchingEvent.args.amount.toString();
+    const { weiToVnd } = require('../../utils/conversion');
+    const originalAmountVnd = weiToVnd(originalAmountWei);
+
+    // Store old values for logging
+    const oldValues = {
+      amount_wei: bid.amount_wei,
+      amount_vnd: bid.amount_vnd
+    };
+
+    // Restore
+    await Bid.findByIdAndUpdate(bid._id, {
+      amount_wei: originalAmountWei,
+      amount_vnd: originalAmountVnd,
+      restored_from_chain: true,
+      restored_at: new Date(),
+      restored_by: requester._id
+    });
+
+    console.log(`🔄 Bid ${bid._id} restored from blockchain by ${requester.username}`);
+    console.log(`   Old: ${oldValues.amount_vnd} VND → New: ${originalAmountVnd} VND`);
+
+    res.json({
+      success: true,
+      message: '✅ Bid đã được khôi phục từ blockchain',
+      bid_id: bid._id,
+      old_values: oldValues,
+      restored_values: {
+        amount_wei: originalAmountWei,
+        amount_vnd: originalAmountVnd
+      },
+      blockchain_proof: {
+        tx_hash: bid.on_chain_tx_hash,
+        block_number: matchingEvent.blockNumber,
+        event_index: matchingEvent.logIndex
+      },
+      restored_by: requester.username,
+      restored_at: new Date().toISOString()
+    });
+
+  } catch (err) {
+    console.error('Restore error:', err);
+    return res.status(500).json({ error: 'Restore failed', details: err.message });
   }
 });
 

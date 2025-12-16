@@ -42,6 +42,12 @@ contract Auction {
     mapping(uint256 => AuctionMetadata) public auctions;
     uint256 public auctionCount;
 
+    // Bid hash storage for transparency - each auction stores array of bid hashes
+    mapping(uint256 => bytes32[]) public auctionBidHashes;
+
+    // Metadata hash storage for protecting title/images/description
+    mapping(uint256 => bytes32) public auctionMetadataHashes;
+
     // Events
     event AuctionCreated(
         uint256 indexed auctionId,
@@ -68,6 +74,19 @@ contract Auction {
 
     event AuctionCancelled(
         uint256 indexed auctionId
+    );
+
+    event BidRecorded(
+        uint256 indexed auctionId,
+        address indexed bidder,
+        uint256 amount,
+        bytes32 bidHash,
+        uint256 timestamp
+    );
+
+    event MetadataHashSet(
+        uint256 indexed auctionId,
+        bytes32 metadataHash
     );
 
     // Modifiers
@@ -261,6 +280,79 @@ contract Auction {
         return recoveredSigner == _expectedSigner;
     }
 
+    // ========== BID RECORDING (On-Chain Transparency) ==========
+
+    /**
+     * @notice Record a bid hash on-chain for transparency
+     * @dev Called by backend after each successful bid
+     * @param _auctionId Auction ID on blockchain
+     * @param _bidder Address of the bidder
+     * @param _amountWei Bid amount in Wei
+     * @param _signatureHash Hash of the EIP-712 signature
+     */
+    function recordBid(
+        uint256 _auctionId,
+        address _bidder,
+        uint256 _amountWei,
+        bytes32 _signatureHash
+    )
+        external
+        auctionExists(_auctionId)
+    {
+        // Create unique bid hash from bid data
+        bytes32 bidHash = keccak256(
+            abi.encodePacked(
+                _auctionId,
+                _bidder,
+                _amountWei,
+                _signatureHash,
+                block.timestamp
+            )
+        );
+
+        // Store hash in auction's bid history
+        auctionBidHashes[_auctionId].push(bidHash);
+
+        // Emit event for indexing and verification
+        emit BidRecorded(
+            _auctionId,
+            _bidder,
+            _amountWei,
+            bidHash,
+            block.timestamp
+        );
+    }
+
+    /**
+     * @notice Get all bid hashes for an auction
+     * @param _auctionId Auction ID
+     * @return Array of bid hashes
+     */
+    function getBidHashes(uint256 _auctionId)
+        external
+        view
+        auctionExists(_auctionId)
+        returns (bytes32[] memory)
+    {
+        return auctionBidHashes[_auctionId];
+    }
+
+    /**
+     * @notice Get bid count for an auction
+     * @param _auctionId Auction ID
+     * @return Number of bids recorded on-chain
+     */
+    function getBidCount(uint256 _auctionId)
+        external
+        view
+        auctionExists(_auctionId)
+        returns (uint256)
+    {
+        return auctionBidHashes[_auctionId].length;
+    }
+
+    // ========== QUERY FUNCTIONS ==========
+
     /**
      * @notice Get auction metadata
      * @param _auctionId Auction ID
@@ -306,6 +398,28 @@ contract Auction {
         // TODO: Add onlyOwner modifier
         require(_amount <= address(this).balance, "Insufficient balance");
         payable(msg.sender).transfer(_amount);
+    }
+
+    // ========== METADATA HASH FUNCTIONS ==========
+
+    /**
+     * @notice Set metadata hash for an auction (called during auction approval)
+     * @param _auctionId Auction ID
+     * @param _metadataHash Hash of title + description + images JSON
+     */
+    function setMetadataHash(uint256 _auctionId, bytes32 _metadataHash) external auctionExists(_auctionId) {
+        require(auctionMetadataHashes[_auctionId] == bytes32(0), "Metadata hash already set");
+        auctionMetadataHashes[_auctionId] = _metadataHash;
+        emit MetadataHashSet(_auctionId, _metadataHash);
+    }
+
+    /**
+     * @notice Get metadata hash for an auction
+     * @param _auctionId Auction ID
+     * @return Metadata hash stored on-chain
+     */
+    function getMetadataHash(uint256 _auctionId) external view auctionExists(_auctionId) returns (bytes32) {
+        return auctionMetadataHashes[_auctionId];
     }
 
     // Fallback function to receive ETH

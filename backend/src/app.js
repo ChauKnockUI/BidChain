@@ -56,6 +56,11 @@ const { runSettlementCron } = require('./cron/settlement');
 setInterval(runSettlementCron, 20000); // Run every minute
 console.log('Settlement cron job started (runs every 60s)');
 
+// Import and start integrity cron (auto-restore tampered bids)
+const { startIntegrityCron } = require('./cron/integrity');
+startIntegrityCron();
+
+
 // socket
 io.on("connection", (socket) => {
   console.log("New client:", socket.id);

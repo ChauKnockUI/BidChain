@@ -16,7 +16,18 @@ const BidSchema = new mongoose.Schema({
     default: 'VALID'
   },
   created_at: { type: Date, default: Date.now },
-  tx_settle_hash: { type: String } // Settlement transaction hash
+  tx_settle_hash: { type: String }, // Settlement transaction hash
+
+  // On-chain bid recording
+  on_chain_tx_hash: { type: String }, // Transaction hash of recordBid call
+  on_chain_block: { type: Number },   // Block number where bid was recorded
+  on_chain_bid_hash: { type: String }, // The bid hash stored on blockchain
+
+  // Restore tracking
+  restored_from_chain: { type: Boolean, default: false },
+  restored_at: { type: Date },
+  restored_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Bid', BidSchema);
+

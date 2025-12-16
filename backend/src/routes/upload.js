@@ -88,31 +88,34 @@ router.post("/avatar/update", authMiddleware, upload.single("file"), async (req,
   }
 });
 
-// ========== PRODUCT IMAGE APIs (IPFS) ==========
+// ========== PRODUCT IMAGE APIs (Now using Cloudinary for better performance) ==========
 
-// 2) Upload single product image -> Pinata (IPFS)
+// 2) Upload single product image -> Cloudinary (was IPFS/Pinata - too slow)
 router.post("/ipfs", authMiddleware, upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "File required" });
     const filePath = req.file.path;
 
-    const pinResult = await uploadFileToPinata(filePath, {
-      // optional pin options, metadata etc
+    // Upload to Cloudinary (auction_images folder)
+    const result = await cloudinary.uploader.upload(filePath, {
+      folder: "auction_images",
+      transformation: [
+        { width: 800, height: 800, crop: "limit" },  // Max size
+        { quality: "auto:good" }  // Auto optimize quality
+      ]
     });
 
-    // remove local file
+    // Remove local file
     fs.unlinkSync(filePath);
 
-    // pinResult.IpfsHash is the CID
-    const cid = pinResult.IpfsHash;
-    // Frontend should use gatewayUrl or ipfsUri in POST /auction/create (images field)
+    // Return URL (keeping same response format for backwards compatibility)
     return res.json({
-      cid,
-      ipfsUri: `ipfs://${cid}`,
-      gatewayUrl: `https://gateway.pinata.cloud/ipfs/${cid}`
+      cid: result.public_id,  // Use public_id as identifier
+      ipfsUri: result.secure_url,  // For compatibility
+      gatewayUrl: result.secure_url  // Fast Cloudinary URL
     });
   } catch (err) {
-    console.error("IPFS upload error:", err);
+    console.error("Product image upload error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -128,23 +131,24 @@ router.post("/ipfs/multiple", authMiddleware, upload.array("files", 10), async (
     const uploadResults = [];
     const errors = [];
 
-    // Upload each file to IPFS
+    // Upload each file to Cloudinary
     for (const file of req.files) {
       try {
         const filePath = file.path;
 
-        const pinResult = await uploadFileToPinata(filePath, {
-          pinataMetadata: {
-            name: file.originalname
-          }
+        const result = await cloudinary.uploader.upload(filePath, {
+          folder: "auction_images",
+          transformation: [
+            { width: 800, height: 800, crop: "limit" },
+            { quality: "auto:good" }
+          ]
         });
 
-        const cid = pinResult.IpfsHash;
         uploadResults.push({
           filename: file.originalname,
-          cid,
-          ipfsUri: `ipfs://${cid}`,
-          gatewayUrl: `https://gateway.pinata.cloud/ipfs/${cid}`
+          cid: result.public_id,
+          ipfsUri: result.secure_url,
+          gatewayUrl: result.secure_url  // Fast Cloudinary URL
         });
 
         // Remove local file
@@ -170,7 +174,7 @@ router.post("/ipfs/multiple", authMiddleware, upload.array("files", 10), async (
     });
 
   } catch (err) {
-    console.error("Multiple IPFS upload error:", err);
+    console.error("Multiple image upload error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
