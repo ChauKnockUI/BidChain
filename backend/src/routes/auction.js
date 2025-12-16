@@ -13,45 +13,82 @@ const { validateBidRequest, processBid, handleBidLocking } = require("../middlew
 const { deployAuctionContract } = require("../blockchain/deploy");
 const ethers = require("ethers");
 
-// ========== API LẤY SỐ DƯ ==========
+// Import wallet contract module at startup (will log loading status)
+const { getOnChainBalance, isWalletContractAvailable, WALLET_CONTRACT_ADDRESS } = require('../blockchain/wallet-contract');
+console.log('📋 On-chain balance status:', isWalletContractAvailable() ? '✅ ENABLED' : '❌ DISABLED');
+
+// ========== API LẤY SỐ DƯ (ON-CHAIN) ==========
 router.get("/wallet/balance", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // ĐẢM BẢO balance_eth và locked_eth là STRING wei
-    const balanceWei = user.balance_eth.toString(); // luôn là string
-    const lockedWei = user.locked_eth.toString();
+    // Try to get balance from on-chain BidChainWallet contract
+    const { getOnChainBalance, isWalletContractAvailable } = require('../blockchain/wallet-contract');
+
+    let balanceWei, lockedWei, availableWei;
+    let source = 'database'; // Track data source
+
+    // DEBUG: Log conditions
+    console.log('🔍 DEBUG: Checking on-chain conditions:');
+    console.log('   - isWalletContractAvailable():', isWalletContractAvailable());
+    console.log('   - user.wallet_address:', user.wallet_address || 'NOT SET');
+
+    if (isWalletContractAvailable() && user.wallet_address) {
+      try {
+        console.log('📡 Calling getOnChainBalance for', user.wallet_address);
+        const onChainBalance = await getOnChainBalance(user.wallet_address);
+        balanceWei = onChainBalance.total;
+        lockedWei = onChainBalance.locked;
+        availableWei = onChainBalance.available;
+        source = 'blockchain';
+        console.log(`✅ Balance from BLOCKCHAIN: ${balanceWei} wei`);
+      } catch (chainError) {
+        console.warn('⚠️ On-chain balance failed, falling back to DB:', chainError.message);
+        balanceWei = user.balance_eth.toString();
+        lockedWei = user.locked_eth.toString();
+        availableWei = (BigInt(balanceWei) - BigInt(lockedWei)).toString();
+      }
+    } else {
+      console.log('📦 Using DATABASE balance (on-chain not available or no wallet)');
+      balanceWei = user.balance_eth.toString();
+      lockedWei = user.locked_eth.toString();
+      availableWei = (BigInt(balanceWei) - BigInt(lockedWei)).toString();
+    }
 
     const balanceEth = weiToEth(balanceWei);
     const lockedEth = weiToEth(lockedWei);
-    const availableEth = balanceEth - lockedEth;
+    const availableEth = weiToEth(availableWei);
 
     const balanceVnd = weiToVnd(balanceWei);
     const lockedVnd = weiToVnd(lockedWei);
-    const availableVnd = weiToVnd(ethers.utils.parseUnits(availableEth.toFixed(18), 18).toString());
+    const availableVnd = weiToVnd(availableWei);
 
     res.json({
       wallet_address: user.wallet_address,
       balance_eth: balanceEth.toFixed(6),
       locked_eth: lockedEth.toFixed(6),
-      available_eth: availableEth < 0 ? 0 : availableEth.toFixed(6),
+      available_eth: availableEth < 0 ? "0" : availableEth.toFixed(6),
 
       balance_vnd: balanceVnd,
       locked_vnd: lockedVnd,
-      available_vnd: availableVnd,
+      available_vnd: availableVnd < 0 ? 0 : availableVnd,
 
       formatted_balance: formatVnd(balanceVnd),
       formatted_locked: formatVnd(lockedVnd),
-      formatted_available: formatVnd(availableVnd),
+      formatted_available: formatVnd(availableVnd < 0 ? 0 : availableVnd),
       formatted_balance_eth: formatEth(balanceWei),
-      formatted_available_eth: formatEth(ethers.utils.parseUnits(availableEth.toFixed(18), 18).toString())
+      formatted_available_eth: formatEth(availableWei),
+
+      data_source: source,
+      on_chain: source === 'blockchain'
     });
   } catch (error) {
     console.error('Error getting balance:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 // ========== API ĐẶT GIÁ (BID) ==========
 router.post("/bid", authMiddleware, validateBidRequest, processBid, handleBidLocking, emitBidEvents, async (req, res) => {
