@@ -17,7 +17,7 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// Lấy thông tin hồ sơ của tôi
+// Lấy thông tin hồ sơ của tôi (với ON-CHAIN balance)
 router.get("/me", authMiddleware, async (req, res) => {
   try {
     // req.user được gán từ authMiddleware
@@ -25,7 +25,32 @@ router.get("/me", authMiddleware, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.json(user);
+
+    // Convert user to plain object to allow modification
+    const userObj = user.toObject();
+
+    // ========== OVERRIDE WITH ON-CHAIN BALANCE ==========
+    try {
+      const { getOnChainBalance, isWalletContractAvailable } = require('../blockchain/wallet-contract');
+
+      if (isWalletContractAvailable() && user.wallet_address) {
+        console.log('📡 /me: Fetching on-chain balance for', user.wallet_address);
+        const onChainBalance = await getOnChainBalance(user.wallet_address);
+
+        // Override database balance with on-chain balance
+        userObj.balance_eth = onChainBalance.total;
+        userObj.locked_eth = onChainBalance.locked;
+        userObj.balance_source = 'blockchain';
+        console.log('✅ /me: Balance from blockchain:', onChainBalance.total, 'wei');
+      } else {
+        userObj.balance_source = 'database';
+      }
+    } catch (balanceError) {
+      console.warn('⚠️ /me: On-chain balance failed:', balanceError.message);
+      userObj.balance_source = 'database';
+    }
+
+    res.json(userObj);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

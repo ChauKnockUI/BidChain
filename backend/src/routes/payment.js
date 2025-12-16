@@ -169,15 +169,32 @@ async function handlePaymentSuccess(orderId, depositId, source = "unknown") {
       funding_tx_hash: receipt.transactionHash,
     });
 
-    // Fix balance: Dùng BigInt cho wei (giả sử balance_eth lưu wei string)
+    // ========== ON-CHAIN DEPOSIT TO BIDCHAINWALLET ==========
+    // Deposit to central wallet contract for on-chain balance tracking
+    let walletDepositTx = null;
+    try {
+      const { depositForUser, isWalletContractAvailable } = require('../blockchain/wallet-contract');
+
+      if (isWalletContractAvailable()) {
+        console.log(`${source}: Depositing to BidChainWallet contract...`);
+        const walletResult = await depositForUser(deposit.user_id.wallet_address, amountWeiStr);
+        walletDepositTx = walletResult.txHash;
+        console.log(`${source}: ✅ On-chain wallet deposit TX: ${walletDepositTx}`);
+      }
+    } catch (walletError) {
+      console.error(`${source}: ⚠️ BidChainWallet deposit failed:`, walletError.message);
+      // Continue - ETH transfer to personal wallet already succeeded
+    }
+
+    // Fix balance: Update MongoDB as cache (primary source is now blockchain)
     const user = await User.findById(deposit.user_id._id);
-    const currentBalanceWei = BigInt(user.balance_eth || 0n);  // Parse string to BigInt
-    const addAmountWei = ethers.BigNumber.from(amountWeiStr).toBigInt();  // BigNumber → BigInt
-    const newBalanceWei = currentBalanceWei + addAmountWei;  // BigInt add: Chính xác!
+    const currentBalanceWei = BigInt(user.balance_eth || 0n);
+    const addAmountWei = ethers.BigNumber.from(amountWeiStr).toBigInt();
+    const newBalanceWei = currentBalanceWei + addAmountWei;
 
     console.log(`${source}: Balance update - Current wei: ${currentBalanceWei}, Add wei: ${addAmountWei}, New wei: ${newBalanceWei}`);
 
-    // Lưu string vào DB
+    // Lưu string vào DB (cache - blockchain is source of truth)
     const updateResult = await User.findByIdAndUpdate(
       deposit.user_id._id,
       { $set: { balance_eth: newBalanceWei.toString() } },
@@ -198,8 +215,8 @@ async function handlePaymentSuccess(orderId, depositId, source = "unknown") {
       amount_eth_wei: amountWeiStr  // Thêm field wei nếu cần
     });
 
- console.log(`${source}: COMPLETED - Order ${orderId}, ETH sent to ${deposit.user_id.wallet_address}`);
- await emitDepositSuccess(deposit.user_id._id, deposit.amount_vnd, global.io);
+    console.log(`${source}: COMPLETED - Order ${orderId}, ETH sent to ${deposit.user_id.wallet_address}`);
+    await emitDepositSuccess(deposit.user_id._id, deposit.amount_vnd, global.io);
   } catch (err) {
     console.error(`${source}: Error processing ${orderId}:`, err);
     await DepositRequest.findByIdAndUpdate(depositId, {

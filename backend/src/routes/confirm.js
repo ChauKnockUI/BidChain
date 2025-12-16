@@ -61,30 +61,47 @@ router.post('/:id', authMiddleware, async (req, res) => {
             }
         }
 
-        // Update Seller Balance (Off-chain)
-        // Now we release the funds to the seller
+        // Update Seller Balance - Now using ON-CHAIN settlement
+        // The BidChainWallet contract transfers from winner's locked balance to seller
         const winningBid = await require('../models/Bid').findOne({
             auction_id: auction._id,
             status: 'WINNING'
         });
 
         if (winningBid) {
-            const bidAmountBigInt = BigInt(winningBid.amount_wei);
+            const bidAmountWei = winningBid.amount_wei.toString();
+            const winner = await User.findById(auction.highest_bidder_id);
             const seller = await User.findById(auction.seller_id._id);
+
+            // ========== ON-CHAIN SETTLEMENT ==========
+            let settlementTxHash = null;
+            try {
+                const { settleBid, isWalletContractAvailable } = require('../blockchain/wallet-contract');
+
+                if (isWalletContractAvailable() && auction.blockchain_id && winner?.wallet_address && seller?.wallet_address) {
+                    console.log(`💸 Settling on-chain: ${bidAmountWei} wei from ${winner.wallet_address} to ${seller.wallet_address}...`);
+                    const result = await settleBid(
+                        winner.wallet_address,
+                        seller.wallet_address,
+                        auction.blockchain_id,
+                        bidAmountWei
+                    );
+                    settlementTxHash = result.txHash;
+                    console.log(`✅ On-chain settlement successful! TX: ${settlementTxHash}`);
+                }
+            } catch (settleError) {
+                console.error('⚠️ On-chain settlement failed:', settleError.message);
+                // Fall back to off-chain DB update
+            }
+
+            // Update MongoDB as cache (off-chain fallback and for display)
             const sellerBalanceBigInt = BigInt(seller.balance_eth || "0");
-
-            console.log(`DEBUG: Seller ${seller._id}`);
-            console.log(`DEBUG: Old Balance: ${sellerBalanceBigInt.toString()}`);
-            console.log(`DEBUG: Adding Amount: ${bidAmountBigInt.toString()}`);
-
-            const newSellerBalance = (sellerBalanceBigInt + bidAmountBigInt).toString();
-
-            console.log(`DEBUG: New Balance: ${newSellerBalance}`);
+            const newSellerBalance = (sellerBalanceBigInt + BigInt(bidAmountWei)).toString();
 
             await User.findByIdAndUpdate(seller._id, {
                 $set: { balance_eth: newSellerBalance }
             });
-            console.log(`Seller balance updated: +${formatVnd(winningBid.amount_vnd)}`);
+            console.log(`Seller balance updated (cache): +${formatVnd(winningBid.amount_vnd)}`);
         }
 
         // Update Auction Status

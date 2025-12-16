@@ -285,6 +285,32 @@ const handleBidLocking = async (req, res, next) => {
       console.log('ℹ️ Auction has no blockchain_id, skipping on-chain recording');
     }
 
+    // ========== ON-CHAIN BALANCE LOCK/UNLOCK ==========
+    // Lock new bid amount and unlock previous bidder on BidChainWallet contract
+    try {
+      const { lockUserBalance, unlockUserBalance, isWalletContractAvailable } = require('../blockchain/wallet-contract');
+
+      if (isWalletContractAvailable() && auction.blockchain_id) {
+        // Lock current bidder's funds on-chain
+        console.log(`🔒 Locking ${amountWei} wei on-chain for user ${user.wallet_address}...`);
+        await lockUserBalance(user.wallet_address, auction.blockchain_id, amountWei);
+        console.log(`✅ On-chain lock successful!`);
+
+        // Unlock previous bidder if different user
+        if (previousBidder && previousBidder.toString() !== user._id.toString()) {
+          const oldUser = await User.findById(previousBidder);
+          if (oldUser && oldUser.wallet_address) {
+            const oldPriceWei = auction.current_price.toString();
+            console.log(`🔓 Unlocking ${oldPriceWei} wei on-chain for previous bidder ${oldUser.wallet_address}...`);
+            await unlockUserBalance(oldUser.wallet_address, auction.blockchain_id, oldPriceWei);
+            console.log(`✅ On-chain unlock successful!`);
+          }
+        }
+      }
+    } catch (walletError) {
+      console.error('⚠️ On-chain balance lock/unlock failed (bid still valid):', walletError.message);
+    }
+
     req.bidResult = {
       bid: newBid,
       previousBidder
