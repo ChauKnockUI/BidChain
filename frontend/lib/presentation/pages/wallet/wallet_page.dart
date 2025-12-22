@@ -58,9 +58,7 @@ class _WalletPageState extends State<WalletPage>
   Widget build(BuildContext context) {
     return BlocListener<PaymentBloc, PaymentState>(
       listener: (context, state) {
-        if (state is PaymentLoading) {
-          Toast.show(context, message: 'Processing...', type: ToastType.info);
-        } else if (state is DepositSuccess) {
+        if (state is DepositSuccess) {
           // Show success dialog with QR
           _showDepositSuccessDialog(state);
           // Refresh user balance immediately
