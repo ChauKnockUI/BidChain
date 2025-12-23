@@ -10,6 +10,8 @@ import '../../bloc/auth/auth_state.dart';
 import '../../bloc/auction_detail/auction_detail_bloc.dart';
 import '../../bloc/auction_detail/auction_detail_event.dart';
 import '../../bloc/auction_detail/auction_detail_state.dart';
+import '../../bloc/chat/chat_bloc.dart';
+import '../chat/chat_screen.dart';
 import '../../widgets/auction/bid_history_card.dart';
 import '../../widgets/auction/countdown_timer.dart';
 import '../../widgets/auction/image_gallery.dart';
@@ -36,6 +38,55 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     // Dispatch event to load auction details when page initializes
     context.read<AuctionDetailBloc>().add(
       LoadAuctionDetail(auctionId: widget.auctionId),
+    );
+  }
+
+  /// Open chat with auction context
+  void _openChatWithContext(BuildContext context, AuctionDetailState state) {
+    // Extract auction data from state
+    Map<String, dynamic>? auctionData;
+    
+    if (state is AuctionDetailLoaded) {
+      final auction = state.auction;
+      auctionData = {
+        'id': widget.auctionId,
+        'title': auction.title,
+        'description': auction.description,
+        'category': auction.categoryId ?? 'N/A',
+        'current_price': auction.currentPriceVnd,
+        'start_price': auction.startPriceVnd,
+        'step_price': auction.stepPriceVnd,
+        'bid_count': auction.bidCount,
+        'end_time': auction.endTime.toIso8601String(),
+        'status': auction.status,
+        'seller_name': auction.sellerName,
+      };
+    }
+
+
+    // Show chat dialog
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.transparent,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: 90,
+          top: 60,
+        ),
+        child: BlocProvider.value(
+          value: context.read<ChatBloc>(),
+          child: ChatScreen(
+            auctionId: widget.auctionId,
+            auctionData: auctionData,
+            onClose: () => Navigator.pop(dialogContext),
+          ),
+        ),
+      ),
     );
   }
 
@@ -86,6 +137,13 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
             title: 'Chi tiết đấu giá',
             leading: const CustomBackButton(color: AppColors.accent),
             actions: [
+              // Chat with AI button
+              IconButton(
+                icon: const Icon(Icons.smart_toy_outlined),
+                color: AppColors.accent,
+                tooltip: 'Hỏi BidBot về sản phẩm',
+                onPressed: () => _openChatWithContext(context, state),
+              ),
               IconButton(
                 icon: const Icon(Icons.share_outlined),
                 color: AppColors.accent,

@@ -27,6 +27,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       currentAuctionId = event.auctionId;
       currentAuctionData = event.auctionData;
 
+      // Set auction context on gemini service
+      geminiService.setAuctionContext(event.auctionData);
+
       // Load chat history from local storage
       await geminiService.loadChatHistory();
 
@@ -86,10 +89,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   /// Emit welcome message
   void _emitWelcomeMessage(Emitter<ChatState> emit) {
     const uuid = Uuid();
+    String welcomeContent = currentAuctionData != null
+        ? '👋 Xin chào! Tôi là BidBot - trợ lý đấu giá của bạn.\n\nTôi thấy bạn đang xem **${currentAuctionData!['title'] ?? 'sản phẩm này'}**.\n\nBạn có thể hỏi tôi về:\n• Thông tin sản phẩm này\n• Giá cả có hợp lý không\n• Cách đặt giá\n• An toàn giao dịch'
+        : '👋 Xin chào! Tôi là BidBot - trợ lý đấu giá thông minh của BidChain.\n\nTôi có thể giúp bạn:\n• Thông tin sản phẩm\n• Gợi ý mức giá hợp lý\n• Hướng dẫn đấu giá\n• An toàn giao dịch blockchain\n\nHãy hỏi tôi bất cứ điều gì!';
     final welcomeMessage = ChatMessageModel(
       id: uuid.v4(),
-      content:
-          'Hello! I\'m here to help you with questions about products, prices, trends, and bidding strategies. What can I help you with today?',
+      content: welcomeContent,
       timestamp: DateTime.now(),
       isUserMessage: false,
     );
@@ -129,15 +134,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         ),
       );
 
-      // Build prompt with auction context if available
-      String prompt = event.userMessage;
-      if (currentAuctionData != null) {
-        final context = geminiService.formatAuctionContext(currentAuctionData!);
-        prompt = '$context\n\nUser question: $prompt';
+      // Update auction context if new data provided
+      if (event.auctionData != null) {
+        currentAuctionData = event.auctionData;
+        geminiService.setAuctionContext(event.auctionData);
       }
 
-      // Get AI response
-      final aiResponse = await geminiService.sendMessage(prompt);
+      // Get AI response - context is already included in geminiService
+      final aiResponse = await geminiService.sendMessage(event.userMessage);
 
       // Create AI message
       final aiMessage = ChatMessageModel(
@@ -203,7 +207,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       final welcomeMessage = ChatMessageModel(
         id: uuid.v4(),
         content:
-            'Hello! I\'m here to help you with questions about products, prices, trends, and bidding strategies. What can I help you with today?',
+            '👋 Xin chào! Tôi là BidBot - trợ lý đấu giá thông minh của BidChain.\n\nTôi có thể giúp bạn:\n• Thông tin sản phẩm\n• Gợi ý mức giá hợp lý\n• Hướng dẫn đấu giá\n• An toàn giao dịch blockchain\n\nHãy hỏi tôi bất cứ điều gì!',
         timestamp: DateTime.now(),
         isUserMessage: false,
       );

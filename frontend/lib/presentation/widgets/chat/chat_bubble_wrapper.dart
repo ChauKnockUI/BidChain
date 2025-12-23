@@ -4,8 +4,15 @@ import '../chat/floating_chat_bubble.dart';
 
 class ChatBubbleWrapper extends StatefulWidget {
   final Widget child;
+  final String? auctionId;
+  final Map<String, dynamic>? auctionData;
 
-  const ChatBubbleWrapper({super.key, required this.child});
+  const ChatBubbleWrapper({
+    super.key, 
+    required this.child,
+    this.auctionId,
+    this.auctionData,
+  });
 
   @override
   State<ChatBubbleWrapper> createState() => _ChatBubbleWrapperState();
@@ -21,8 +28,8 @@ class _ChatBubbleWrapperState extends State<ChatBubbleWrapper> {
         widget.child,
         if (_isChatOpen)
           ChatScreen(
-            auctionId: null,
-            auctionData: null,
+            auctionId: widget.auctionId,
+            auctionData: widget.auctionData,
             onClose: () {
               setState(() {
                 _isChatOpen = false;

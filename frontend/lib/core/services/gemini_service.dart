@@ -9,10 +9,81 @@ class GeminiService {
   late List<Map<String, dynamic>> _chatHistory;
   static const String _storageKey = 'chat_history';
   final AuctionDataSource _auctionDataSource = AuctionDataSource();
+  
+  // Current auction context
+  Map<String, dynamic>? _currentAuctionContext;
 
   GeminiService() : apiKey = GeminiConfig.apiKey {
     _chatHistory = [];
   }
+
+  /// Set current auction context for chatbot
+  void setAuctionContext(Map<String, dynamic>? auctionData) {
+    _currentAuctionContext = auctionData;
+    if (auctionData != null) {
+      print('[CHATBOT] Auction context set: ${auctionData['title']}');
+    } else {
+      print('[CHATBOT] Auction context cleared');
+    }
+  }
+
+  /// Build auction context string for AI
+  String _buildAuctionContextString() {
+    if (_currentAuctionContext == null) return '';
+    
+    final auction = _currentAuctionContext!;
+    final endTime = auction['end_time'];
+    String timeRemaining = 'N/A';
+    
+    if (endTime != null) {
+      try {
+        final end = DateTime.parse(endTime.toString());
+        final now = DateTime.now();
+        final diff = end.difference(now);
+        if (diff.isNegative) {
+          timeRemaining = 'Đã kết thúc';
+        } else if (diff.inDays > 0) {
+          timeRemaining = '${diff.inDays} ngày ${diff.inHours % 24} giờ';
+        } else if (diff.inHours > 0) {
+          timeRemaining = '${diff.inHours} giờ ${diff.inMinutes % 60} phút';
+        } else {
+          timeRemaining = '${diff.inMinutes} phút';
+        }
+      } catch (e) {
+        timeRemaining = 'N/A';
+      }
+    }
+
+    return '''
+
+📦 THÔNG TIN PHIÊN ĐẤU GIÁ HIỆN TẠI:
+- Tên sản phẩm: ${auction['title'] ?? 'N/A'}
+- Mô tả: ${auction['description'] ?? 'N/A'}
+- Danh mục: ${auction['category'] ?? auction['category_name'] ?? 'N/A'}
+- Giá hiện tại: ${_formatPrice(auction['current_price'])} VND
+- Giá khởi điểm: ${_formatPrice(auction['start_price'])} VND
+- Bước giá: ${_formatPrice(auction['step_price'])} VND
+- Số lượt đặt giá: ${auction['bid_count'] ?? 0}
+- Thời gian còn lại: $timeRemaining
+- Trạng thái: ${auction['status'] ?? 'N/A'}
+- Verified on-chain: ${auction['blockchain_id'] != null ? 'Có ✅' : 'Chưa'}
+- Contract address: ${auction['contract_address'] ?? 'N/A'}
+''';
+  }
+
+  String _formatPrice(dynamic price) {
+    if (price == null) return 'N/A';
+    try {
+      final numPrice = price is String ? int.tryParse(price) ?? 0 : price as int;
+      return numPrice.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (Match m) => '${m[1]},',
+      );
+    } catch (e) {
+      return price.toString();
+    }
+  }
+
 
   /// Load chat history from local storage
   Future<void> loadChatHistory() async {
@@ -117,12 +188,13 @@ Please reference ONLY these real items when answering. Do not make up or assume 
       await _saveChatHistory();
 
       final url = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$apiKey',
+        'https://generativelanguage.googleapis.com/v1/models/${GeminiConfig.modelName}:generateContent?key=$apiKey',
       );
 
-      // Prepare the message with system context
+      // Build context with auction info if available
+      final auctionContext = _buildAuctionContextString();
       final messageWithContext =
-          '${GeminiConfig.systemPrompt}\n\nUser: $contextualMessage';
+          '${GeminiConfig.systemPrompt}$auctionContext\n\nUser: $contextualMessage';
 
       final requestBody = {
         'contents': [
@@ -179,12 +251,20 @@ Please reference ONLY these real items when answering. Do not make up or assume 
         }
         return 'API configuration error: $errorMessage';
       } else if (response.statusCode == 429) {
-        return '⏱️ Rate limit exceeded. Please try again later.';
+        print('🚫 RATE LIMIT: ${response.body}');
+        // Parse the error to get retry time
+        try {
+          final errorBody = jsonDecode(response.body);
+          final retryAfter = errorBody['error']?['details']?[0]?['retryDelay'] ?? 'unknown';
+          print('🚫 Retry after: $retryAfter');
+        } catch (_) {}
+        return '⏱️ Đang bị giới hạn. Vui lòng chờ 1 phút rồi thử lại.';
       } else if (response.statusCode == 401) {
-        return '❌ Unauthorized: Invalid API key. Please check your GEMINI_API_KEY configuration.';
+        print('🔑 AUTH ERROR: ${response.body}');
+        return '❌ API key không hợp lệ. Kiểm tra lại GEMINI_API_KEY.';
       } else {
         print('API Error: ${response.statusCode} - ${response.body}');
-        return 'Error: ${response.statusCode} - ${response.reasonPhrase}';
+        return 'Lỗi: ${response.statusCode} - ${response.reasonPhrase}';
       }
     } catch (e) {
       print('Unexpected error: $e');
