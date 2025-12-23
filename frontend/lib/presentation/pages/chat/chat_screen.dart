@@ -105,25 +105,43 @@ class _ChatScreenState extends State<ChatScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Chat Assistant',
+                          'BidBot - Trợ lý đấu giá',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            widget.onClose?.call();
-                            if (Navigator.canPop(context)) {
-                              Navigator.pop(context);
-                            }
-                          },
-                          child: Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 20,
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Clear history button
+                            GestureDetector(
+                              onTap: () {
+                                context.read<ChatBloc>().add(const ClearChatHistoryEvent());
+                              },
+                              child: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.white70,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // Close button
+                            GestureDetector(
+                              onTap: () {
+                                widget.onClose?.call();
+                                if (Navigator.canPop(context)) {
+                                  Navigator.pop(context);
+                                }
+                              },
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -151,7 +169,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Start a conversation',
+                                    'Bắt đầu cuộc trò chuyện',
                                     style: TextStyle(
                                       color: AppColors.grey,
                                       fontSize: 12,
@@ -249,7 +267,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   }
                                 },
                                 decoration: InputDecoration(
-                                  hintText: 'Type message...',
+                                  hintText: 'Nhập tin nhắn...',
                                   hintStyle: TextStyle(
                                     color: AppColors.grey,
                                     fontSize: 12,
@@ -338,7 +356,11 @@ class _ChatScreenState extends State<ChatScreen> {
     if (message.isEmpty) return;
 
     context.read<ChatBloc>().add(
-      SendMessageEvent(message, auctionId: widget.auctionId),
+      SendMessageEvent(
+        message, 
+        auctionId: widget.auctionId,
+        auctionData: widget.auctionData,
+      ),
     );
     _messageController.clear();
   }

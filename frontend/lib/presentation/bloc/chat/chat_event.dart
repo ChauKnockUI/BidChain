@@ -23,11 +23,12 @@ class InitializeChatEvent extends ChatEvent {
 class SendMessageEvent extends ChatEvent {
   final String userMessage;
   final String? auctionId;
+  final Map<String, dynamic>? auctionData;
 
-  const SendMessageEvent(this.userMessage, {this.auctionId});
+  const SendMessageEvent(this.userMessage, {this.auctionId, this.auctionData});
 
   @override
-  List<Object?> get props => [userMessage, auctionId];
+  List<Object?> get props => [userMessage, auctionId, auctionData];
 }
 
 /// Load chat history
